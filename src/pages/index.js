@@ -1,5 +1,5 @@
 // pages/index.js
-import LanguageSwitcher from '@/dashboard/LanguageSwitcher';
+import LanguageSwitcher from '../components/dashboard/LanguageSwitcher';
 import Head from 'next/head';
 import { useEffect, useState, useContext } from 'react';
 import { useAuth } from '../context/AuthContext';

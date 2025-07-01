@@ -6,7 +6,8 @@ import { format, parseISO, isToday, isValid, intervalToDuration } from 'date-fns
 import { fr } from 'date-fns/locale';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db, storage } from '../../lib/firebase'; // Ensure this path is correct
+import { db, storage } from '../../../lib/firebase';
+ // Ensure this path is correct
 import { useAuth } from '../../context/AuthContext'; 
 
 // Avatars NocaFlow prédéfinis (réutilisés ici)

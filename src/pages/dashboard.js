@@ -32,7 +32,7 @@ import {
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
-} from '../dashboard/modals/modals'; // <-- Import depuis le fichier unique modals.js
+} from '../components/dashboard/modals/modals'; // <-- Import depuis le fichier unique modals.js
 
 
 
