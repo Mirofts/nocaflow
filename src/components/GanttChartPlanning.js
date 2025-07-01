@@ -1,5 +1,5 @@
 // components/dashboard/GanttChartPlanning.js
-import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'; // Re-verified: ensure all hooks are explicitly imported
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { DashboardCard } from './DashboardCard';
 import { motion } from 'framer-motion';
 import { format, addDays, differenceInDays, parseISO, isValid, isToday as checkIsToday, addMonths, subMonths } from 'date-fns';
@@ -56,7 +56,7 @@ const GanttTaskBar = ({ task, totalDaysInPeriod, startDate, t, onEditTask, onVal
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {/* Edit Button */}
                 <motion.button
-                    onClick={(e) => { e.stopPropagation(); onEditTask(task); }} // Stop propagation to prevent triggering row click
+                    onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
                     className={`p-1 rounded-full transition-colors
                                 ${isDarkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-white/30 text-white'}`}
                     whileHover={{ scale: 1.1 }}
@@ -68,7 +68,7 @@ const GanttTaskBar = ({ task, totalDaysInPeriod, startDate, t, onEditTask, onVal
                 {/* Validate/Complete Button (only if not already completed) */}
                 {!task.completed && (
                     <motion.button
-                        onClick={(e) => { e.stopPropagation(); onValidateTask(task.id); }} // Stop propagation
+                        onClick={(e) => { e.stopPropagation(); onValidateTask(task.id); }}
                         className={`p-1 rounded-full transition-colors
                                     ${isDarkMode ? 'hover:bg-green-700 text-green-300' : 'hover:bg-green-200/50 text-green-700'}`}
                         whileHover={{ scale: 1.1 }}
@@ -110,7 +110,7 @@ const GanttChartPlanning = forwardRef((props, ref) => {
     }, []);
 
     useImperativeHandle(ref, () => ({
-        toggleFullScreen: () => { // toggleFullScreen is defined here as a function within useCallback for useImperativeHandle
+        toggleFullScreen: () => {
             const element = ganttContainerRef.current;
             if (element) {
                 if (!document.fullscreenElement) {
@@ -130,8 +130,8 @@ const GanttChartPlanning = forwardRef((props, ref) => {
                         document.mozCancelFullScreen();
                     } else if (document.webkitExitFullscreen) {
                         document.webkitExitFullscreen();
-                    } else if (document.msExitFullScreen) {
-                        document.msExitFullScreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
                     }
                 }
             }
@@ -201,7 +201,7 @@ const GanttChartPlanning = forwardRef((props, ref) => {
             }
             title={t('gantt_planning_title', 'Planning des Tâches Équipe')}
             className={`${className} ${isFullScreen ? 'fixed inset-0 z-[1000] rounded-none' : ''}`}
-            onFullscreenClick={() => { // Call toggleFullScreen directly here
+            onFullscreenClick={() => {
                 const element = ganttContainerRef.current;
                 if (element) {
                     if (!document.fullscreenElement) {
@@ -221,8 +221,8 @@ const GanttChartPlanning = forwardRef((props, ref) => {
                             document.mozCancelFullScreen();
                         } else if (document.webkitExitFullscreen) {
                             document.webkitExitFullscreen();
-                        } else if (document.msExitFullScreen) {
-                            document.msExitFullScreen();
+                        } else if (document.msExitFullscreen) {
+                            document.msExitFullscreen();
                         }
                     }
                 }
@@ -316,5 +316,7 @@ const GanttChartPlanning = forwardRef((props, ref) => {
         </DashboardCard>
     );
 });
+
+GanttChartPlanning.displayName = 'GanttChartPlanning'; // Added for React.forwardRef
 
 export default GanttChartPlanning;
