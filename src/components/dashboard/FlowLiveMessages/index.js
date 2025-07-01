@@ -1,169 +1,500 @@
 // src/components/dashboard/FlowLiveMessages/index.js
 import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { useAuth } from '../../../context/AuthContext'; // Chemin vers le contexte
-import { useTheme } from '../../../context/ThemeContext'; // Chemin vers le contexte
-import { useTranslation } from 'react-i18next'; // Hook de traduction
-import { initialMockData } from '../../../lib/mockData'; // Données mockées
-import { db, auth, storage } from '../../../lib/firebase'; // Services Firebase
+import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import { initialMockData } from '../../../lib/mockData';
+import { db, auth, storage } from '../../../lib/firebase';
 import { collection, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, serverTimestamp, arrayUnion, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { format, isToday, isYesterday, isSameWeek, isSameDay, isSameYear, parseISO, isValid, differenceInMinutes, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 // IMPORTS CORRIGÉS DES COMPOSANTS ENFANTS :
-import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar'; // Correct si dans le même dossier
-import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay'; // Correct si dans le même dossier
-import FlowLiveMessagesInput from './FlowLiveMessagesInput';   // Correct si dans le même dossier
-import NewDiscussionModal from './modals/NewDiscussionModal'; // Correct si dans ./modals/
+import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
+import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
+import FlowLiveMessagesInput from './FlowLiveMessagesInput';
+import NewDiscussionModal from './modals/NewDiscussionModal';
+import { AssignTaskProjectDeadlineModal } from '../modals/modals'; // Assurez-vous que modals.js exporte cela
 
-// Chemin pour modals.js (contient AssignTaskProjectDeadlineModal)
-// Depuis src/components/dashboard/FlowLiveMessages/, pour atteindre src/components/dashboard/modals/modals.js
-// il faut remonter de FlowLiveMessages (..) puis aller dans modals/modals.js
-import { AssignTaskProjectDeadlineModal } from '../modals/modals'; 
+// Définir le composant principal FlowLiveMessages (précédemment FlowLiveMessagesContainer)
+const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddTaskFromChat, availableTeamMembers }, ref) => {
+    const { currentUser: user } = useAuth();
+    const { isDarkMode } = useTheme();
+    const { t, i18n } = useTranslation('common');
 
-const FlowLiveMessages = forwardRef((props, ref) => {
-  const {
-    // ... other props
-    t // Ensure t is destructured from props
-  } = props;
+    const isGuestMode = !user || user.uid === 'guest_noca_flow';
+    const currentFirebaseUid = user?.uid || (isGuestMode ? 'guest_noca_flow' : null);
+    const currentUserName = user?.displayName || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : 'Moi');
 
-  // ... (other logic)
+    const [activeConversationId, setActiveConversationId] = useState(null);
+    const [activeConversationPartner, setActiveConversationPartner] = useState(null); // Pour les 1-on-1
+    const [activeConversationIsGroup, setActiveConversationIsGroup] = useState(false);
+    const [activeConversationParticipants, setActiveConversationParticipants] = useState([]); // UIDs de tous les participants
+    const [activeConversationName, setActiveConversationName] = useState(''); // Nom de la conversation (pour les groupes)
 
-  // Pass t to useChatLogic
-  const {
-    conversations,
-    internalAvailableTeamMembers,
-    messages,
-    filteredMessages,
-    showMobileSidebar,
-    setShowMobileSidebar,
-    markMessagesAsRead
-  } = useChatLogic({
-    user,
-    currentFirebaseUid,
-    activeConversationId, setActiveConversationId,
-    setActiveConversationPartner, setActiveConversationIsGroup,
-    setActiveConversationParticipants,
-    currentUserName,
-    activeConversationPartner,
-    searchTerm,
-    setConversations, setInternalAvailableTeamMembers, setMessages, setFilteredMessages,
-    t, // <--- Ensure t is passed here
-    formatMessageTimeDisplay, safeToDate, setEphemeralImagePreview, db
-  });
+    const [conversations, setConversations] = useState([]);
+    const [messages, setMessages] = useState([]);
+    const [filteredMessages, setFilteredMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [showNewDiscussionModal, setShowNewDiscussionModal] = useState(false);
+    const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null); // { url, messageId }
+    const [internalAvailableTeamMembers, setInternalAvailableTeamMembers] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
-  // Pass t to useChatActions
-  const {
-    handleSendMessage, handleFileUpload, handleEmoticonClick,
-    handleSendNormalMessage, handleSendEphemeralMessage,
-    handleAttachNormalFile, handleAttachEphemeralFile,
-    openEphemeralImagePreview, closeEphemeralImagePreview
-  } = useChatActions({
-    user, handleLoginPrompt, newMessage, activeConversationId, currentFirebaseUid,
-    t, // <--- Ensure t is passed here
-    setNewMessage, fileInputRef, setEphemeralImagePreview, db, storage
-  });
+    const chatPanelRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const emojiButtonRef = useRef(null);
+    const containerRef = useRef(null); // Pour le mode plein écran
+    const [isFullScreen, setIsFullScreen] = useState(false);
 
-  // ... (other logic)
+    // Initialisation et gestion du mode plein écran
+    useImperativeHandle(ref, () => ({
+        toggleFullScreen: () => {
+            if (containerRef.current) {
+                if (!document.fullscreenElement) {
+                    containerRef.current.requestFullscreen().catch(err => {
+                        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        }
+    }));
 
-  return (
-    <div ref={chatContainerRef} className={`h-full w-full shadow-lg rounded-lg overflow-hidden flex ${isFullScreen ? 'fixed inset-0 z-[1000] rounded-none' : ''} ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-color-bg-secondary text-color-text-primary'}`}>
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+            if (!document.fullscreenElement) {
+                // Si on sort du plein écran via ESC, s'assurer que le bouton mobile est réactivé si besoin
+                if (window.innerWidth < 768) { // Ex: si c'est une taille mobile
+                    setShowMobileSidebar(false);
+                }
+            }
+        };
 
-      <FlowLiveMessagesSidebar
-        // ... other props
-        t={t} // <--- Ensure t is passed here
-      />
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
-      {(activeConversationId || !showMobileSidebar || isFullScreen) ? (
-        <section className={`flex-1 h-full flex flex-col min-h-0 ${showMobileSidebar && !isFullScreen ? 'hidden md:flex' : 'flex w-full'}`}>
-          {/* ... header section, ensure t is used */}
-          <div className={`flex justify-between items-center px-4 py-3 border-b border-color-border-primary flex-shrink-0 ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
-            <button onClick={() => setShowMobileSidebar(true)} className={`md:hidden mr-2 p-1 rounded-full ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`} aria-label={t('back_to_conversations', 'Retour aux conversations')}><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-            <h3 className={`text-base font-semibold truncate max-w-[calc(100%-80px)] ${isDarkMode ? 'text-white' : 'text-color-text-primary'}`}>
-                {activeConversationPartner}
-                {activeConversationIsGroup && <span className={`text-xs ml-2 ${isDarkMode ? 'text-slate-400' : 'text-color-text-secondary'}`}>({t('group', 'Groupe')})</span>}
-            </h3>
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <span className="text-xs text-green-400 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span className="hidden sm:inline">{t('encrypted', 'Chiffré')}</span></span>
-              <button className={`text-purple-500 hover:text-purple-600 text-xs font-medium flex items-center ${isDarkMode ? '' : 'text-color-text-secondary hover:text-purple-700'}`}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 hidden sm:inline-block"><path d="m22 8-6 4 6 4V8Z"/><path d="M14 12H2V4h12v8Z"/></svg><span className="hidden sm:inline">+ {t('meeting', 'Meeting')}</span></button>
-              <button className={`text-purple-500 hover:text-purple-600 text-xs font-medium flex items-center ${isDarkMode ? '' : 'text-color-text-secondary hover:text-purple-700'}`} onClick={handleOpenAddTaskModal}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1 hidden sm:inline-block"><path d="M9 11L12 14L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span className="hidden sm:inline">+ {t('task', 'Tâche')}</span></button>
-              <div className="relative">
-                <button className={`options-menu-button p-1 text-sm font-medium ${isDarkMode ? 'text-purple-500 hover:text-purple-600' : 'text-color-text-secondary hover:text-purple-700'}`} onClick={() => setShowOptionsMenu(!showOptionsMenu)}><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
-                {showOptionsMenu && (
-                  <div className={`options-menu-panel absolute right-0 mt-2 rounded-md shadow-lg py-1 z-10 w-48 ${isDarkMode ? 'bg-gray-700 border border-gray-600' : 'bg-white border border-gray-300'}`}>
-                    <button className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-600 ${isDarkMode ? 'text-white' : 'text-color-text-primary hover:bg-color-bg-hover'}`} onClick={handleSendEphemeralMessage}>{t('send_ephemeral_message', 'Envoyer message éphémère (5min)')}</button>
-                    <button className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-600 ${isDarkMode ? 'text-white' : 'text-color-text-primary hover:bg-color-bg-hover'}`} onClick={handleAttachEphemeralFile}>{t('send_ephemeral_image', 'Envoyer image éphémère (5min)')}</button>
-                    <button className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-600 ${isDarkMode ? 'text-white' : 'text-color-text-primary hover:bg-color-bg-hover'}`}>{t('rename_contact', 'Renommer le contact')}</button>
-                    <button className={`block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-600 ${isDarkMode ? 'text-red-400' : 'text-red-600 hover:bg-color-bg-hover'}`}>{t('block_contact', 'Bloquer le contact')}</button>
-                  </div>
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+        };
+    }, []);
+
+    const handleLoginPrompt = useCallback(() => {
+        alert(t('access_restricted', 'Accès Restreint. Veuillez vous connecter pour accéder à la messagerie en temps réel.'));
+        onLoginClick && onLoginClick();
+    }, [t, onLoginClick]);
+
+    // Formatage de l'heure du message
+    const formatMessageTimeDisplay = useCallback((timestamp) => {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        if (isToday(date)) return format(date, 'HH:mm');
+        if (isYesterday(date)) return t('yesterday', 'Hier') + format(date, ' HH:mm');
+        if (isSameWeek(date, new Date())) return format(date, 'EEEE HH:mm', { locale: fr });
+        if (isSameYear(date, new Date())) return format(date, 'dd MMMM', { locale: fr });
+        return format(date, 'dd/MM/yyyy');
+    }, [t]);
+
+    // Marquer les messages comme lus
+    const markMessagesAsRead = useCallback(async (conversationId, messageIds) => {
+        if (!currentFirebaseUid || !conversationId || messageIds.length === 0) return;
+        const batch = writeBatch(db);
+        messageIds.forEach(messageId => {
+            const messageRef = doc(db, 'conversations', conversationId, 'messages', messageId);
+            batch.update(messageRef, { readBy: arrayUnion(currentFirebaseUid) });
+        });
+        try {
+            await batch.commit();
+        } catch (e) {
+            console.error("Error marking messages as read:", e);
+        }
+    }, [currentFirebaseUid]);
+
+    // Listener des conversations
+    useEffect(() => {
+        if (!currentFirebaseUid) {
+            setConversations([]);
+            return;
+        }
+
+        const q = query(collection(db, 'conversations'), orderBy('lastMessageTime', 'desc'));
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
+            const convs = await Promise.all(snapshot.docs.map(async d => {
+                const data = d.data();
+                let displayName = data.name || t('new_conversation_default', 'Nouvelle Conversation');
+                let photoURL = '';
+                let isGroup = false;
+
+                if (data.participants && data.participants.length > 0) {
+                    if (data.participants.length > 2 || (data.participants.length === 2 && !data.participants.includes(currentFirebaseUid))) {
+                        isGroup = true;
+                        if (!data.name) {
+                            const otherParticipantsUids = data.participants.filter(uid => uid !== currentFirebaseUid);
+                            const userDocs = await Promise.all(otherParticipantsUids.map(uid => getDocs(query(collection(db, 'users'), where('uid', '==', uid)))));
+                            const participantNames = userDocs.map(snap => snap.docs[0]?.data()?.displayName || t('unknown_user', 'Utilisateur')).filter(name => name);
+                            displayName = data.name || t('group_with', 'Groupe avec') + ` ${participantNames.join(', ')}`;
+                        }
+                    } else if (data.participants.length === 2 && data.participants.includes(currentFirebaseUid)) {
+                        const partnerUid = data.participants.find(uid => uid !== currentFirebaseUid);
+                        if (partnerUid) {
+                            const partnerDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', partnerUid)));
+                            displayName = partnerDoc.docs[0]?.data()?.displayName || t('unknown_user', 'Utilisateur');
+                            photoURL = partnerDoc.docs[0]?.data()?.photoURL || '/images/default-avatar.png';
+                        }
+                    } else if (data.participants.length === 1 && data.participants.includes(currentFirebaseUid)) {
+                        displayName = t('guest_you', 'TOI'); // Auto-conversation pour un user seul
+                        photoURL = user?.photoURL || '/images/default-avatar.png';
+                    }
+                }
+
+                const unreadCount = (data.lastMessageReadBy || []).includes(currentFirebaseUid) ? 0 : 1; // Simplified unread for now
+
+                return {
+                    id: d.id,
+                    ...data,
+                    name: displayName,
+                    photoURL: photoURL,
+                    isGroup: isGroup,
+                    unread: unreadCount,
+                    initials: displayName.charAt(0).toUpperCase()
+                };
+            }));
+            setConversations(convs.sort((a,b) => (b.lastMessageTime?.toMillis() || 0) - (a.lastMessageTime?.toMillis() || 0)));
+        });
+
+        return () => unsubscribe();
+    }, [currentFirebaseUid, user, t]);
+
+    // Listener des messages de la conversation active
+    useEffect(() => {
+        if (!activeConversationId) {
+            setMessages([]);
+            return;
+        }
+
+        const messagesColRef = collection(db, 'conversations', activeConversationId, 'messages');
+        const q = query(messagesColRef, orderBy('timestamp'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const newMessages = snapshot.docs.map(d => {
+                const data = d.data();
+                return {
+                    id: d.id,
+                    ...data,
+                    displayTime: formatMessageTimeDisplay(data.timestamp),
+                    status: (data.readBy || []).includes(currentFirebaseUid) ? 'read' : 'sent',
+                    from: (data.senderUid === currentFirebaseUid ? currentUserName : (availableTeamMembers.find(m => m.firebaseUid === data.senderUid)?.name || t('unknown_user', 'Utilisateur')))
+                };
+            });
+            setMessages(newMessages);
+            const unreadMessageIds = snapshot.docs.filter(d => !(d.data().readBy || []).includes(currentFirebaseUid)).map(d => d.id);
+            if (unreadMessageIds.length > 0) {
+                markMessagesAsRead(activeConversationId, unreadMessageIds);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [activeConversationId, currentFirebaseUid, availableTeamMembers, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t]);
+
+    // Défiler vers le bas des messages
+    useEffect(() => {
+        if (chatPanelRef.current) {
+            chatPanelRef.current.scrollTop = chatPanelRef.current.scrollHeight;
+        }
+    }, [messages]);
+
+    // Filtrer les messages pour la recherche (non utilisé dans l'état actuel de FlowLiveMessagesDisplay)
+    useEffect(() => {
+        setFilteredMessages(messages.filter(msg =>
+            msg.content.toLowerCase().includes(searchTerm.toLowerCase())
+        ));
+    }, [searchTerm, messages]);
+
+    // Hooks d'action de chat (simplifiés pour le mock)
+    const handleSendMessage = useCallback(async (isEphemeral = false) => {
+        if (!user) { handleLoginPrompt(); return; }
+        if (newMessage.trim() === '' || !activeConversationId || !currentFirebaseUid) {
+            if (!activeConversationId) alert(t('select_or_create_conversation', "Veuillez sélectionner une conversation ou en créer une nouvelle."));
+            return;
+        }
+        const messagePayload = { content: newMessage.trim(), senderUid: currentFirebaseUid, timestamp: serverTimestamp(), type: 'text', isEphemeral: isEphemeral, duration: isEphemeral ? (5 * 60 * 1000) : null, readBy: [currentFirebaseUid] };
+        try {
+            const messagesColRef = collection(db, 'conversations', activeConversationId, 'messages');
+            await addDoc(messagesColRef, messagePayload);
+            const convRef = doc(db, 'conversations', activeConversationId);
+            await updateDoc(convRef, { lastMessage: newMessage.trim(), lastMessageTime: serverTimestamp() });
+            setNewMessage('');
+        } catch (e) { console.error("Erreur lors de l'envoi du message : ", e); alert(t('send_message_failed', "Échec de l'envoi du message. Vérifiez la console pour plus de détails.")); }
+    }, [newMessage, activeConversationId, currentFirebaseUid, t, user, handleLoginPrompt]);
+
+    const handleFileUpload = useCallback(async (event, isEphemeral = false) => {
+        if (!user) { handleLoginPrompt(); return; }
+        if (!activeConversationId || !currentFirebaseUid) { alert(t('select_conv_and_login', "Veuillez sélectionner une conversation et être connecté.")); return; }
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/') && !file.type.startsWith('application/pdf')) { alert(t('unsupported_file_type', "Seules les images (PNG, JPEG, GIF) et les PDF sont autorisés pour le moment.")); event.target.value = null; return; }
+
+        setNewMessage(t('uploading_file', 'Téléchargement du fichier...'));
+        try {
+            const storageFileRef = ref(storage, `chat_files/${activeConversationId}/${currentFirebaseUid}/${file.name}_${Date.now()}`);
+            const snapshot = await uploadBytes(storageFileRef, file);
+            const fileURL = await getDownloadURL(snapshot.ref);
+            const messagePayload = { content: file.name, senderUid: currentFirebaseUid, timestamp: serverTimestamp(), type: file.type.startsWith('image/') ? 'image' : 'file', fileURL: fileURL, isEphemeral: isEphemeral, duration: isEphemeral ? (5 * 60 * 1000) : null, readBy: [currentFirebaseUid] };
+            const messagesColRef = collection(db, 'conversations', activeConversationId, 'messages');
+            await addDoc(messagesColRef, messagePayload);
+            const convRef = doc(db, 'conversations', activeConversationId);
+            await updateDoc(convRef, { lastMessage: `Fichier: ${file.name}`, lastMessageTime: serverTimestamp() });
+            setNewMessage(''); event.target.value = null;
+        } catch (e) { console.error("Erreur lors du téléchargement du fichier : ", e); alert(t('upload_file_failed', "Échec du téléchargement du fichier. Vérifiez la console.")); setNewMessage(''); event.target.value = null; }
+    }, [activeConversationId, currentFirebaseUid, t, user, handleLoginPrompt]);
+
+    const handleEmoticonClick = useCallback((emoji) => { setNewMessage(prev => prev + emoji); }, []);
+    const handleSendNormalMessage = useCallback(() => { handleSendMessage(false); }, [handleSendMessage]);
+    const handleSendEphemeralMessage = useCallback(() => { handleSendMessage(true); }, [handleSendMessage]);
+    const handleAttachNormalFile = useCallback(() => { if (!user) { handleLoginPrompt(); return; } if (fileInputRef.current) { fileInputRef.current.onchange = (e) => handleFileUpload(e, false); fileInputRef.current.click(); } }, [fileInputRef, handleFileUpload, handleLoginPrompt, user]);
+    const handleAttachEphemeralFile = useCallback(() => { if (!user) { handleLoginPrompt(); return; } if (fileInputRef.current) { fileInputRef.current.onchange = (e) => handleFileUpload(e, true); fileInputRef.current.click(); } }, [fileInputRef, handleFileUpload, handleLoginPrompt, user]);
+    const openEphemeralImagePreview = useCallback(async (fileURL, messageId) => { setEphemeralImagePreview({ url: fileURL, messageId: messageId }); }, []);
+    const closeEphemeralImagePreview = useCallback(() => { setEphemeralImagePreview(null); }, []);
+
+
+    // --- Logique de création de nouvelle discussion ---
+    const handleCreateNewDiscussion = useCallback(async ({ name, email, selectedUids, showNewContact }) => {
+        if (!user) {
+            alert(t('login_to_create_discussion', 'Veuillez vous connecter pour créer une discussion.'));
+            return;
+        }
+
+        let participantUids = new Set([currentFirebaseUid]);
+        if (showNewContact) {
+            if (!name || !email) {
+                alert(t('enter_contact_details', 'Veuillez entrer le nom et l\'email du nouveau contact.'));
+                return;
+            }
+            // Simuler l'ajout d'un nouveau contact (pas d'enregistrement Firebase réel ici pour la démo)
+            console.log(`Simulating invitation to new contact: ${name} (${email})`);
+
+            // Optionnel: Envoyer un email via une API route
+            // try {
+            //     const response = await fetch('/api/send-email', {
+            //         method: 'POST',
+            //         headers: { 'Content-Type': 'application/json' },
+            //         body: JSON.stringify({
+            //             to: email,
+            //             fromEmail: 'noreply@nocaflow.com', // Doit être vérifié dans Resend
+            //             subject: t('invitation_email_subject', 'Invitation à rejoindre NocaFLOW!'),
+            //             htmlContent: t('invitation_email_body_html', "<p>Salut, <p>Vous avez été invité à rejoindre NocaFLOW pour une collaboration fluide et efficace!<p>Cliquez ici pour vous inscrire: <a href='YOUR_APP_INVITATION_LINK_HERE'>Rejoindre NocaFLOW</a></p><p>À bientôt sur NocaFLOW!</p>"),
+            //             newContactName: name // Pour le log côté serveur
+            //         }),
+            //     });
+            //     const data = await response.json();
+            //     if (data.success) {
+            //         alert(t('invitation_sent_success', `Invitation envoyée à %s (%s).`).replace('%s', name).replace('%s', email));
+            //     } else {
+            //         throw new Error(data.error || 'Failed to send email.');
+            //     }
+            // } catch (error) {
+            //     console.error("Failed to send invitation email:", error);
+            //     alert(t('invitation_sent_failed', 'Échec de l\'envoi de l\'invitation. Vérifiez la console pour les détails.'));
+            //     return;
+            // }
+            // Ici, pour une démo, on pourrait ajouter un UID simulé ou réel pour le nouveau contact si on le traque en interne
+            const newContactUid = `simulated-uid-${Date.now()}`;
+            participantUids.add(newContactUid);
+            setInternalAvailableTeamMembers(prev => [...prev, { firebaseUid: newContactUid, name: name, email: email, initials: name.charAt(0).toUpperCase(), color: 'bg-' + ['yellow', 'green', 'blue', 'red', 'purple'][Math.floor(Math.random() * 5)] + '-500' }]);
+
+        } else {
+            if (selectedUids.length === 0) {
+                alert(t('select_members_or_add_contact', 'Veuillez sélectionner au moins un membre de l\'équipe ou ajouter un nouveau contact.'));
+                return;
+            }
+            selectedUids.forEach(uid => participantUids.add(uid));
+        }
+
+        const sortedParticipantUids = Array.from(participantUids).sort();
+        let conversationName = name.trim();
+
+        // Vérifier si une conversation avec exactement ces participants existe déjà
+        const existingConvsQuery = query(collection(db, 'conversations'), where('participants', '==', sortedParticipantUids));
+        const existingConvsSnapshot = await getDocs(existingConvsQuery);
+
+        if (!existingConvsSnapshot.empty) {
+            const existingConv = existingConvsSnapshot.docs[0];
+            setActiveConversationId(existingConv.id);
+            setActiveConversationName(existingConv.data().name || t('existing_conversation', 'Conversation Existante'));
+            setActiveConversationIsGroup(existingConv.data().participants.length > 2);
+            setActiveConversationParticipants(existingConv.data().participants);
+            setActiveConversationPartner(existingConv.data().participants.find(uid => uid !== currentFirebaseUid) || null);
+            setShowNewDiscussionModal(false);
+            console.log("Existing conversation found:", existingConv.id);
+            return;
+        }
+
+        // Si la conversation n'a pas de nom et n'est pas un groupe, générer un nom
+        if (!conversationName && participantUids.size <= 2) {
+            const otherParticipantsUids = Array.from(participantUids).filter(uid => uid !== currentFirebaseUid);
+            if (otherParticipantsUids.length > 0) {
+                const partnerDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', otherParticipantsUids[0])));
+                conversationName = partnerDoc.docs[0]?.data()?.displayName || t('new_conversation_default', 'Nouvelle Conversation');
+            } else {
+                conversationName = t('new_conversation_default', 'Nouvelle Conversation'); // Conversation avec soi-même
+            }
+        } else if (!conversationName && participantUids.size > 2) {
+             conversationName = t('new_group', 'Nouveau Groupe'); // Nom par défaut pour les groupes
+        }
+
+        // Créer une nouvelle conversation
+        try {
+            const newConvRef = await addDoc(collection(db, 'conversations'), {
+                participants: sortedParticipantUids,
+                createdAt: serverTimestamp(),
+                lastMessage: t('conversation_start_message', 'Début de la conversation'),
+                lastMessageTime: serverTimestamp(),
+                name: conversationName,
+                isGroup: participantUids.size > 2,
+                lastMessageReadBy: [currentFirebaseUid]
+            });
+            setActiveConversationId(newConvRef.id);
+            setActiveConversationName(conversationName);
+            setActiveConversationIsGroup(participantUids.size > 2);
+            setActiveConversationParticipants(sortedParticipantUids);
+            setActiveConversationPartner(sortedParticipantUids.find(uid => uid !== currentFirebaseUid) || null);
+            setShowNewDiscussionModal(false);
+            console.log("New conversation created:", newConvRef.id);
+        } catch (error) {
+            console.error("Error creating new discussion:", error);
+            alert(t('create_discussion_failed', 'Échec de la création de la discussion. Vérifiez les règles de sécurité Firestore et la console.'));
+        }
+    }, [currentFirebaseUid, user, t, markMessagesAsRead]);
+
+
+    return (
+        <div ref={containerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : ''}`}>
+            {isGuestMode && <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 text-white text-center p-4"><p className="text-xl font-semibold">{t('access_restricted', 'Accès Restreint.')} {t('login_to_access_messages', 'Veuillez vous connecter pour accéder à la messagerie en temps réel.')}</p></div>}
+            
+            {/* Sidebar (liste des conversations) */}
+            <FlowLiveMessagesSidebar
+                conversations={conversations}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                activeConversationId={activeConversationId}
+                handleSelectUserOnMobile={(conv) => { setActiveConversationId(conv.id); setActiveConversationPartner(conv.participants.find(uid => uid !== currentFirebaseUid)); setActiveConversationIsGroup(conv.isGroup); setActiveConversationParticipants(conv.participants); setActiveConversationName(conv.name); setShowMobileSidebar(false); }}
+                setShowNewDiscussionModal={setShowNewDiscussionModal}
+                currentUserName={currentUserName}
+                showMobileSidebar={showMobileSidebar}
+                setShowMobileSidebar={setShowMobileSidebar}
+                isFullScreen={isFullScreen}
+                t={t}
+                isDarkMode={isDarkMode}
+            />
+
+            {/* Chat Panel (messages et input) */}
+            <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'}`}>
+                {activeConversationId ? (
+                    <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
+                        {window.innerWidth < 768 && (
+                            <button className={`p-2 rounded-full mr-2 ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`} onClick={() => setShowMobileSidebar(true)} aria-label={t('back_to_conversations', 'Retour aux conversations')}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                            </button>
+                        )}
+                        <div className="flex items-center">
+                            <h3 className="text-lg font-semibold text-color-text-primary mr-2">
+                                {activeConversationName || (activeConversationIsGroup ? t('group_chat_default', 'Discussion de groupe') : activeConversationPartner?.name || t('new_conversation_default', 'Nouvelle Conversation'))}
+                            </h3>
+                            {activeConversationIsGroup && <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>{t('group', 'Groupe')}</span>}
+                            {/* Optionnel: Indicateur Chiffré si applicable */}
+                            {/* <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 ml-2">{t('encrypted', 'Chiffré')}</span> */}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {/* Boutons d'action pour le chat */}
+                            <button className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`} title={t('meeting', 'Meeting')}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><path d="M2 12h20"/></svg>
+                            </button>
+                            <button className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`} title={t('task', 'Tâche')} onClick={() => onOpenAddTaskFromChat({ member: activeConversationPartner, conversationParticipants, currentFirebaseUid, currentUserName, isFromChat: true })}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                            </button>
+                            <button className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`} title={t('rename_contact', 'Renommer le contact')}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                            </button>
+                            <button className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-red-400 hover:text-white' : 'hover:bg-red-100 text-red-500 hover:text-red-600'}`} title={t('block_contact', 'Bloquer le contact')}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-center text-center ${isDarkMode ? 'bg-gray-800 text-slate-400' : 'bg-color-bg-tertiary text-color-text-secondary'}`}>
+                        <h3 className="text-lg font-semibold">{t('select_conversation', 'Sélectionnez une conversation pour commencer.')}</h3>
+                    </div>
                 )}
-              </div>
+
+                {/* Zone d'affichage des messages */}
+                <FlowLiveMessagesDisplay
+                    messages={messages}
+                    chatPanelRef={chatPanelRef}
+                    currentFirebaseUid={currentFirebaseUid}
+                    activeConversationId={activeConversationId}
+                    activeConversationIsGroup={activeConversationIsGroup}
+                    openEphemeralImagePreview={openEphemeralImagePreview}
+                    t={t}
+                    isDarkMode={isDarkMode}
+                />
+
+                {/* Champ de saisie des messages */}
+                <FlowLiveMessagesInput
+                    newMessage={newMessage}
+                    setNewMessage={setNewMessage}
+                    handleSendNormalMessage={handleSendNormalMessage}
+                    handleAttachNormalFile={handleAttachNormalFile}
+                    handleEmoticonClick={handleEmoticonClick}
+                    emojis={['👋', '😀', '🔥', '🚀', '💡', '✅', '✨', '👍', '🎉', '🌟', '❤️', '😂', '🥲', '🤩', '🥳', '😎', '👍', '👎', '👏', '🙌', '🙏', '🔥', '💯', '❤️', '💔', '💖', '💙', '💚', '💛', '🧡', '💜', '🤎', '🖤', '🤍', '🎉', '🎊', '✨', '🌟', '💫', '💥', '🚀', '🌈', '☀️', '🌻', '🌺', '🌲', '🌳', '🍂', '🍁', '🍓', '🍋', '🍎', '🍔', '🍕', '🌮', '🍩', '🍦', '☕', '🍵', '🥂', '🍾', '🎉', '🎁', '🎈', '🎂', '🥳', '🏠', '🏢', '💡', '⏰', '📆', '📈', '📊', '🔗', '🔒', '🔑', '📝', '📌', '📎', '📁', '📄', '📊', '📈', '📉', '💰', '💳', '💵', '💸', '📧', '📞', '💬', '🔔', '📣', '💡', '⚙️', '🔨', '🛠️', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳', '💡', '📣', '🔔', '💬', '📧', '📞', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳']} // Liste complète des emojis
+                    showEmojiPicker={showEmojiPicker}
+                    setShowEmojiPicker={setShowEmojiPicker}
+                    emojiButtonRef={emojiButtonRef}
+                    fileInputRef={fileInputRef} // Pass forwardRef for file input
+                    isDarkMode={isDarkMode}
+                    t={t}
+                />
             </div>
-          </div>
 
-          <div className="p-3 border-b border-color-border-primary flex-shrink-0">
-              <input type="text" placeholder={t('search_in_discussion_placeholder', 'Rechercher dans la discussion...')} className="form-input w-full text-sm py-1.5" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
-          </div>
-
-          <FlowLiveMessagesDisplay
-            messages={filteredMessages}
-            chatPanelRef={chatPanelRef}
-            currentFirebaseUid={currentFirebaseUid}
-            activeConversationId={activeConversationId}
-            activeConversationIsGroup={activeConversationIsGroup}
-            isDarkMode={isDarkMode}
-            openEphemeralImagePreview={openEphemeralImagePreview}
-            t={t} // <--- Ensure t is passed here
-          />
-
-          <FlowLiveMessagesInput
-            newMessage={newMessage}
-            setNewMessage={setNewMessage}
-            handleSendNormalMessage={handleSendNormalMessage}
-            handleAttachNormalFile={handleAttachNormalFile}
-            handleEmoticonClick={handleEmoticonClick}
-            emojis={emojis}
-            showEmojiPicker={showEmojiPicker}
-            setShowEmojiPicker={setShowEmojiPicker}
-            emojiButtonRef={emojiButtonRef}
-            isDarkMode={isDarkMode}
-            t={t} // <--- Ensure t is passed here
-          />
-        </section>
-      ) : (
-        <div className={`flex-1 h-full flex items-center justify-center text-center p-4 md:hidden ${showMobileSidebar ? 'hidden' : 'flex'}`}>
-          <p className="text-lg text-slate-400">{t('select_conv_left', 'Sélectionnez une conversation à gauche.')}</p>
+            {/* Modale de création/sélection de discussion */}
+            <AnimatePresence>
+                {showNewDiscussionModal && (
+                    <NewDiscussionModal
+                        showModal={showNewDiscussionModal}
+                        onClose={() => setShowNewDiscussionModal(false)}
+                        onCreate={handleCreateNewDiscussion}
+                        internalAvailableTeamMembers={internalAvailableTeamMembers}
+                        currentFirebaseUid={currentFirebaseUid}
+                        currentUserName={currentUserName}
+                        t={t}
+                    />
+                )}
+            </AnimatePresence>
+             {/* Modale pour afficher l'image éphémère en grand */}
+            <AnimatePresence>
+                {ephemeralImagePreview && (
+                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[101]" onClick={closeEphemeralImagePreview}>
+                        <div className="relative p-4 rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+                            <img src={ephemeralImagePreview.url} alt={t('ephemeral_image_warning', 'Cette image est éphémère et ne peut pas être sauvegardée.')} className="max-w-full max-h-[80vh] object-contain" />
+                            <button onClick={closeEphemeralImagePreview} className="absolute top-2 right-2 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors" title={t('close_ephemeral_image', 'Fermer l\'image éphémère')}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            </button>
+                            <p className="text-white text-center text-sm mt-2">{t('ephemeral_image_warning', 'Cette image est éphémère et ne peut pas être sauvegardée.')}</p>
+                        </div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
-      )}
-
-      {/* Ephemeral Image Preview Modal (remains here for simplicity of message lifecycle) */}
-      {ephemeralImagePreview && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[1001]"
-          onClick={closeEphemeralImagePreview}
-          onContextMenu={(e) => e.preventDefault()}
-        >
-          <div className="relative p-4 max-w-full max-h-full flex items-center justify-center">
-            <img src={ephemeralImagePreview.url} alt="Ephemeral" className="max-w-full max-h-full object-contain" onContextMenu={(e) => e.preventDefault()}/>
-            <button onClick={closeEphemeralImagePreview} className="absolute top-4 right-4 text-white text-3xl p-2 rounded-full bg-gray-800 bg-opacity-50 hover:bg-opacity-70" title={t('close_ephemeral_image', 'Fermer l\'image éphémère')}>&times;</button>
-            <div className="absolute bottom-4 text-white text-sm bg-gray-800 bg-opacity-70 px-3 py-1 rounded-full">{t('ephemeral_image_warning', 'Cette image est éphémère et ne peut pas être sauvegardée.')}</div>
-          </div>
-        </div>
-      )}
-
-      <NewDiscussionModal
-        showModal={showNewDiscussionModal}
-        onClose={() => setShowNewDiscussionModal(false)}
-        onCreate={handleCreateNewDiscussion}
-        internalAvailableTeamMembers={internalAvailableTeamMembers}
-        currentFirebaseUid={currentFirebaseUid}
-        currentUserName={currentUserName}
-        t={t} // <--- Ensure t is passed here
-      />
-    </div>
-  );
+    );
 });
 
-FlowLiveMessages.displayName = 'FlowLiveMessages';
-
+// N'oubliez pas d'exporter le composant principal FlowLiveMessages
 export default FlowLiveMessages;

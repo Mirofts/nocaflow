@@ -2,12 +2,12 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}",
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}", // Scanne les fichiers dans src/
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}", // Scanne les fichiers dans pages/ (si vous en avez en dehors de src/)
+    "./components/**/*.{js,ts,jsx,tsx,mdx}", // Scanne les fichiers dans components/ (si vous en avez en dehors de src/)
   ],
   theme: {
-    extend: {},
+    extend: {}, // Laissez vide pour l'instant
   },
-  plugins: [],
+  plugins: [], // Laissez vide pour l'instant
 };
