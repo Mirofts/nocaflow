@@ -1,6 +1,6 @@
 // src/components/dashboard/FlowLiveMessages/index.js
 import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; 
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -11,14 +11,14 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { format, isToday, isYesterday, isSameWeek, isSameDay, isSameYear, parseISO, isValid, differenceInMinutes, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// IMPORTS DES COMPOSANTS ENFANTS :
+// IMPORTS CORRIGÉS DES COMPOSANTS ENFANTS :
 import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
 import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
 import FlowLiveMessagesInput from './FlowLiveMessagesInput';
 import NewDiscussionModal from './modals/NewDiscussionModal';
-import { AssignTaskProjectDeadlineModal } from '../modals/modals'; 
+import { AssignTaskProjectDeadlineModal } from '../modals/modals'; // Assurez-vous que modals.js exporte cela
 
-// Définir la liste complète des emojis dans une constante pour éviter la duplication de prop
+// Définir la liste complète des emojis dans une constante
 const ALL_EMOJIS = [
     '👋', '😀', '🔥', '🚀', '💡', '✅', '✨', '👍', '🎉', '🌟', '💫', '💥', '🚀', '🌈', '☀️', '🌻', '🌺', '🌲', '🌳', '🍂', '🍁', '🍓', '🍋', '🍎', '🍔', '🍕', '🌮', '🍩', '🍦', '☕', '🍵', '🥂', '🍾', '🎉', '🎁', '🎈', '🎂', '🥳', '🏠', '🏢', '💡', '⏰', '📆', '📈', '📊', '🔗', '🔒', '🔑', '📝', '📌', '📎', '📁', '📄', '📊', '📈', '📉', '💰', '💳', '💵', '💸', '📧', '📞', '💬', '🔔', '📣', '💡', '⚙️', '🔨', '🛠️', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳'
 ];
@@ -255,13 +255,13 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         } catch (e) { console.error("Erreur lors du téléchargement du fichier : ", e); alert(t('upload_file_failed', "Échec du téléchargement du fichier. Vérifiez la console.")); setNewMessage(''); event.target.value = null; }
     }, [activeConversationId, currentFirebaseUid, t, user, handleLoginPrompt, db, storage]);
 
-    const handleEmoticonClick = useCallback((emoji) => { setNewMessage(prev => prev + emoji); }, [setNewMessage]);
+    const handleEmoticonClick = useCallback((emoji) => { setNewMessage(prev => prev + emoji); }, []);
     const handleSendNormalMessage = useCallback(() => { handleSendMessage(false); }, [handleSendMessage]);
     const handleSendEphemeralMessage = useCallback(() => { handleSendMessage(true); }, [handleSendMessage]);
     const handleAttachNormalFile = useCallback(() => { if (!user) { handleLoginPrompt(); return; } if (fileInputRef.current) { fileInputRef.current.onchange = (e) => handleFileUpload(e, false); fileInputRef.current.click(); } }, [fileInputRef, handleFileUpload, handleLoginPrompt, user]);
     const handleAttachEphemeralFile = useCallback(() => { if (!user) { handleLoginPrompt(); return; } if (fileInputRef.current) { fileInputRef.current.onchange = (e) => handleFileUpload(e, true); fileInputRef.current.click(); } }, [fileInputRef, handleFileUpload, handleLoginPrompt, user]);
     const openEphemeralImagePreview = useCallback(async (fileURL, messageId) => { setEphemeralImagePreview({ url: fileURL, messageId: messageId }); }, [setEphemeralImagePreview]);
-    const closeEphemeralImagePreview = useCallback(() => { setEphemeralImagePreview(null); }, [setEphemeralImagePreview]);
+    const closeEphemeralImagePreview = useCallback(() => { setEphemeralImagePreview(null); }, []);
 
 
     // --- Logique de création de nouvelle discussion ---
@@ -347,7 +347,7 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
     return (
         <div ref={containerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : ''}`}>
             {isGuestMode && <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 text-white text-center p-4"><p className="text-xl font-semibold">{t('access_restricted', 'Accès Restreint.')} {t('login_to_access_messages', 'Veuillez vous connecter pour accéder à la messagerie en temps réel.')}</p></div>}
-
+            
             {/* Sidebar (liste des conversations) */}
             <FlowLiveMessagesSidebar
                 conversations={conversations}
