@@ -1,4 +1,4 @@
-// src/utils/dateUtils.js
+// utils/dateUtils.js
 function safeToDate(input) {
   try {
     // If input is already a Date object, return it directly.

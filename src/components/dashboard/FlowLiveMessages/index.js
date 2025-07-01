@@ -15,8 +15,8 @@ import { fr } from 'date-fns/locale';
 import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
 import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
 import FlowLiveMessagesInput from './FlowLiveMessagesInput';
-import NewDiscussionModal from './modals/NewDiscussionModal'; // Assure-toi que ce chemin est correct
-import { AssignTaskProjectDeadlineModal } from '../modals/AssignTaskProjectDeadlineModal'; // Si AssignTaskProjectDeadlineModal est dans un fichier séparé comme tu l'as uploadé
+import NewDiscussionModal from './modals/NewDiscussionModal'; // Assurez-vous que ce chemin est correct
+import { AssignTaskProjectDeadlineModal } from '../modals/modals'; // Assurez-vous que modals.js existe et exporte cela
 
 
 const FlowLiveMessages = forwardRef((props, ref) => {
