@@ -4,9 +4,8 @@ const autoprefixer = require('autoprefixer');
 const postcssNesting = require('postcss-nesting');
 
 module.exports = {
-  plugins: [
-    postcssNesting(),
-    tailwindcss(),
-    autoprefixer(),
-  ],
+  plugins: {
+    '@tailwindcss/postcss': {},
+    autoprefixer: {},
+  },
 };

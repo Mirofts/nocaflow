@@ -1107,3 +1107,7 @@ export const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) 
         </ModalWrapper>
     );
 };
+export { default as GanttTaskFormModal } from './GanttTaskFormModal';
+export { default as GoogleDriveLinkModal } from './GoogleDriveLinkModal';
+export { default as AddDeadlineModal } from './AddDeadlineModal';
+export { default as AddMeetingModal } from './AddMeetingModal';
