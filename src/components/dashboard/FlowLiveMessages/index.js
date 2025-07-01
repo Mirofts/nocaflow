@@ -1,5 +1,6 @@
 // src/components/dashboard/FlowLiveMessages/index.js
 import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -10,14 +11,19 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { format, isToday, isYesterday, isSameWeek, isSameDay, isSameYear, parseISO, isValid, differenceInMinutes, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// IMPORTS CORRIGÉS DES COMPOSANTS ENFANTS :
+// IMPORTS DES COMPOSANTS ENFANTS :
 import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
 import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
 import FlowLiveMessagesInput from './FlowLiveMessagesInput';
 import NewDiscussionModal from './modals/NewDiscussionModal';
-import { AssignTaskProjectDeadlineModal } from '../modals/modals'; // Assurez-vous que modals.js exporte cela
+import { AssignTaskProjectDeadlineModal } from '../modals/modals'; 
 
-// Définir le composant principal FlowLiveMessages (précédemment FlowLiveMessagesContainer)
+// Définir la liste complète des emojis dans une constante pour éviter la duplication de prop
+const ALL_EMOJIS = [
+    '👋', '😀', '🔥', '🚀', '💡', '✅', '✨', '👍', '🎉', '🌟', '💫', '💥', '🚀', '🌈', '☀️', '🌻', '🌺', '🌲', '🌳', '🍂', '🍁', '🍓', '🍋', '🍎', '🍔', '🍕', '🌮', '🍩', '🍦', '☕', '🍵', '🥂', '🍾', '🎉', '🎁', '🎈', '🎂', '🥳', '🏠', '🏢', '💡', '⏰', '📆', '📈', '📊', '🔗', '🔒', '🔑', '📝', '📌', '📎', '📁', '📄', '📊', '📈', '📉', '💰', '💳', '💵', '💸', '📧', '📞', '💬', '🔔', '📣', '💡', '⚙️', '🔨', '🛠️', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳'
+];
+
+// Définir le composant principal FlowLiveMessages
 const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddTaskFromChat, availableTeamMembers }, ref) => {
     const { currentUser: user } = useAuth();
     const { isDarkMode } = useTheme();
@@ -28,10 +34,10 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
     const currentUserName = user?.displayName || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : 'Moi');
 
     const [activeConversationId, setActiveConversationId] = useState(null);
-    const [activeConversationPartner, setActiveConversationPartner] = useState(null); // Pour les 1-on-1
+    const [activeConversationPartner, setActiveConversationPartner] = useState(null);
     const [activeConversationIsGroup, setActiveConversationIsGroup] = useState(false);
-    const [activeConversationParticipants, setActiveConversationParticipants] = useState([]); // UIDs de tous les participants
-    const [activeConversationName, setActiveConversationName] = useState(''); // Nom de la conversation (pour les groupes)
+    const [activeConversationParticipants, setActiveConversationParticipants] = useState([]);
+    const [activeConversationName, setActiveConversationName] = useState('');
 
     const [conversations, setConversations] = useState([]);
     const [messages, setMessages] = useState([]);
@@ -39,7 +45,7 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
     const [newMessage, setNewMessage] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [showNewDiscussionModal, setShowNewDiscussionModal] = useState(false);
-    const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null); // { url, messageId }
+    const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null);
     const [internalAvailableTeamMembers, setInternalAvailableTeamMembers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
@@ -47,10 +53,9 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
     const chatPanelRef = useRef(null);
     const fileInputRef = useRef(null);
     const emojiButtonRef = useRef(null);
-    const containerRef = useRef(null); // Pour le mode plein écran
+    const containerRef = useRef(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
 
-    // Initialisation et gestion du mode plein écran
     useImperativeHandle(ref, () => ({
         toggleFullScreen: () => {
             if (containerRef.current) {
@@ -69,8 +74,7 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         const handleFullscreenChange = () => {
             setIsFullScreen(!!document.fullscreenElement);
             if (!document.fullscreenElement) {
-                // Si on sort du plein écran via ESC, s'assurer que le bouton mobile est réactivé si besoin
-                if (window.innerWidth < 768) { // Ex: si c'est une taille mobile
+                if (window.innerWidth < 768) {
                     setShowMobileSidebar(false);
                 }
             }
@@ -94,7 +98,6 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         onLoginClick && onLoginClick();
     }, [t, onLoginClick]);
 
-    // Formatage de l'heure du message
     const formatMessageTimeDisplay = useCallback((timestamp) => {
         if (!timestamp) return '';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -105,7 +108,6 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         return format(date, 'dd/MM/yyyy');
     }, [t]);
 
-    // Marquer les messages comme lus
     const markMessagesAsRead = useCallback(async (conversationId, messageIds) => {
         if (!currentFirebaseUid || !conversationId || messageIds.length === 0) return;
         const batch = writeBatch(db);
@@ -118,9 +120,8 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         } catch (e) {
             console.error("Error marking messages as read:", e);
         }
-    }, [currentFirebaseUid]);
+    }, [currentFirebaseUid, db]);
 
-    // Listener des conversations
     useEffect(() => {
         if (!currentFirebaseUid) {
             setConversations([]);
@@ -152,12 +153,12 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                             photoURL = partnerDoc.docs[0]?.data()?.photoURL || '/images/default-avatar.png';
                         }
                     } else if (data.participants.length === 1 && data.participants.includes(currentFirebaseUid)) {
-                        displayName = t('guest_you', 'TOI'); // Auto-conversation pour un user seul
+                        displayName = t('guest_you', 'TOI');
                         photoURL = user?.photoURL || '/images/default-avatar.png';
                     }
                 }
 
-                const unreadCount = (data.lastMessageReadBy || []).includes(currentFirebaseUid) ? 0 : 1; // Simplified unread for now
+                const unreadCount = (data.lastMessageReadBy || []).includes(currentFirebaseUid) ? 0 : 1;
 
                 return {
                     id: d.id,
@@ -173,9 +174,8 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         });
 
         return () => unsubscribe();
-    }, [currentFirebaseUid, user, t]);
+    }, [currentFirebaseUid, user, t, db]);
 
-    // Listener des messages de la conversation active
     useEffect(() => {
         if (!activeConversationId) {
             setMessages([]);
@@ -203,16 +203,14 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         });
 
         return () => unsubscribe();
-    }, [activeConversationId, currentFirebaseUid, availableTeamMembers, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t]);
+    }, [activeConversationId, currentFirebaseUid, availableTeamMembers, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, db]);
 
-    // Défiler vers le bas des messages
     useEffect(() => {
         if (chatPanelRef.current) {
             chatPanelRef.current.scrollTop = chatPanelRef.current.scrollHeight;
         }
     }, [messages]);
 
-    // Filtrer les messages pour la recherche (non utilisé dans l'état actuel de FlowLiveMessagesDisplay)
     useEffect(() => {
         setFilteredMessages(messages.filter(msg =>
             msg.content.toLowerCase().includes(searchTerm.toLowerCase())
@@ -234,7 +232,7 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
             await updateDoc(convRef, { lastMessage: newMessage.trim(), lastMessageTime: serverTimestamp() });
             setNewMessage('');
         } catch (e) { console.error("Erreur lors de l'envoi du message : ", e); alert(t('send_message_failed', "Échec de l'envoi du message. Vérifiez la console pour plus de détails.")); }
-    }, [newMessage, activeConversationId, currentFirebaseUid, t, user, handleLoginPrompt]);
+    }, [newMessage, activeConversationId, currentFirebaseUid, t, user, handleLoginPrompt, db]);
 
     const handleFileUpload = useCallback(async (event, isEphemeral = false) => {
         if (!user) { handleLoginPrompt(); return; }
@@ -255,15 +253,15 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
             await updateDoc(convRef, { lastMessage: `Fichier: ${file.name}`, lastMessageTime: serverTimestamp() });
             setNewMessage(''); event.target.value = null;
         } catch (e) { console.error("Erreur lors du téléchargement du fichier : ", e); alert(t('upload_file_failed', "Échec du téléchargement du fichier. Vérifiez la console.")); setNewMessage(''); event.target.value = null; }
-    }, [activeConversationId, currentFirebaseUid, t, user, handleLoginPrompt]);
+    }, [activeConversationId, currentFirebaseUid, t, user, handleLoginPrompt, db, storage]);
 
-    const handleEmoticonClick = useCallback((emoji) => { setNewMessage(prev => prev + emoji); }, []);
+    const handleEmoticonClick = useCallback((emoji) => { setNewMessage(prev => prev + emoji); }, [setNewMessage]);
     const handleSendNormalMessage = useCallback(() => { handleSendMessage(false); }, [handleSendMessage]);
     const handleSendEphemeralMessage = useCallback(() => { handleSendMessage(true); }, [handleSendMessage]);
     const handleAttachNormalFile = useCallback(() => { if (!user) { handleLoginPrompt(); return; } if (fileInputRef.current) { fileInputRef.current.onchange = (e) => handleFileUpload(e, false); fileInputRef.current.click(); } }, [fileInputRef, handleFileUpload, handleLoginPrompt, user]);
     const handleAttachEphemeralFile = useCallback(() => { if (!user) { handleLoginPrompt(); return; } if (fileInputRef.current) { fileInputRef.current.onchange = (e) => handleFileUpload(e, true); fileInputRef.current.click(); } }, [fileInputRef, handleFileUpload, handleLoginPrompt, user]);
-    const openEphemeralImagePreview = useCallback(async (fileURL, messageId) => { setEphemeralImagePreview({ url: fileURL, messageId: messageId }); }, []);
-    const closeEphemeralImagePreview = useCallback(() => { setEphemeralImagePreview(null); }, []);
+    const openEphemeralImagePreview = useCallback(async (fileURL, messageId) => { setEphemeralImagePreview({ url: fileURL, messageId: messageId }); }, [setEphemeralImagePreview]);
+    const closeEphemeralImagePreview = useCallback(() => { setEphemeralImagePreview(null); }, [setEphemeralImagePreview]);
 
 
     // --- Logique de création de nouvelle discussion ---
@@ -279,34 +277,8 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                 alert(t('enter_contact_details', 'Veuillez entrer le nom et l\'email du nouveau contact.'));
                 return;
             }
-            // Simuler l'ajout d'un nouveau contact (pas d'enregistrement Firebase réel ici pour la démo)
             console.log(`Simulating invitation to new contact: ${name} (${email})`);
 
-            // Optionnel: Envoyer un email via une API route
-            // try {
-            //     const response = await fetch('/api/send-email', {
-            //         method: 'POST',
-            //         headers: { 'Content-Type': 'application/json' },
-            //         body: JSON.stringify({
-            //             to: email,
-            //             fromEmail: 'noreply@nocaflow.com', // Doit être vérifié dans Resend
-            //             subject: t('invitation_email_subject', 'Invitation à rejoindre NocaFLOW!'),
-            //             htmlContent: t('invitation_email_body_html', "<p>Salut, <p>Vous avez été invité à rejoindre NocaFLOW pour une collaboration fluide et efficace!<p>Cliquez ici pour vous inscrire: <a href='YOUR_APP_INVITATION_LINK_HERE'>Rejoindre NocaFLOW</a></p><p>À bientôt sur NocaFLOW!</p>"),
-            //             newContactName: name // Pour le log côté serveur
-            //         }),
-            //     });
-            //     const data = await response.json();
-            //     if (data.success) {
-            //         alert(t('invitation_sent_success', `Invitation envoyée à %s (%s).`).replace('%s', name).replace('%s', email));
-            //     } else {
-            //         throw new Error(data.error || 'Failed to send email.');
-            //     }
-            // } catch (error) {
-            //     console.error("Failed to send invitation email:", error);
-            //     alert(t('invitation_sent_failed', 'Échec de l\'envoi de l\'invitation. Vérifiez la console pour les détails.'));
-            //     return;
-            // }
-            // Ici, pour une démo, on pourrait ajouter un UID simulé ou réel pour le nouveau contact si on le traque en interne
             const newContactUid = `simulated-uid-${Date.now()}`;
             participantUids.add(newContactUid);
             setInternalAvailableTeamMembers(prev => [...prev, { firebaseUid: newContactUid, name: name, email: email, initials: name.charAt(0).toUpperCase(), color: 'bg-' + ['yellow', 'green', 'blue', 'red', 'purple'][Math.floor(Math.random() * 5)] + '-500' }]);
@@ -322,7 +294,6 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         const sortedParticipantUids = Array.from(participantUids).sort();
         let conversationName = name.trim();
 
-        // Vérifier si une conversation avec exactement ces participants existe déjà
         const existingConvsQuery = query(collection(db, 'conversations'), where('participants', '==', sortedParticipantUids));
         const existingConvsSnapshot = await getDocs(existingConvsQuery);
 
@@ -338,20 +309,18 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
             return;
         }
 
-        // Si la conversation n'a pas de nom et n'est pas un groupe, générer un nom
         if (!conversationName && participantUids.size <= 2) {
             const otherParticipantsUids = Array.from(participantUids).filter(uid => uid !== currentFirebaseUid);
             if (otherParticipantsUids.length > 0) {
                 const partnerDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', otherParticipantsUids[0])));
                 conversationName = partnerDoc.docs[0]?.data()?.displayName || t('new_conversation_default', 'Nouvelle Conversation');
             } else {
-                conversationName = t('new_conversation_default', 'Nouvelle Conversation'); // Conversation avec soi-même
+                conversationName = t('new_conversation_default', 'Nouvelle Conversation');
             }
         } else if (!conversationName && participantUids.size > 2) {
-             conversationName = t('new_group', 'Nouveau Groupe'); // Nom par défaut pour les groupes
+             conversationName = t('new_group', 'Nouveau Groupe');
         }
 
-        // Créer une nouvelle conversation
         try {
             const newConvRef = await addDoc(collection(db, 'conversations'), {
                 participants: sortedParticipantUids,
@@ -373,13 +342,12 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
             console.error("Error creating new discussion:", error);
             alert(t('create_discussion_failed', 'Échec de la création de la discussion. Vérifiez les règles de sécurité Firestore et la console.'));
         }
-    }, [currentFirebaseUid, user, t, markMessagesAsRead]);
-
+    }, [currentFirebaseUid, user, t, db]);
 
     return (
         <div ref={containerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : ''}`}>
             {isGuestMode && <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 text-white text-center p-4"><p className="text-xl font-semibold">{t('access_restricted', 'Accès Restreint.')} {t('login_to_access_messages', 'Veuillez vous connecter pour accéder à la messagerie en temps réel.')}</p></div>}
-            
+
             {/* Sidebar (liste des conversations) */}
             <FlowLiveMessagesSidebar
                 conversations={conversations}
@@ -416,7 +384,7 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                         <div className="flex items-center gap-2">
                             {/* Boutons d'action pour le chat */}
                             <button className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`} title={t('meeting', 'Meeting')}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><path d="M2 12h20"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><path d="M2 12h20"/></svg>
                             </button>
                             <button className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`} title={t('task', 'Tâche')} onClick={() => onOpenAddTaskFromChat({ member: activeConversationPartner, conversationParticipants, currentFirebaseUid, currentUserName, isFromChat: true })}>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
@@ -430,7 +398,7 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                         </div>
                     </div>
                 ) : (
-                    <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-center text-center ${isDarkMode ? 'bg-gray-800 text-slate-400' : 'bg-color-bg-tertiary text-color-text-secondary'}`}>
+                    <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-center text-center ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary text-color-text-secondary'}`}>
                         <h3 className="text-lg font-semibold">{t('select_conversation', 'Sélectionnez une conversation pour commencer.')}</h3>
                     </div>
                 )}
@@ -454,7 +422,7 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                     handleSendNormalMessage={handleSendNormalMessage}
                     handleAttachNormalFile={handleAttachNormalFile}
                     handleEmoticonClick={handleEmoticonClick}
-                    emojis={['👋', '😀', '🔥', '🚀', '💡', '✅', '✨', '👍', '🎉', '🌟', '❤️', '😂', '🥲', '🤩', '🥳', '😎', '👍', '👎', '👏', '🙌', '🙏', '🔥', '💯', '❤️', '💔', '💖', '💙', '💚', '💛', '🧡', '💜', '🤎', '🖤', '🤍', '🎉', '🎊', '✨', '🌟', '💫', '💥', '🚀', '🌈', '☀️', '🌻', '🌺', '🌲', '🌳', '🍂', '🍁', '🍓', '🍋', '🍎', '🍔', '🍕', '🌮', '🍩', '🍦', '☕', '🍵', '🥂', '🍾', '🎉', '🎁', '🎈', '🎂', '🥳', '🏠', '🏢', '💡', '⏰', '📆', '📈', '📊', '🔗', '🔒', '🔑', '📝', '📌', '📎', '📁', '📄', '📊', '📈', '📉', '💰', '💳', '💵', '💸', '📧', '📞', '💬', '🔔', '📣', '💡', '⚙️', '🔨', '🛠️', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳', '💡', '📣', '🔔', '💬', '📧', '📞', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳']} // Liste complète des emojis
+                    emojis={ALL_EMOJIS} // Use the predefined constant
                     showEmojiPicker={showEmojiPicker}
                     setShowEmojiPicker={setShowEmojiPicker}
                     emojiButtonRef={emojiButtonRef}
@@ -497,4 +465,6 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
 });
 
 // N'oubliez pas d'exporter le composant principal FlowLiveMessages
+FlowLiveMessages.displayName = 'FlowLiveMessages'; // Ajouté pour React.forwardRef
+
 export default FlowLiveMessages;
