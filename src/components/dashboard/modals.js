@@ -165,7 +165,7 @@ export const DayDetailsModal = ({ data, onAddTask, onClose, t }) => {
                 {t('add_event_for_day', 'Ajouter un événement pour ce jour')}
             </motion.button>
         </ModalWrapper>
-    );
+  );
 };
 
 // --- Modale d'Ajout Rapide de Tâche (Réutilisée par DayDetailsModal) ---
@@ -440,7 +440,7 @@ export const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100]"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100]"
         onClick={onClose}
     >
         <div className="glass-card p-8 rounded-2xl max-w-xl w-full relative overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
@@ -1108,3 +1108,24 @@ export const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) 
 };
 
 
+// Exportation de toutes les modales
+export {
+    ModalWrapper,
+    TaskEditModal,
+    DayDetailsModal,
+    QuickAddTaskModal,
+    GuestNameEditModal,
+    AvatarEditModal,
+    MeetingSchedulerModal,
+    ProjectFormModal,
+    InvoiceFormModal,
+    InvoiceListModal,
+    TeamMemberModal,
+    QuickChatModal,
+    AssignTaskProjectDeadlineModal,
+    UserNameEditModal,
+    GanttTaskFormModal,
+    GoogleDriveLinkModal,
+    AddDeadlineModal,
+    AddMeetingModal
+};

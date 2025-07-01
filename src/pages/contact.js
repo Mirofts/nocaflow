@@ -1,12 +1,14 @@
-// src/pages/contact.js
+// pages/contact.js
 import Head from 'next/head';
 import { Mail, MapPin } from 'lucide-react';
 import { motion } from "framer-motion";
 
+// Imports for i18n
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-// CORRECTION ICI : Remonter 2 niveaux pour atteindre next-i18next.config.js
-import { i18nConfig } from '../../next-i18next.config'; 
+// CORRECTION ICI : Le chemin correct pour next-i18next.config.js est ../../next-i18next.config
+import i18nConfig from '../../next-i18next.config'; // Pas { i18nConfig }, car c'est un export default de module.exports
+
 
 export default function ContactPage() {
   const { t } = useTranslation('common');
@@ -41,8 +43,6 @@ export default function ContactPage() {
     </>
   );
 }
-
-
 
 // Add getStaticProps to load translations for this page
 export async function getStaticProps({ locale }) {
