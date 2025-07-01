@@ -1,0 +1,28 @@
+// .devcontainer/devcontainer.json
+{
+    "name": "NocaFLOW Development",
+    // Spécifie l'image de base. Vous pouvez utiliser une image plus spécifique de Node si nécessaire.
+    // La 'default image' inclut déjà Node.js.
+    // Si vous avez besoin d'une version spécifique de Node.js, utilisez une image comme "mcr.microsoft.com/devcontainers/javascript-node:20"
+    // Pour l'instant, on va juste s'assurer que l'image par défaut est mise à jour ou utilise la bonne version via features.
+    "image": "mcr.microsoft.com/devcontainers/universal:latest",
+
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "20" // Spécifie d'installer Node.js version 20 LTS. Changez à "lts" ou "22" si vous préférez.
+        }
+    },
+
+    "postCreateCommand": "npm install",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "bradlc.vscode-tailwindcss",
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+    "forwardPorts": [3000, 8000] // Spécifie les ports à transférer automatiquement
+}
