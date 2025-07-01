@@ -8,7 +8,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '../../../lib/firebase';
  // Ensure this path is correct
-import { useAuth } from '../../context/AuthContext'; 
+import { AuthContext } from '../../../context/AuthContext';
 
 // Avatars NocaFlow prédéfinis (réutilisés ici)
 const nocaflowAvatars = [
