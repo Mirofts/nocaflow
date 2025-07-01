@@ -16,14 +16,15 @@ import TimeAlerts from '../components/dashboard/TimeAlerts';
 import TodoList from '../components/dashboard/TodoList';
 import Notepad from '../components/dashboard/Notepad';
 import Calendar from '../components/dashboard/Calendar';
-import Projects from '../dashboard/Projects';
-import GuestBanner from '../dashboard/GuestBanner';
-import InvoicesSummary from '../dashboard/InvoicesSummary';
-import FlowLiveMessages from '../dashboard/FlowLiveMessages'; // Assurez-vous que FlowLiveMessages/index.js existe
-import TeamManagement from '../dashboard/TeamManagement';
-import ClientManagement from '../dashboard/ClientManagement';
-import GanttChartPlanning from '../dashboard/GanttChartPlanning';
-import { DashboardCard } from '../dashboard/DashboardCard';
+import Projects from '../components/dashboard/Projects';
+import GuestBanner from '../components/dashboard/GuestBanner';
+import InvoicesSummary from '../components/dashboard/InvoicesSummary';
+import FlowLiveMessages from '../components/dashboard/FlowLiveMessages';
+import TeamManagement from '../components/dashboard/TeamManagement';
+import ClientManagement from '../components/dashboard/ClientManagement';
+import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
+import { DashboardCard } from '../components/dashboard/DashboardCard';
+
 
 // IMPORTS CORRIGÉS DES MODALES (depuis src/components/dashboard/modals/modals.js) :
 import {
