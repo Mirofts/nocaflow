@@ -1,11 +1,12 @@
+// src/pages/contact.js
 import Head from 'next/head';
 import { Mail, MapPin } from 'lucide-react';
 import { motion } from "framer-motion";
 
-// Imports for i18n
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { i18nConfig } from '../next-i18next.config';
+// CORRECTION ICI : Remonter 2 niveaux pour atteindre next-i18next.config.js
+import { i18nConfig } from '../../next-i18next.config'; 
 
 export default function ContactPage() {
   const { t } = useTranslation('common');

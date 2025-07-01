@@ -1,17 +1,16 @@
-// pages/dashboard.js
+// src/pages/dashboard.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useUserTodos } from '../hooks/useUserTodos';
+import { useUserTodos } from '../hooks/useUserTodos'; // Assurez-vous que useUserTodos.js existe dans src/hooks/
 import { initialMockData } from '../lib/mockData';
 
 // Imports for i18n
 import { useTranslation } from 'react-i18next';
-// Ligne supprimée : import { i18nConfig } from '../next-i18next.config';
 
-// CORRECTION DES CHEMINS ICI !
+// IMPORTS CORRIGÉS DES COMPOSANTS DU DASHBOARD :
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import TimeAlerts from '../components/dashboard/TimeAlerts';
 import TodoList from '../components/dashboard/TodoList';
@@ -20,18 +19,20 @@ import Calendar from '../components/dashboard/Calendar';
 import Projects from '../components/dashboard/Projects';
 import GuestBanner from '../components/dashboard/GuestBanner';
 import InvoicesSummary from '../components/dashboard/InvoicesSummary';
-import FlowLiveMessages from '../components/dashboard/FlowLiveMessages';
+import FlowLiveMessages from '../components/dashboard/FlowLiveMessages'; // Assurez-vous que FlowLiveMessages/index.js existe
 import TeamManagement from '../components/dashboard/TeamManagement';
 import ClientManagement from '../components/dashboard/ClientManagement';
 import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 
+// IMPORTS CORRIGÉS DES MODALES (depuis src/components/dashboard/modals/modals.js) :
 import {
     TaskEditModal, DayDetailsModal, QuickAddTaskModal, GuestNameEditModal, AvatarEditModal,
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
-} from '../components/dashboard/modals';
+} from '../components/dashboard/modals/modals'; // <-- Import depuis le fichier unique modals.js
+
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {

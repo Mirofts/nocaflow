@@ -1,23 +1,25 @@
-// components/dashboard/FlowLiveMessages/index.js
 // src/components/dashboard/FlowLiveMessages/index.js
-import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'; // Assure-toi que toutes ces dépendances sont là
-import { useAuth } from '../../../context/AuthContext';
-import { useTheme } from '../../../context/ThemeContext';
-import { useTranslation } from 'react-i18next';
-import { initialMockData } from '../../../lib/mockData';
-import { db, auth, storage } from '../../../lib/firebase';
+import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { useAuth } from '../../../context/AuthContext'; // Chemin vers le contexte
+import { useTheme } from '../../../context/ThemeContext'; // Chemin vers le contexte
+import { useTranslation } from 'react-i18next'; // Hook de traduction
+import { initialMockData } from '../../../lib/mockData'; // Données mockées
+import { db, auth, storage } from '../../../lib/firebase'; // Services Firebase
 import { collection, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, serverTimestamp, arrayUnion, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { format, isToday, isYesterday, isSameWeek, isSameDay, isSameYear, parseISO, isValid, differenceInMinutes, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// CORRECTION ICI : Importer les composants enfants
-import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
-import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
-import FlowLiveMessagesInput from './FlowLiveMessagesInput';
-import NewDiscussionModal from './modals/NewDiscussionModal'; // Assurez-vous que ce chemin est correct
-import { AssignTaskProjectDeadlineModal } from '../modals/modals'; // Assurez-vous que modals.js existe et exporte cela
+// IMPORTS CORRIGÉS DES COMPOSANTS ENFANTS :
+import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar'; // Correct si dans le même dossier
+import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay'; // Correct si dans le même dossier
+import FlowLiveMessagesInput from './FlowLiveMessagesInput';   // Correct si dans le même dossier
+import NewDiscussionModal from './modals/NewDiscussionModal'; // Correct si dans ./modals/
 
+// Chemin pour modals.js (contient AssignTaskProjectDeadlineModal)
+// Depuis src/components/dashboard/FlowLiveMessages/, pour atteindre src/components/dashboard/modals/modals.js
+// il faut remonter de FlowLiveMessages (..) puis aller dans modals/modals.js
+import { AssignTaskProjectDeadlineModal } from '../modals/modals'; 
 
 const FlowLiveMessages = forwardRef((props, ref) => {
   const {
