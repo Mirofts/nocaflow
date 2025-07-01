@@ -1106,26 +1106,3 @@ export const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) 
         </ModalWrapper>
     );
 };
-
-
-// Exportation de toutes les modales
-export {
-    ModalWrapper,
-    TaskEditModal,
-    DayDetailsModal,
-    QuickAddTaskModal,
-    GuestNameEditModal,
-    AvatarEditModal,
-    MeetingSchedulerModal,
-    ProjectFormModal,
-    InvoiceFormModal,
-    InvoiceListModal,
-    TeamMemberModal,
-    QuickChatModal,
-    AssignTaskProjectDeadlineModal,
-    UserNameEditModal,
-    GanttTaskFormModal,
-    GoogleDriveLinkModal,
-    AddDeadlineModal,
-    AddMeetingModal
-};
