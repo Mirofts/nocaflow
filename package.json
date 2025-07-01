@@ -1,0 +1,37 @@
+{
+  "name": "nocaflow",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "tailwind:build": "tailwindcss -i ./input.css -o ./public/globals.css --watch"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "firebase": "^11.9.1",
+    "framer-motion": "^12.20.1",
+    "i18next": "^25.2.1",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "i18next-http-backend": "^3.0.2",
+    "lucide-react": "^0.525.0",
+    "next": "15.3.4",
+    "next-i18next": "^15.4.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-i18next": "^15.5.3",
+    "resend": "^4.6.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4.1.11",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.4",
+    "postcss": "^8.5.6",
+    "postcss-nesting": "^13.0.2",
+    "tailwindcss": "^4.1.11"
+  }
+}
