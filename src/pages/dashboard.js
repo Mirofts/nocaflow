@@ -11,11 +11,11 @@ import { initialMockData } from '../lib/mockData';
 import { useTranslation } from 'react-i18next';
 
 // IMPORTS CORRIGÉS DES COMPOSANTS DU DASHBOARD :
-import DashboardHeader from '../dashboard/DashboardHeader';
-import TimeAlerts from '../dashboard/TimeAlerts';
-import TodoList from '../dashboard/TodoList';
-import Notepad from '../dashboard/Notepad';
-import Calendar from '../dashboard/Calendar';
+import DashboardHeader from '../components/dashboard/DashboardHeader';
+import TimeAlerts from '../components/dashboard/TimeAlerts';
+import TodoList from '../components/dashboard/TodoList';
+import Notepad from '../components/dashboard/Notepad';
+import Calendar from '../components/dashboard/Calendar';
 import Projects from '../dashboard/Projects';
 import GuestBanner from '../dashboard/GuestBanner';
 import InvoicesSummary from '../dashboard/InvoicesSummary';
