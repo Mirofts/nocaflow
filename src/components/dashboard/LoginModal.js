@@ -3,10 +3,10 @@ import React, { useState, useContext } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion'; // <-- Ajout de AnimatePresence
 import { X } from 'lucide-react';
-import { auth, db } from '../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { setDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../context/AuthContext';
 import { useRouter } from 'next/router';
 
 const GoogleIcon = () => (

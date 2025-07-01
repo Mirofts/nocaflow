@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/router'; // Importe useRouter
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 // IMPORTE useTranslation de next-i18next, PAS TranslationContext
 import { useTranslation } from 'next-i18next';
 
