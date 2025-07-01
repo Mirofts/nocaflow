@@ -1,5 +1,23 @@
 // components/dashboard/FlowLiveMessages/index.js
-import React, { forwardRef } from 'react';
+// src/components/dashboard/FlowLiveMessages/index.js
+import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'; // Assure-toi que toutes ces dépendances sont là
+import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import { initialMockData } from '../../../lib/mockData';
+import { db, auth, storage } from '../../../lib/firebase';
+import { collection, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, serverTimestamp, arrayUnion, writeBatch } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { format, isToday, isYesterday, isSameWeek, isSameDay, isSameYear, parseISO, isValid, differenceInMinutes, subDays } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+// CORRECTION ICI : Importer les composants enfants
+import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
+import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
+import FlowLiveMessagesInput from './FlowLiveMessagesInput';
+import NewDiscussionModal from './modals/NewDiscussionModal'; // Assure-toi que ce chemin est correct
+import { AssignTaskProjectDeadlineModal } from '../modals/AssignTaskProjectDeadlineModal'; // Si AssignTaskProjectDeadlineModal est dans un fichier séparé comme tu l'as uploadé
+
 
 const FlowLiveMessages = forwardRef((props, ref) => {
   const {

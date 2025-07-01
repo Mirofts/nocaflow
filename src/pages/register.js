@@ -8,14 +8,12 @@ import { auth, db, storage } from '../lib/firebase';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext'; // Utilisez useAuth comme un hook
 import { useRouter } from 'next/router';
 
 // Imports for i18n
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-// Ligne supprimée : import nextI18NextConfig from '../next-i18next.config.js'; // CET IMPORT EST INUTILE ICI AVEC getServerSideProps
-
 
 // Composant pour l'icône Google (laissez tel quel)
 const GoogleIcon = () => (
@@ -46,16 +44,8 @@ const Checkbox = ({ label, ...props }) => (
 // Composant principal RegisterPage
 export default function RegisterPage({ onLoginClick, onRegisterClick }) {
   const { t } = useTranslation('common');
-  const authContext = useContext(useAuth); // Renommé pour éviter le conflit avec 'auth' de firebase
-  const refreshUser = authContext?.refreshUser;
-
-  if (!refreshUser) {
-    // Si le contexte est vide (ex: côté serveur), on évite un crash
-    return null;
-  }
-
-  const router = useRouter();
-
+  const { refreshUser } = useAuth(); // Utilisation directe du hook useAuth
+  const router = useRouter(); // Appelé inconditionnellement
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -65,9 +55,17 @@ export default function RegisterPage({ onLoginClick, onRegisterClick }) {
     confirmPassword: '',
     avatarFile: null,
     previewAvatarUrl: ''
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  }); // Appelé inconditionnellement
+  const [error, setError] = useState(''); // Appelé inconditionnellement
+  const [loading, setLoading] = useState(false); // Appelé inconditionnellement
+
+  // Si refreshUser est absolument nécessaire et que le contexte est vide côté SSR,
+  // on peut faire une vérification ici, mais après l'appel des hooks.
+  // Cependant, useAuth devrait déjà retourner des fonctions par défaut pour le SSR.
+  // if (!refreshUser) {
+  //   return null;
+  // }
+
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
