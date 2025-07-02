@@ -1,5 +1,6 @@
 // src/pages/_app.js
-import '@/styles/globals.css'; // Importe le CSS généré dans public/
+import '@/styles/globals.css'; 
+import '../lib/i18n';
 
 // Assure-toi que le reste du fichier est toujours la version simplifiée pour le test :
 function MyApp({ Component, pageProps }) {
