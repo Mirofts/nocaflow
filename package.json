@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-   "build": "DEBUG=tailwindcss next build",
+    "build": "DEBUG=tailwindcss next build",
     "start": "next start",
     "lint": "next lint",
+    "tailwind:diag": "node_modules/.bin/tailwindcss -i ./src/styles/globals.css -o ./public/tailwind-diag.css --minify",
     "tailwind:build": "tailwindcss -i ./input.css -o ./public/globals.css --watch"
   },
   "dependencies": {
@@ -22,7 +23,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^15.5.3",
-    "resend": "^4.6.0"
+    "resend": "^4.6.0",
+    "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -31,7 +33,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "postcss": "^8.5.6",
-    "postcss-nesting": "^13.0.2",
-    "tailwindcss": "^4.1.11"
+    "postcss-nesting": "^13.0.2"
   }
 }
