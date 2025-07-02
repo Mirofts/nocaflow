@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext'; // Utilisez useAuth comme un h
 import { useRouter } from 'next/router';
 
 // Imports for i18n
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next'; // ✅ CORRECT
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 // Composant pour l'icône Google (laissez tel quel)

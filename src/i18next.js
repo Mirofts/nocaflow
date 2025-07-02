@@ -1,8 +1,9 @@
+'use client';
+
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-
-import translationEN from '../public/locales/en/common.json';
-import translationFR from '../public/locales/fr/common.json';
+import translationEN from '../locales/en/common.json';
+import translationFR from '../locales/fr/common.json';
 
 i18n
   .use(initReactI18next)
@@ -11,8 +12,8 @@ i18n
       en: { translation: translationEN },
       fr: { translation: translationFR },
     },
-    lng: 'fr',
     fallbackLng: 'fr',
+    lng: 'fr', // or detect via cookies, headers, etc.
 
     interpolation: {
       escapeValue: false,

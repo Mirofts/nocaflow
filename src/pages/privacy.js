@@ -1,8 +1,9 @@
 // pages/privacy.js
 import React from 'react';
 import Head from 'next/head';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next'; // ✅ CORRECT
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 // Ligne supprimée : import { i18nConfig } from '../next-i18next.config';
 
 export default function PrivacyPage() {

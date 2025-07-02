@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next'; // ✅ CORRECT
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 // Ligne supprimée : import { i18nConfig } from '../next-i18next.config'; // Cette ligne était déjà commentée/supprimée, bien !
 
@@ -15,7 +15,7 @@ export default function TermsPage() {
       <div className="bg-color-bg-secondary">
         <div className="max-w-4xl mx-auto py-24 px-6 prose prose-invert prose-p:text-color-text-secondary prose-headings:text-color-text-primary">
           <h1>{pageTitle}</h1>
-          <p><strong>{t('last_update', 'Dernière mise à jour :')}</strong> 23 juin 2025</p>
+          <p><strong>{t('lÒast_update', 'Dernière mise à jour :')}</strong> 23 juin 2025</p>
 
           <h2>{t('terms_acceptance_title', '1. Acceptation des conditions')}</h2>
           <p>

@@ -5,10 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next'; // ✅ CORRECT
 
-// Imports for i18n
-import { useTranslation } from 'next-i18next';
-// Ligne supprimée : import { i18nConfig } from '../next-i18next.config'; // Cette ligne était déjà commentée/supprimée, bien !
+
 
 export default function PricingPage({ onLoginClick, onRegisterClick }) {
   const { user, isGuestMode } = useContext(AuthContext) || {};

@@ -4,7 +4,7 @@ import { Mail, MapPin } from 'lucide-react';
 import { motion } from "framer-motion";
 
 // Imports for i18n
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next'; // ✅ CORRECT
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 // CORRECTION ICI : Le chemin correct pour next-i18next.config.js est ../../next-i18next.config
 import i18nConfig from '../../next-i18next.config'; // Pas { i18nConfig }, car c'est un export default de module.exports

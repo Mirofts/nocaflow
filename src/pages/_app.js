@@ -3,8 +3,7 @@ import { appWithTranslation } from 'next-i18next';
 import { AuthContextProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer'; // facultatif
-import '../i18n'; // initialise i18next manuellement si nécessaire
+import Footer from '../components/Footer'; // Facultatif, mais inclus ici
 
 function MyApp({ Component, pageProps }) {
   return (

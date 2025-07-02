@@ -6,8 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos'; // Assurez-vous que useUserTodos.js existe dans src/hooks/
 import { initialMockData } from '../lib/mockData';
-
-// Imports for i18n
 import { useTranslation } from 'react-i18next';
 
 // IMPORTS CORRIGÉS DES COMPOSANTS DU DASHBOARD :

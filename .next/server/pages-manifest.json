@@ -2,5 +2,13 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js"
+  "/api/send-email": "pages/api/send-email.js",
+  "/dashboard": "pages/dashboard.js",
+  "/pricing": "pages/pricing.js",
+  "/contact": "pages/contact.js",
+  "/features": "pages/features.js",
+  "/privacy": "pages/privacy.js",
+  "/terms": "pages/terms.js",
+  "/": "pages/index.js",
+  "/register": "pages/register.js"
 }

@@ -13,7 +13,7 @@ import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
 // i18n imports
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next'; // ✅ CORRECT
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function FeaturesPage({ onLoginClick, onRegisterClick }) {

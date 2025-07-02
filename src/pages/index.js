@@ -7,7 +7,7 @@ import { ArrowRight, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // Imports for i18n
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next'; // ✅ CORRECT
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 // Ligne supprimée : import { i18nConfig } from '../next-i18next.config';
 
