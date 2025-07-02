@@ -63,7 +63,7 @@ const ModalWrapper = ({ children, onClose, size = 'max-w-md' }) => (
   </motion.div>
 );
 // --- Modale d'Édition de Tâche ---
-export const TaskEditModal = ({ task, onSave, onClose, t }) => { 
+const TaskEditModal = ({ task, onSave, onClose, t }) => { 
   const [title, setTitle] = useState(task.title || ''); 
   const [priority, setPriority] = useState(task.priority || 'normal');
   const [deadline, setDeadline] = useState(task.deadline ? format(parseISO(task.deadline), 'yyyy-MM-dd') : '');
@@ -1110,6 +1110,7 @@ export const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) 
 
 // Exportation de toutes les modales
 export {
+    TaskEditModal,
     ModalWrapper,
     DayDetailsModal,
     QuickAddTaskModal,
