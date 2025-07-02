@@ -1,8 +1,11 @@
 module.exports = {
-  plugins: [
-    require('tailwindcss'), // <-- CORRECTION ICI
-    require('autoprefixer'), // <-- CORRECTION ICI
-    // Si vous utilisez postcss-nesting, décommentez et ajoutez :
-    // require('postcss-nesting'),
-  ],
+  plugins: {
+    // Le nom du plugin doit être une chaîne de caractères (string) ou une clé d'objet,
+    // pas un appel require() qui retourne une fonction.
+    // Next.js se chargera de faire le require() interne.
+    tailwindcss: {},
+    autoprefixer: {},
+    // Si vous aviez postcss-nesting et que vous voulez l'activer :
+    // 'postcss-nesting': {},
+  },
 };
