@@ -1,7 +1,7 @@
 // pages/features.js
 import Head from 'next/head';
 import {
-  KanbanSquare,
+  LayoutKanban
   MessagesSquare,
   FolderKanban,
   CreditCard,
@@ -33,7 +33,7 @@ export default function FeaturesPage({ onLoginClick, onRegisterClick }) {
 
   const features = [
     { icon: FolderKanban, key: 'portals' },
-    { icon: KanbanSquare, key: 'projects' },
+    { icon: LayoutKanban, key: 'projects' },
     { icon: MessagesSquare, key: 'chat' },
     { icon: CreditCard, key: 'payments' },
     { icon: Clock, key: 'productivity' },
