@@ -1,4 +1,5 @@
 import '@/styles/globals.css';
+import '@/i18n'; // ✅ IMPORT INDISPENSABLE pour initReactI18next
 import { appWithTranslation } from 'next-i18next'; // Importez ceci
 import { AuthContextProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';

@@ -1,7 +1,6 @@
 // pages/features.js
 import Head from 'next/head';
 import {
-  LayoutKanban,
   MessagesSquare,
   FolderKanban,
   CreditCard,
