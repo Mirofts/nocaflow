@@ -1,14 +1,15 @@
 import '@/styles/globals.css';
-import { appWithTranslation } from 'next-i18next';
+import { appWithTranslation } from 'next-i18next'; // Importez ceci
 import { AuthContextProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 
-function MyApp({ Component, pageProps }) { // pageProps est reçu ici
+function MyApp({ Component, pageProps }) { // <-- pageProps est reçu ici, comme d'habitude
   console.log("MyApp simple test rendering"); // Debug log
   return (
     <AuthContextProvider>
       <ThemeProvider>
         <main>
+          {/* Component reçoit les pageProps, y compris les traductions de next-i18next */}
           <Component {...pageProps} />
         </main>
       </ThemeProvider>
@@ -16,6 +17,6 @@ function MyApp({ Component, pageProps }) { // pageProps est reçu ici
   );
 }
 
-// MODIFICATION CRUCIALE : Passez pageProps à appWithTranslation
-// C'est ainsi que next-i18next reçoit les traductions de getStaticProps/getServerSideProps
-export default appWithTranslation(MyApp, { pageProps }); // <-- MODIFIEZ CETTE LIGNE
+// CORRECTION CRUCIALE : Le HOC appWithTranslation ne prend qu'un argument (le composant)
+// il se configure via next-i18next.config.js et injecte les props dans pageProps.
+export default appWithTranslation(MyApp); // <-- REVENIR À CETTE LIGNE, PAS appWithTranslation(MyApp, { pageProps })
