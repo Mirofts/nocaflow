@@ -1,28 +1,27 @@
-// src/lib/i18n.js
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import common_en from '../../public/locales/en/common.json';
 import common_fr from '../../public/locales/fr/common.json';
 
 i18n
-  .use(initReactI18next) // passes i18n down to react-i18next
+  .use(initReactI18next) // Passe l'instance i18n à react-i18next
   .init({
     resources: {
       en: {
-        common: common_en // 'common' est le namespace
+        common: common_en // 'common' est le namespace (nom de votre fichier de traduction sans .json)
       },
       fr: {
         common: common_fr
       }
     },
-    lng: 'en', // default language
-    fallbackLng: 'en', // language to use if translations in user language are not available
-    debug: false, // Set to true for debugging in development
+    lng: 'en', // Langue par défaut si aucune n'est détectée
+    fallbackLng: 'en', // Langue de secours si une traduction manque
+    debug: false, // Mettez à 'true' en développement pour voir les logs d'i18next
     interpolation: {
-      escapeValue: false, // react already safes from xss
+      escapeValue: false, // React protège déjà des XSS
     },
-    ns: ['common'], // Declare namespaces, 'common' is used by default if not specified
-    defaultNS: 'common',
+    ns: ['common'], // Déclare les namespaces (ici, 'common' car c'est votre fichier)
+    defaultNS: 'common', // Namespace par défaut
   });
 
 export default i18n;
