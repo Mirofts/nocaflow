@@ -1,6 +1,15 @@
 {
   "start": "Commencer",
   "features": "Fonctionnalités",
+      "title": "Nos fonctionnalités",
+    "portals": "Portails",
+    "projects": "Projets",
+    "chat": "Messagerie",
+    "payments": "Paiements",
+    "productivity": "Productivité",
+    "design": "Design",
+    "security": "Sécurité",
+    "performance": "Performance"
   "pricing": "Tarifs",
   "login": "Connexion",
   "product": "Produit",

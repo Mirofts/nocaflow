@@ -1,6 +1,15 @@
 {
   "start": "Get Started",
   "features": "Features",
+      "title": "Our Features",
+    "portals": "Portals",
+    "projects": "Projects",
+    "chat": "Chat",
+    "payments": "Payments",
+    "productivity": "Productivity",
+    "design": "Design",
+    "security": "Security",
+    "performance": "Performance"
   "pricing": "Pricing",
   "login": "Login",
   "product": "Product",
