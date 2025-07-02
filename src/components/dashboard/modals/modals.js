@@ -1124,8 +1124,4 @@ export {
     QuickChatModal,
     AssignTaskProjectDeadlineModal,
     UserNameEditModal,
-    GanttTaskFormModal,
-    GoogleDriveLinkModal,
-    AddDeadlineModal,
-    AddMeetingModal
 };
