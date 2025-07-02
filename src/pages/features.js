@@ -1,6 +1,6 @@
 // pages/features.js
 import Head from 'next/head';
-import { KanbanSquare, MessagesSquare, FolderKanban, CreditCard, Clock, Palette, ShieldCheck, Zap } from 'lucide-react';
+import { LayoutKanban, MessagesSquare, FolderKanban, CreditCard, Clock, Palette, ShieldCheck, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
@@ -8,8 +8,6 @@ import { AuthContext } from '../context/AuthContext';
 // Imports for i18n
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-// Ligne SUPPRIMÉE : import { i18nConfig } from '../next-i18next.config';
-
 
 // Le composant FeaturesPage reçoit `onLoginClick` et `onRegisterClick` via les props de _app.js
 export default function FeaturesPage({ onLoginClick, onRegisterClick }) {
@@ -23,7 +21,7 @@ export default function FeaturesPage({ onLoginClick, onRegisterClick }) {
 
   const features = [
     { icon: FolderKanban, key: 'portals' },
-    { icon: KanbanSquare, key: 'projects' },
+    { icon: LayoutKanban, key: 'projects' }, 
     { icon: MessagesSquare, key: 'messaging' },
     { icon: CreditCard, key: 'billing' },
     { icon: Clock, key: 'time' },
