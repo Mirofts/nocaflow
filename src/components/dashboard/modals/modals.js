@@ -6,9 +6,11 @@ import { format, parseISO, isToday, isValid, intervalToDuration } from 'date-fns
 import { fr } from 'date-fns/locale';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
+// CORRECTION ICI : Remonter de 3 niveaux pour atteindre lib/ et context/
 import { db, storage } from '../../../lib/firebase';
- // Ensure this path is correct
-import { AuthContext } from '../../../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext'; 
+
+// ... (le reste du code de votre fichier modals.js)
 
 // Avatars NocaFlow prédéfinis (réutilisés ici)
 const nocaflowAvatars = [
