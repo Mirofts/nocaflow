@@ -35,6 +35,8 @@ module.exports = {
         'shadow-color': 'var(--shadow-color)',
         'color-border-active-shadow': 'var(--color-border-active-shadow)',
       },
+            borderRadius: {
+        '2xl': '1.25rem', // 👈 Ajout de rounded-2xl ici
     },
   },
   plugins: [],
