@@ -8,7 +8,6 @@
     "start": "next start",
     "lint": "next lint",
     "tailwind:diag": "node_modules/.bin/tailwindcss -i ./src/styles/globals.css -o ./public/tailwind-diag.css --minify",
-    "tailwind:build": "tailwindcss -i ./input.css -o ./public/globals.css --watch"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
