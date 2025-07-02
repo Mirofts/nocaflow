@@ -3,7 +3,8 @@ import { appWithTranslation } from 'next-i18next';
 import { AuthContextProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer'; // si tu as un Footer
+import Footer from '../components/Footer'; // facultatif
+import '../i18n'; // initialise i18next manuellement si nécessaire
 
 function MyApp({ Component, pageProps }) {
   return (
@@ -12,7 +13,7 @@ function MyApp({ Component, pageProps }) {
         <main>
           <Navbar />
           <Component {...pageProps} />
-          <Footer /> {/* facultatif */}
+          <Footer />
         </main>
       </ThemeProvider>
     </AuthContextProvider>
