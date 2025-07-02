@@ -6,11 +6,8 @@ import { format, parseISO, isToday, isValid, intervalToDuration } from 'date-fns
 import { fr } from 'date-fns/locale';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
-// CORRECTION ICI : Remonter de 3 niveaux pour atteindre lib/ et context/
 import { db, storage } from '../../../lib/firebase';
 import { useAuth } from '../../../context/AuthContext'; 
-
-// ... (le reste du code de votre fichier modals.js)
 
 // Avatars NocaFlow prédéfinis (réutilisés ici)
 const nocaflowAvatars = [
@@ -443,7 +440,7 @@ export const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100]"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100]"
         onClick={onClose}
     >
         <div className="glass-card p-8 rounded-2xl max-w-xl w-full relative overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
@@ -1109,7 +1106,26 @@ export const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) 
         </ModalWrapper>
     );
 };
-export { default as GanttTaskFormModal } from './GanttTaskFormModal';
-export { default as GoogleDriveLinkModal } from './GoogleDriveLinkModal';
-export { default as AddDeadlineModal } from './AddDeadlineModal';
-export { default as AddMeetingModal } from './AddMeetingModal';
+
+
+// Exportation de toutes les modales
+export {
+    ModalWrapper,
+    TaskEditModal,
+    DayDetailsModal,
+    QuickAddTaskModal,
+    GuestNameEditModal,
+    AvatarEditModal,
+    MeetingSchedulerModal,
+    ProjectFormModal,
+    InvoiceFormModal,
+    InvoiceListModal,
+    TeamMemberModal,
+    QuickChatModal,
+    AssignTaskProjectDeadlineModal,
+    UserNameEditModal,
+    GanttTaskFormModal,
+    GoogleDriveLinkModal,
+    AddDeadlineModal,
+    AddMeetingModal
+};
