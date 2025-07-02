@@ -1,8 +1,8 @@
-// src/pages/_app.js
-import '@/styles/globals.css'; 
-import '../lib/i18n';
+import '@/styles/globals.css';
+import { appWithTranslation } from 'next-i18next'; // <-- Importez ceci
 
-// Assure-toi que le reste du fichier est toujours la version simplifiée pour le test :
+// REMARQUE : NE PAS IMPORTER '../lib/i18n'; ici si vous l'avez supprimé ou vidé.
+
 function MyApp({ Component, pageProps }) {
   console.log("MyApp simple test rendering"); // Debug log
   return (
@@ -11,4 +11,6 @@ function MyApp({ Component, pageProps }) {
     </main>
   );
 }
-export default MyApp;
+
+// Exportez l'application enveloppée avec appWithTranslation
+export default appWithTranslation(MyApp); // <-- MODIFIEZ CETTE LIGNE
