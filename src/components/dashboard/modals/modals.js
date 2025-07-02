@@ -1111,7 +1111,6 @@ export const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) 
 // Exportation de toutes les modales
 export {
     ModalWrapper,
-    TaskEditModal,
     DayDetailsModal,
     QuickAddTaskModal,
     GuestNameEditModal,
