@@ -1,27 +1,41 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // Assurez-vous que ces chemins sont CORRECTS et couvrent TOUS vos fichiers où vous utilisez des classes Tailwind.
-  // Le chemin './src/**/*.{js,ts,jsx,tsx,mdx}' devrait couvrir la plupart des cas
-  // si tous vos composants et pages sont sous 'src/'.
   content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}', // Pour les pages directement à la racine (ex: pages/index.js, pages/dashboard.js)
-    './components/**/*.{js,ts,jsx,tsx,mdx}', // Pour les composants directement à la racine (peu probable si tout est sous src/)
-    './src/**/*.{js,ts,jsx,tsx,mdx}', // Pour tout ce qui se trouve dans le répertoire 'src'
-    // Ajoutez d'autres chemins si vous avez des fichiers avec des classes Tailwind ailleurs
-    // par exemple, si vous avez des fichiers HTML statiques ou d'autres répertoires de contenu.
+    // La méthode la plus large pour s'assurer que Tailwind trouve toutes les classes.
+    // Cela inclut toutes les pages, composants, et fichiers sous 'src' et à la racine.
+    './{pages,components,app,src}/**/*.{js,ts,jsx,tsx,mdx}', // <--- MODIFICATION ICI
+    './*.{js,ts,jsx,tsx,mdx}', // Pour les fichiers directement à la racine (comme next.config.mjs si des classes y étaient)
   ],
   theme: {
     extend: {
-      // Si vous avez des classes personnalisées qui étendent le thème de Tailwind
-      // par exemple, des couleurs, des tailles de police, etc.
-      // Par exemple, pour les couleurs des variables CSS :
+      // Gardez vos couleurs étendues ici. Elles sont cruciales.
       colors: {
         'color-bg-primary': 'var(--color-bg-primary)',
         'color-bg-secondary': 'var(--color-bg-secondary)',
-        // ... ajoutez toutes vos variables CSS ici si vous voulez les utiliser directement comme classes Tailwind
-        // Exemple: <div className="bg-color-bg-primary">
+        'color-bg-tertiary': 'var(--color-bg-tertiary)',
+        'color-bg-input': 'var(--color-bg-input)',
+        'color-bg-input-field': 'var(--color-bg-input-field)',
+        'color-bg-hover': 'var(--color-bg-hover)',
+
+        'color-text-primary': 'var(--color-text-primary)',
+        'color-text-secondary': 'var(--color-text-secondary)',
+        'color-text-tertiary': 'var(--color-text-tertiary)',
+        
+        'color-border-primary': 'var(--color-border-primary)',
+        'color-border-input': 'var(--color-border-input)',
+        'color-border-active': 'var(--color-border-active)',
+
+        'glass-nav-bg': 'var(--glass-nav-bg)',
+        'glass-card-bg': 'var(--glass-card-bg)',
+        'glass-card-border': 'var(--glass-card-border)',
+        
+        'color-message-other-bg-light': 'var(--color-message-other-bg-light)',
+        'color-message-other-text-light': 'var(--color-message-other-text-light)',
+
+        'shadow-color': 'var(--shadow-color)',
+        'color-border-active-shadow': 'var(--color-border-active-shadow)',
       },
     },
   },
-  plugins: [], // Laissez vide si vous n'avez pas de plugins Tailwind spécifiques
+  plugins: [],
 };

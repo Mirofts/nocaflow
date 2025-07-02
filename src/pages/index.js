@@ -1,4 +1,3 @@
-// pages/index.js
 import LanguageSwitcher from '../components/dashboard/LanguageSwitcher';
 import Head from 'next/head';
 import { useEffect, useState, useContext } from 'react';
@@ -30,6 +29,9 @@ export default function HomePage({ onRegisterClick, onLoginClick }) {
     }
   }, [user, loadingAuth, router]);
 
+  // IMPORTANT : L'écran de chargement (spinner) est toujours là
+  // car loadingAuth est vrai au début, ou user n'est pas nul si déjà connecté.
+  // Ce test de couleur sera visible seulement APRÈS cet écran de chargement.
   if (loadingAuth || user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-color-bg-primary">
@@ -49,7 +51,8 @@ export default function HomePage({ onRegisterClick, onLoginClick }) {
         initial="hidden"
         animate="visible"
         variants={{ visible: { transition: { staggerChildren: 0.2 } } }}
-        className="relative min-h-[90vh] w-full flex flex-col items-center justify-center text-center px-4 pt-32 pb-20 overflow-hidden"
+        // AJOUT DE LA CLASSE DE TEST BG-PURPLE-500 ICI :
+        className="relative min-h-[90vh] w-full flex flex-col items-center justify-center text-center px-4 pt-32 pb-20 overflow-hidden bg-purple-500"
       >
         <div className="absolute inset-0 z-0">
           <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-20" src="/realbg.mp4"></video>
