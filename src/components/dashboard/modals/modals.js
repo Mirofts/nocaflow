@@ -114,7 +114,7 @@ const TaskEditModal = ({ task, onSave, onClose, t }) => {
   );
 };
 // --- Modale des Détails du Jour (Calendrier) ---
-export const DayDetailsModal = ({ data, onAddTask, onClose, t }) => { 
+const DayDetailsModal = ({ data, onAddTask, onClose, t }) => { 
     const { date, events } = data;
 
     const eventTypeMap = {
@@ -169,7 +169,7 @@ export const DayDetailsModal = ({ data, onAddTask, onClose, t }) => {
 };
 
 // --- Modale d'Ajout Rapide de Tâche (Réutilisée par DayDetailsModal) ---
-export const QuickAddTaskModal = ({ date, onSave, onClose, t }) => { 
+const QuickAddTaskModal = ({ date, onSave, onClose, t }) => { 
     const [title, setTitle] = useState('');
     const [type, setType] = useState('task'); 
     const [loading, setLoading] = useState(false);
@@ -242,7 +242,7 @@ export const QuickAddTaskModal = ({ date, onSave, onClose, t }) => {
     );
 };
 // --- Modale pour changer le nom de l'invité ---
-export const GuestNameEditModal = ({ currentName, onSave, onClose, t }) => { 
+const GuestNameEditModal = ({ currentName, onSave, onClose, t }) => { 
     const [name, setName] = useState(currentName);
     return (
         <ModalWrapper onClose={onClose} size="max-w-sm">
@@ -265,7 +265,7 @@ export const GuestNameEditModal = ({ currentName, onSave, onClose, t }) => {
 };
 
 // --- Modale pour changer le nom d'utilisateur connecté ---
-export const UserNameEditModal = ({ currentUser, onClose, t }) => {
+const UserNameEditModal = ({ currentUser, onClose, t }) => {
     const { refreshUser } = useAuth();
     const [name, setName] = useState(currentUser?.displayName || '');
     const [loading, setLoading] = useState(false);
@@ -330,7 +330,7 @@ export const UserNameEditModal = ({ currentUser, onClose, t }) => {
 };
 
 // --- Modale pour changer l'avatar ---
-export const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => { 
+const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => { 
     const { user, refreshUser } = useAuth();
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState('');
@@ -536,7 +536,7 @@ export const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }
 };
 
 // --- Modale pour Planifier une Réunion (Legacy, si encore utilisée directement) ---
-export const MeetingSchedulerModal = ({ onSchedule, isGuest, onClose, t }) => {
+const MeetingSchedulerModal = ({ onSchedule, isGuest, onClose, t }) => {
     const [title, setTitle] = useState('');
     const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [time, setTime] = useState(format(new Date(), 'HH:mm'));
@@ -583,7 +583,7 @@ export const MeetingSchedulerModal = ({ onSchedule, isGuest, onClose, t }) => {
 };
 
 // --- Modale pour Créer/Éditer un Projet ---
-export const ProjectFormModal = ({ initialData = {}, onSave, onDelete, onClose, isGuest, t }) => {
+const ProjectFormModal = ({ initialData = {}, onSave, onDelete, onClose, isGuest, t }) => {
     const [name, setName] = useState(initialData.name || '');
     const [client, setClient] = useState(initialData.client || '');
     const [progress, setProgress] = useState(initialData.progress || 0);
@@ -676,7 +676,7 @@ export const ProjectFormModal = ({ initialData = {}, onSave, onDelete, onClose, 
     );
 };
 // --- Modale de Formulaire de Facture ---
-export const InvoiceFormModal = ({ isGuest, client = null, onAdd, onClose, t }) => { 
+const InvoiceFormModal = ({ isGuest, client = null, onAdd, onClose, t }) => { 
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
     const [invoiceClient, setInvoiceClient] = useState(client ? client.name : ''); 
@@ -729,7 +729,7 @@ export const InvoiceFormModal = ({ isGuest, client = null, onAdd, onClose, t }) 
 };
 
 // --- Modale de Liste de Factures ---
-export const InvoiceListModal = ({ invoices = [], onClose, t }) => { 
+const InvoiceListModal = ({ invoices = [], onClose, t }) => { 
     return (
         <ModalWrapper onClose={onClose} size="max-w-xl">
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
@@ -773,7 +773,7 @@ export const InvoiceListModal = ({ invoices = [], onClose, t }) => {
 
 
 // --- Modale de Membre d'Équipe (Ajout/Édition/Suppression) ---
-export const TeamMemberModal = ({ mode, member, onSave, onDelete, onClose, t }) => { 
+const TeamMemberModal = ({ mode, member, onSave, onDelete, onClose, t }) => { 
     const [name, setName] = useState(member?.name || '');
     const [role, setRole] = useState(member?.role || '');
     const [email, setEmail] = useState(member?.email || '');
@@ -848,7 +848,7 @@ export const TeamMemberModal = ({ mode, member, onSave, onDelete, onClose, t }) 
 };
 
 // --- Modale de Chat Rapide ---
-export const QuickChatModal = ({ member, onClose, t }) => { 
+const QuickChatModal = ({ member, onClose, t }) => { 
     const [message, setMessage] = useState('');
     const [chatHistory, setChatHistory] = useState([]); 
 
@@ -930,7 +930,7 @@ export const QuickChatModal = ({ member, onClose, t }) => {
 };
 
 // --- Modale d'Attribution (Tâche/Projet/Deadline) ---
-export const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = [], userUid, currentUserName, onAddTask }) => { 
+const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = [], userUid, currentUserName, onAddTask }) => { 
     const [assignmentType, setAssignmentType] = useState('task'); 
     const [title, setTitle] = useState('');
     const [deadline, setDeadline] = useState('');
@@ -1032,7 +1032,7 @@ export const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMem
 };
 
 // --- Modale de Client (Ajout/Édition/Suppression) ---
-export const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) => {
+const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) => {
     const [name, setName] = useState(client?.name || '');
     const [contactEmail, setContactEmail] = useState(client?.contactEmail || '');
     const [phone, setPhone] = useState(client?.phone || ''); // Added phone field
