@@ -2,7 +2,6 @@
 import Head from 'next/head';
 import {
   MessagesSquare,
-  FolderKanban,
   CreditCard,
   Clock,
   Palette,
@@ -31,8 +30,6 @@ export default function FeaturesPage({ onLoginClick, onRegisterClick }) {
   };
 
   const features = [
-    { icon: FolderKanban, key: 'portals' },
-    { icon: LayoutKanban, key: 'projects' },
     { icon: MessagesSquare, key: 'chat' },
     { icon: CreditCard, key: 'payments' },
     { icon: Clock, key: 'productivity' },
