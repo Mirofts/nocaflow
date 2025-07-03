@@ -6,7 +6,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { ArrowRight, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
-import LanguageSwitcher from '../components/dashboard/LanguageSwitcher'; // Note: ce composant était dans un dossier dashboard, assurez-vous que c'est le bon chemin.
+// import LanguageSwitcher from '../components/dashboard/LanguageSwitcher'; // <-- Suppression du LanguageSwitcher ici, car il est dans la Navbar globale
 
 const FADE_UP_VARIANTS = {
   hidden: { opacity: 0, y: 20 },
@@ -17,7 +17,8 @@ const FADE_UP_VARIANTS = {
   },
 };
 
-export default function HomePage() {
+// Modifiez la signature de la fonction pour accepter les props onLoginClick et onRegisterClick
+export default function HomePage({ onLoginClick, onRegisterClick }) {
   const { t } = useTranslation('common');
   const { user, loadingAuth, loginAsGuest } = useAuth();
   const router = useRouter();
@@ -49,12 +50,14 @@ export default function HomePage() {
         />
       </Head>
 
-      <LanguageSwitcher className="absolute top-6 right-6 z-20" />
+      {/* Supprimez le LanguageSwitcher ici, il est désormais dans la Navbar globale */}
+      {/* <LanguageSwitcher className="absolute top-6 right-6 z-20" /> */}
 
       <motion.section
         initial="hidden"
         animate="visible"
         variants={{ visible: { transition: { staggerChildren: 0.2 } } }}
+        // pt-32 est déjà présent, pas besoin d'ajouter pt-16 supplémentaire
         className="relative min-h-[90vh] w-full flex flex-col items-center justify-center text-center px-4 pt-32 pb-20 overflow-hidden bg-purple-500"
       >
         <div className="absolute inset-0 z-0">
@@ -70,7 +73,6 @@ export default function HomePage() {
 
         <div className="relative z-10 flex flex-col items-center">
           <motion.div variants={FADE_UP_VARIANTS} className="text-center">
-            {/* Ajout des classes dark-gradient-text et light-gradient-text */}
             <h1 className="text-5xl md:text-7xl font-bold tracking-tighter animated-gradient-text dark-gradient-text">
               {t('main_headline', "Le Système d'Exploitation Client")}
             </h1>
@@ -87,14 +89,15 @@ export default function HomePage() {
 
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={() => router.push('/register')}
+              // Utilisez la prop onRegisterClick reçue de _app.js
+              onClick={onRegisterClick}
               className="pulse-button inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-white rounded-full bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 transition-all duration-300"
             >
               {t('start', 'Commencer')} <ArrowRight size={20} />
             </button>
 
             <button
-              onClick={loginAsGuest}
+              onClick={loginAsGuest} // Gardez loginAsGuest, car c'est une action directe, pas une modal
               className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-slate-300 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-800 transition-colors"
             >
               <Eye size={20} /> {t('try_as_guest', 'Essayer en mode invité')}
@@ -129,10 +132,25 @@ export default function HomePage() {
   );
 }
 
+// Nous devons modifier `getStaticProps` dans index.js pour inclure `onLoginClick` et `onRegisterClick` dans `pageProps`.
+// Cependant, `getStaticProps` ne peut pas inclure de fonctions.
+// La solution est de passer ces fonctions de `_app.js` directement à `Component` via `pageProps`.
+
+// Donc, pour que `HomePage` reçoive `onLoginClick` et `onRegisterClick`,
+// le `_app.js` doit les passer explicitement à `Component`:
+// <Component {...pageProps} onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />
+// OU vous pouvez créer un contexte pour les modales si elles sont très utilisées.
+
+// Pour l'instant, je vais modifier getStaticProps pour refléter la signature de HomePage,
+// mais sachez que les fonctions ne seront pas sérialisées si vous les passez directement ici.
+// La meilleure pratique est de les passer via _app.js ou un Contexte.
 export async function getStaticProps({ locale }) {
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common'])),
+      // Les fonctions onLoginClick et onRegisterClick ne peuvent PAS être passées via getStaticProps.
+      // Elles doivent être passées par _app.js ou un contexte.
+      // Donc, nous les retirerons d'ici et nous nous assurerons que _app.js les transmet.
     },
   };
 }

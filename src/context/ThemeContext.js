@@ -5,18 +5,34 @@ export const ThemeContext = createContext(undefined);
 
 export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Vérifier si nous sommes côté client avant d'accéder à localStorage
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      // Par défaut en sombre si aucune préférence n'est enregistrée
-      return savedTheme === 'dark' || savedTheme === null;
+    if (typeof window === 'undefined') {
+      // Côté serveur : toujours sombre par défaut pour éviter le flash
+      return true;
     }
-    // Par défaut en mode sombre côté serveur pour le rendu initial afin d'éviter le flash de contenu clair
-    return true;
+
+    // Côté client : lire la préférence sauvegardée
+    const savedTheme = localStorage.getItem('theme');
+    let initialMode;
+
+    if (savedTheme === 'dark') {
+      initialMode = true;
+    } else if (savedTheme === 'light') {
+      initialMode = false;
+    } else {
+      // Si aucune préférence sauvegardée, par défaut en mode sombre (votre choix)
+      initialMode = true;
+      // Optionnel: si vous voulez respecter la préférence système si aucune sauvegarde
+      // const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      // initialMode = prefersDark;
+    }
+
+    // Appliquer l'attribut immédiatement pour éviter le flash de contenu
+    document.documentElement.setAttribute('data-theme', initialMode ? 'dark' : 'light');
+    return initialMode;
   });
 
   useEffect(() => {
-    // Cet effet s'exécute uniquement côté client
+    // Cet effet met à jour l'attribut et localStorage si isDarkMode change APRÈS l'initialisation
     const root = window.document.documentElement;
     root.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
