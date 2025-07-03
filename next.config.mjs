@@ -1,13 +1,15 @@
-// next.config.mjs
-
-import i18nConfig from './next-i18next.config.js';
-const { i18n } = i18nConfig;
-
+import { i18n } from './next-i18next.config.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
   i18n,
+  reactStrictMode: true,
+  experimental: {
+    serverActions: true
+  },
+  images: {
+    domains: ['res.cloudinary.com']
+  }
 };
 
-export default nextConfig; // Change module.exports to export default
+export default nextConfig;
