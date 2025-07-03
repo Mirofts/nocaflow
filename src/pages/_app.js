@@ -8,6 +8,7 @@ import { ThemeProvider } from '../context/ThemeContext';
 import i18nextConfig from '../../next-i18next.config';
 import { AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import { useTranslation } from 'next-i18next'; // Importez useTranslation
 
 // *** IMPORTS DES COMPOSANTS DE LAYOUT ***
 import Navbar from '../components/Navbar';
@@ -16,10 +17,10 @@ import Footer from '../components/Footer';
 // *** IMPORTEZ VOS VRAIS COMPOSANTS DE MODALES ICI ***
 // Assurez-vous que les chemins sont corrects par rapport à votre structure de dossiers
 import LoginModal from '../components/LoginModal';
-import RegisterModal from '../components/RegisterModal';
-
+import RegisterModal from '../components/RegisterModal'; // Utilisez le composant RegisterModal du dossier components, qui est maintenant mis à jour
 
 function MyApp({ Component, pageProps }) {
+  const { t } = useTranslation('common'); // Obtenez l'instance t ici
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
@@ -67,6 +68,7 @@ function MyApp({ Component, pageProps }) {
               {...pageProps}
               onLoginClick={handleLoginClick}
               onRegisterClick={handleRegisterClick}
+              t={t} // Passez t à Component si nécessaire (pour les pages qui en ont besoin, comme le dashboard si t n'est pas utilisé directement là-bas)
             />
           </main>
 
@@ -79,12 +81,14 @@ function MyApp({ Component, pageProps }) {
                 <LoginModal
                     onClose={closeLoginModal}
                     onSwitchToRegister={switchToRegisterFromLogin}
+                    t={t} // Passez t à la modale de connexion
                 />
             )}
             {showRegisterModal && (
                 <RegisterModal
                     onClose={closeRegisterModal}
                     onSwitchToLogin={switchToLoginFromRegister}
+                    t={t} // Passez t à la modale d'inscription
                 />
             )}
         </AnimatePresence>

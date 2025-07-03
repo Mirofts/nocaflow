@@ -1,15 +1,14 @@
-// components/LoginModal.js
+// src/components/LoginModal.js
 import React, { useState, useContext } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { useTranslation } from 'next-i18next'; // <-- NOUVEL IMPORT
-
-import { auth, db } from '../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { setDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../context/AuthContext';
 import { useRouter } from 'next/router';
+import { useTranslation } from 'react-i18next'; // Importez useTranslation ici
 
 const GoogleIcon = () => (
     <svg className="w-5 h-5" viewBox="0 0 48 48">
@@ -20,8 +19,7 @@ const GoogleIcon = () => (
     </svg>
 );
 
-export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't' RETIRÉ des props
-  const { t } = useTranslation('common'); // <-- useTranslation ajouté directement ici
+export default function LoginModal({ t, onClose, onSwitchToRegister }) { // Recevez t ici
   const { refreshUser } = useContext(AuthContext);
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -82,9 +80,9 @@ export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't'
     } catch (err) {
       console.error("Email login error:", err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError("Email ou mot de passe incorrect.");
+        setError(t('invalid_credentials', "Email ou mot de passe incorrect.")); // Utilisation de t
       } else {
-        setError("Une erreur est survenue lors de la connexion. Veuillez réessayer.");
+        setError(t('login_error', "Une erreur est survenue lors de la connexion. Veuillez réessayer.")); // Utilisation de t
       }
     } finally {
       setLoading(false);
@@ -106,11 +104,11 @@ export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't'
     } catch (err) {
       console.error("Google Sign-In error:", err);
       if (err.code === 'auth/popup-closed-by-user') {
-          setError("La fenêtre de connexion Google a été fermée.");
+          setError(t('google_popup_closed', "La fenêtre de connexion Google a été fermée.")); // Utilisation de t
       } else if (err.code === 'auth/cancelled-popup-request') {
-          setError("La requête de connexion Google a été annulée.");
+          setError(t('google_request_cancelled', "La requête de connexion Google a été annulée.")); // Utilisation de t
       } else {
-          setError("Erreur lors de la connexion avec Google. Veuillez réessayer.");
+          setError(t('google_signin_error', "Erreur lors de la connexion avec Google. Veuillez réessayer.")); // Utilisation de t
       }
     } finally {
       setLoading(false);
@@ -122,7 +120,7 @@ export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't'
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[1000]"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100]"
         onClick={onClose}
     >
         <motion.div
@@ -133,50 +131,37 @@ export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't'
             className="glass-card p-8 rounded-2xl max-w-md w-full relative"
             onClick={(e) => e.stopPropagation()}
         >
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors">
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:bg-white/10 hover:text-white transition-colors">
                 <X className="w-6 h-6"/>
             </button>
             <div className="text-center">
-                <h2 className="mt-2 text-3xl font-bold text-color-text-primary">{t('login_title')}</h2>
+                <h2 className="mt-2 text-3xl font-bold">{t('login_title')}</h2> {/* Utilisation de t */}
             </div>
             <form onSubmit={handleEmailLogin} className="mt-8 space-y-4">
-                <button onClick={handleGoogleSignIn} type="button" className="w-full flex items-center justify-center gap-3 bg-white text-black font-semibold py-3 rounded-lg hover:bg-gray-200 transition-colors" disabled={loading}>
+                <button onClick={handleGoogleSignIn} type="button" className="w-full flex items-center justify-center gap-3 bg-white text-black font-semibold py-3 rounded-lg hover:bg-slate-200 transition-colors" disabled={loading}>
                     <GoogleIcon />
-                    <span>{t('login_with_google')}</span>
+                    <span>{t('login_with_google')}</span> {/* Utilisation de t */}
                 </button>
                 <div className="flex items-center">
-                    <hr className="w-full border-color-border-primary"/>
-                    <span className="px-2 text-color-text-tertiary text-sm">{t('or_separator')}</span>
-                    <hr className="w-full border-color-border-primary"/>
+                    <hr className="w-full border-slate-700"/>
+                    <span className="px-2 text-slate-500 text-sm">{t('or_separator')}</span> {/* Utilisation de t */}
+                    <hr className="w-full border-slate-700"/>
                 </div>
-                <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('login_email')}
-                    className="w-full form-input" // Utilisation de la classe form-input pour cohérence
-                    required
-                />
-                <input
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    type="password"
-                    placeholder={t('login_password')}
-                    className="w-full form-input" // Utilisation de la classe form-input pour cohérence
-                    required
-                />
+                <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('login_email')} className="w-full bg-slate-800 border border-slate-700 rounded-md px-4 py-3 focus:ring-pink-500 focus:border-pink-500 transition" required/> {/* Utilisation de t */}
+                <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder={t('login_password')} className="w-full bg-slate-800 border border-slate-700 rounded-md px-4 py-3 focus:ring-pink-500 focus:border-pink-500 transition" required/> {/* Utilisation de t */}
                 
                 {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
                 <div className="text-right">
-                    <a href="#" className="text-sm font-medium text-color-text-secondary hover:text-color-text-primary">{t('forgot_password')}</a>
+                    <a href="#" className="text-sm font-medium text-slate-400 hover:text-white">{t('forgot_password')}</a> {/* Utilisation de t */}
                 </div>
                 <button type="submit" disabled={loading} className="w-full pulse-button bg-gradient-to-r from-pink-500 to-violet-500 text-white font-bold py-3 rounded-md text-lg disabled:opacity-50 disabled:animate-none">
-                  {loading ? 'Connexion...' : t('login')}
+                  {loading ? t('logging_in', 'Connexion...') : t('login')} {/* Utilisation de t */}
                 </button>
             </form>
             <div className="text-center mt-4">
-                <p className="text-color-text-secondary text-sm">
-                    {t('no_account') || "Pas encore de compte ?"} <span onClick={onSwitchToRegister} className="text-pink-500 cursor-pointer hover:text-pink-400 transition-colors">{t('register_button')}</span>
+                <p className="text-slate-400 text-sm">
+                    {t('no_account') || "Pas encore de compte ?"} <span onClick={onSwitchToRegister} className="text-pink-500 cursor-pointer hover:text-pink-400 transition-colors">{t('register')}</span> {/* Utilisation de t */}
                 </p>
             </div>
         </motion.div>

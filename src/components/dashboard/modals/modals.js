@@ -19,7 +19,7 @@ import QuickChatModal from './QuickChatModal';
 import AssignTaskProjectDeadlineModal from './AssignTaskProjectDeadlineModal';
 import UserNameEditModal from './UserNameEditModal';
 import ClientFormModal from './ClientFormModal';
-import GanttTaskFormModal from './GanttTaskFormModal';
+import GanttTaskFormModal from './GanttTaskFormModal'; // Assurez-vous que ce chemin est correct
 import GoogleDriveLinkModal from './GoogleDriveLinkModal';
 import AddDeadlineModal from './AddDeadlineModal';
 import AddMeetingModal from './AddMeetingModal';

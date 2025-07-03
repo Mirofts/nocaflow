@@ -1,322 +1,228 @@
-// components/dashboard/GanttChartPlanning.js
-import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
+// src/components/dashboard/GanttChartPlanning.js
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { DashboardCard } from './DashboardCard';
-import { motion } from 'framer-motion';
-import { format, addDays, differenceInDays, parseISO, isValid, isToday as checkIsToday, addMonths, subMonths } from 'date-fns';
+import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, isPast } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { initialMockData } from '../../lib/mockData';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 
-// Composant pour une barre de tâche individuelle dans le Gantt
-const GanttTaskBar = ({ task, totalDaysInPeriod, startDate, t, onEditTask, onValidateTask }) => {
-    const { isDarkMode } = useTheme();
-    const taskStart = parseISO(task.startDate);
-    const taskEnd = parseISO(task.endDate);
-
-    if (!isValid(taskStart) || !isValid(taskEnd)) {
-        return null;
-    }
-
-    // Calcul de l'offset et de la durée en jours par rapport à la période affichée
-    const offsetDays = differenceInDays(taskStart, startDate);
-    const durationDays = differenceInDays(taskEnd, taskStart) + 1;
-
-    // Calcul des pourcentages pour le positionnement et la largeur
-    const leftPercentage = (offsetDays / totalDaysInPeriod) * 100;
-    const widthPercentage = (durationDays / totalDaysInPeriod) * 100;
-
-    // Déterminer la couleur basée sur la complétion ou un statut
-    const barColor = task.completed
-        ? 'bg-green-500/80'
-        : task.color === 'pink' ? 'bg-pink-500/80'
-        : task.color === 'red' ? 'bg-red-500/80'
-        : task.color === 'violet' ? 'bg-violet-500/80'
-        : task.color === 'blue' ? 'bg-blue-500/80'
-        : task.color === 'cyan' ? 'bg-cyan-500/80'
-        : task.color === 'orange' ? 'bg-orange-500/80'
-        : task.color === 'teal' ? 'bg-teal-500/80'
-        : 'bg-gray-500/80';
-
-    return (
-        <motion.div
-            className={`absolute h-8 rounded-md shadow-md ${barColor} flex items-center justify-between px-2 overflow-hidden group`}
-            style={{
-                left: `${leftPercentage}%`,
-                width: `${widthPercentage}%`,
-                top: '50%',
-                transform: 'translateY(-50%)'
-            }}
-            initial={{ opacity: 0, scaleX: 0 }}
-            animate={{ opacity: 1, scaleX: 1 }}
-            transition={{ duration: 0.5, originX: 0 }}
-        >
-            <span className="text-white text-xs font-semibold truncate mr-2">
-                {task.title}
-            </span>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {/* Edit Button */}
-                <motion.button
-                    onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
-                    className={`p-1 rounded-full transition-colors
-                                ${isDarkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-white/30 text-white'}`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    title={t('edit_task', 'Modifier la tâche')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 0 1 2.92 2.92L10 16.5l-4 1.5 1.5-4L17 3Z"/><path d="M7.5 7.5 10 10"/></svg>
-                </motion.button>
-                {/* Validate/Complete Button (only if not already completed) */}
-                {!task.completed && (
-                    <motion.button
-                        onClick={(e) => { e.stopPropagation(); onValidateTask(task.id); }}
-                        className={`p-1 rounded-full transition-colors
-                                    ${isDarkMode ? 'hover:bg-green-700 text-green-300' : 'hover:bg-green-200/50 text-green-700'}`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        title={t('validate_task', 'Valider la tâche')}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    </motion.button>
-                )}
-            </div>
-        </motion.div>
-    );
+// Couleurs pour le Gantt Chart (doivent correspondre à celles définies dans modals.js pour la sélection)
+const GanttColorsMap = {
+    pink: 'bg-pink-500',
+    red: 'bg-red-500',
+    violet: 'bg-violet-500',
+    blue: 'bg-blue-500',
+    cyan: 'bg-cyan-500',
+    green: 'bg-green-500',
+    amber: 'bg-amber-500',
+    gray: 'bg-gray-500',
 };
 
-
-// Composant principal du Planning (Gantt Chart simplifié)
-const GanttChartPlanning = forwardRef((props, ref) => {
-    const { t, onAddTask, className = '', staffMembers, clients, onSave } = props;
-    const ganttContainerRef = useRef(null);
+const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients, onAddTask, onSave, className = '', noContentPadding = false }, ref) => {
+    const [tasks, setTasks] = useState(initialTasks);
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const containerRef = React.useRef(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
-    const [currentViewDate, setCurrentViewDate] = useState(new Date());
     const { isDarkMode } = useTheme();
 
     useEffect(() => {
-        const fullscreenChangeHandler = () => {
-            setIsFullScreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', fullscreenChangeHandler);
-        document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
-        document.addEventListener('mozfullscreenchange', fullscreenChangeHandler);
-        document.addEventListener('MSFullscreenChange', fullscreenChangeHandler);
-
-        return () => {
-            document.removeEventListener('fullscreenchange', fullscreenChangeHandler);
-            document.removeEventListener('webkitfullscreenchange', fullscreenChangeHandler);
-            document.removeEventListener('mozfullscreenchange', fullscreenChangeHandler);
-            document.removeEventListener('MSFullscreenChange', fullscreenChangeHandler);
-        };
-    }, []);
+        setTasks(initialTasks);
+    }, [initialTasks]);
 
     useImperativeHandle(ref, () => ({
         toggleFullScreen: () => {
-            const element = ganttContainerRef.current;
-            if (element) {
+            if (containerRef.current) {
                 if (!document.fullscreenElement) {
-                    if (element.requestFullscreen) {
-                        element.requestFullscreen();
-                    } else if (element.mozRequestFullScreen) {
-                        element.mozRequestFullScreen();
-                    } else if (element.webkitRequestFullscreen) {
-                        element.webkitRequestFullscreen();
-                    } else if (element.msRequestFullscreen) {
-                        element.msRequestFullscreen();
-                    }
+                    containerRef.current.requestFullscreen().catch(err => {
+                        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                    });
                 } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    } else if (document.mozCancelFullScreen) {
-                        document.mozCancelFullScreen();
-                    } else if (document.webkitExitFullscreen) {
-                        document.webkitExitFullscreen();
-                    } else if (document.msExitFullscreen) {
-                        document.msExitFullscreen();
-                    }
+                    document.exitFullscreen();
                 }
             }
         }
     }));
 
-    const startDate = new Date(currentViewDate.getFullYear(), currentViewDate.getMonth(), 1);
-    const endDate = addDays(startDate, 29);
-    const totalDaysInPeriod = differenceInDays(endDate, startDate) + 1;
-
-    const [ganttTasks, setGanttTasks] = useState(props.initialTasks || []);
-
     useEffect(() => {
-        setGanttTasks(props.initialTasks);
-    }, [props.initialTasks]);
-
-    const tasksByPerson = (ganttTasks || []).reduce((acc, task) => {
-        const taskStart = parseISO(task.startDate);
-        const taskEnd = parseISO(task.endDate);
-
-        if (isValid(taskStart) && isValid(taskEnd) && taskStart <= endDate && taskEnd >= startDate) {
-            if (!acc[task.person]) {
-                acc[task.person] = [];
-            }
-            acc[task.person].push(task);
-        }
-        return acc;
-    }, {});
-
-    const sortedPeople = Object.keys(tasksByPerson).sort();
-
-    const daysHeader = Array.from({ length: totalDaysInPeriod }, (_, i) => {
-        const date = addDays(startDate, i);
-        const isToday = checkIsToday(date);
-        return {
-            date: format(date, 'dd'),
-            dayOfWeek: format(date, 'EE', { locale: fr }).charAt(0),
-            isToday: isToday
+        const handleFullscreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
         };
-    });
 
-    const handlePrevMonth = useCallback(() => {
-        setCurrentViewDate(subMonths(currentViewDate, 1));
-    }, [currentViewDate]);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
-    const handleNextMonth = useCallback(() => {
-        setCurrentViewDate(addMonths(currentViewDate, 1));
-    }, [currentViewDate]);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+        };
+    }, []);
 
-    const handleEditTask = useCallback((task) => {
-        onAddTask(task);
-    }, [onAddTask]);
+    const getDaysInView = useCallback(() => {
+        const start = startOfMonth(currentDate);
+        const end = endOfMonth(currentDate);
+        return eachDayOfInterval({ start, end });
+    }, [currentDate]);
 
-    const handleValidateTask = useCallback((taskId) => {
-        const taskToUpdate = ganttTasks.find(t => t.id === taskId);
-        if (taskToUpdate) {
-            const updatedTask = { ...taskToUpdate, completed: !taskToUpdate.completed, progress: taskToUpdate.completed ? 0 : 100 };
-            onSave(updatedTask);
+    const daysInView = getDaysInView();
+    const startDate = daysInView[0];
+    const endDate = daysInView[daysInView.length - 1];
+
+    const totalDays = daysInView.length;
+
+    const getTaskStyle = useCallback((task) => {
+        const taskStartDate = new Date(task.startDate);
+        const taskEndDate = new Date(task.endDate);
+
+        if (!taskStartDate || !taskEndDate || taskStartDate > endDate || taskEndDate < startDate) {
+            return { display: 'none' };
         }
-    }, [ganttTasks, onSave]);
 
+        const effectiveStartDate = taskStartDate < startDate ? startDate : taskStartDate;
+        const effectiveEndDate = taskEndDate > endDate ? endDate : taskEndDate;
+
+        const startOffsetDays = (effectiveStartDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+        const durationDays = (effectiveEndDate.getTime() - effectiveStartDate.getTime()) / (1000 * 60 * 60 * 24) + 1;
+
+        const left = (startOffsetDays / totalDays) * 100;
+        const width = (durationDays / totalDays) * 100;
+
+        return {
+            left: `${left}%`,
+            width: `${width}%`,
+            backgroundColor: task.color ? GanttColorsMap[task.color] : GanttColorsMap['blue'],
+        };
+    }, [startDate, endDate, totalDays]);
+
+    const handlePrevMonth = () => {
+        setCurrentDate(prev => addDays(prev, -totalDays));
+    };
+
+    const handleNextMonth = () => {
+        setCurrentDate(prev => addDays(prev, totalDays));
+    };
+
+    const allPeople = [...new Set([
+        ...(Array.isArray(staffMembers) ? staffMembers.map(m => m.name) : []),
+        ...(Array.isArray(clients) ? clients.map(c => c.name) : []),
+        ...(initialTasks || []).map(t => t.person) // Include people from initial tasks
+    ])].sort();
 
     return (
         <DashboardCard
             icon={
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h10"/><path d="M7 11h10"/><path d="M7 15h10"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 11h10"/><path d="M7 15h10"/></svg>
             }
-            title={t('gantt_planning_title', 'Planning des Tâches Équipe')}
-            className={`${className} ${isFullScreen ? 'fixed inset-0 z-[1000] rounded-none' : ''}`}
-            onFullscreenClick={() => {
-                const element = ganttContainerRef.current;
-                if (element) {
-                    if (!document.fullscreenElement) {
-                        if (element.requestFullscreen) {
-                            element.requestFullscreen();
-                        } else if (element.mozRequestFullScreen) {
-                            element.mozRequestFullScreen();
-                        } else if (element.webkitRequestFullscreen) {
-                            element.webkitRequestFullscreen();
-                        } else if (element.msRequestFullscreen) {
-                            element.msRequestFullscreen();
-                        }
-                    } else {
-                        if (document.exitFullscreen) {
-                            document.exitFullscreen();
-                        } else if (document.mozCancelFullScreen) {
-                            document.mozCancelFullScreen();
-                        } else if (document.webkitExitFullscreen) {
-                            document.webkitExitFullscreen();
-                        } else if (document.msExitFullscreen) {
-                            document.msExitFullscreen();
-                        }
-                    }
-                }
-            }}
+            title={t('gantt_planning_title', 'Planning des tâches d\'équipe')}
+            className={`relative flex flex-col ${className} ${isFullScreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}
+            noContentPadding={true}
         >
-            <div ref={ganttContainerRef} className={`h-full w-full flex flex-col ${isFullScreen ? (isDarkMode ? 'bg-gray-900' : 'bg-color-bg-primary') : ''}`}>
-                <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                    <button onClick={handlePrevMonth}
-                            className={`p-2 rounded-full transition-colors
-                                        ${isDarkMode ? 'text-slate-400 hover:bg-white/10 hover:text-white' : 'text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary'}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                    </button>
-                    <h3 className={`text-lg font-bold text-center flex-grow ${isDarkMode ? 'text-white' : 'text-color-text-primary'}`}>
-                        {format(currentViewDate, 'MMMM', { locale: fr })} {format(currentViewDate, 'yyyy')}
-                    </h3>
-                    <button onClick={handleNextMonth}
-                            className={`p-2 rounded-full transition-colors
-                                        ${isDarkMode ? 'text-slate-400 hover:bg-white/10 hover:text-white' : 'text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary'}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                    </button>
-                </div>
-                <div className="overflow-x-auto custom-scrollbar pb-4 flex-grow">
-                    <div className="inline-grid gap-1.5" style={{
-                        gridTemplateColumns: `minmax(150px, 1fr) repeat(${totalDaysInPeriod}, minmax(30px, 1fr))`,
-                        minHeight: `${sortedPeople.length * 48 + (sortedPeople.length ? 40 : 0)}px`
-                    }}>
-                        <div className={`sticky left-0 z-20 p-2 font-bold text-sm border-r border-color-border-primary
-                                        ${isDarkMode ? 'bg-color-bg-secondary text-slate-400' : 'bg-color-bg-secondary text-color-text-secondary'}`}>
-                            {t('team_member', 'Membre Équipe')}
-                        </div>
-                        {daysHeader.map((day, index) => (
-                            <div key={index}
-                                className={`flex flex-col items-center justify-center p-1 border-b border-color-border-primary text-xs font-semibold
-                                            ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-color-bg-tertiary text-color-text-secondary'}
-                                            ${day.isToday ? (isDarkMode ? 'bg-blue-900/50' : 'bg-blue-100/50') : ''}`}>
-                                <span className={isDarkMode ? 'text-slate-400' : 'text-color-text-primary'}>{day.dayOfWeek}</span>
-                                <span className={isDarkMode ? 'text-slate-400' : 'text-color-text-primary'}>{day.date}</span>
-                            </div>
-                        ))}
+            <div className={`flex items-center justify-between p-4 flex-shrink-0 ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
+                <motion.button
+                    onClick={handlePrevMonth}
+                    className={`p-2 rounded-full transition-colors text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary`}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </motion.button>
+                <h3 className="text-lg font-bold text-color-text-primary flex-grow text-center">
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })}
+                </h3>
+                <motion.button
+                    onClick={handleNextMonth}
+                    className={`p-2 rounded-full transition-colors text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary`}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </motion.button>
+            </div>
 
-                        {sortedPeople.length > 0 ? (
-                            sortedPeople.map(person => (
-                                <React.Fragment key={person}>
-                                    <div className={`sticky left-0 z-10 p-2 font-semibold text-sm border-r border-color-border-primary border-t
-                                                    ${isDarkMode ? 'bg-color-bg-secondary text-white border-slate-700/50' : 'bg-color-bg-secondary text-color-text-primary border-color-border-primary'} flex items-center`}>
-                                        {person}
-                                    </div>
-                                    <div
-                                        className={`relative h-12 border-b border-color-border-primary
-                                                    ${isDarkMode ? 'bg-slate-800/20' : 'bg-color-bg-primary'} cursor-pointer`}
-                                        style={{ gridColumn: `span ${totalDaysInPeriod}` }}
-                                        onClick={() => onAddTask({ date: startDate.toISOString(), person: person })}
-                                    >
-                                        {(tasksByPerson[person] || [])
-                                            .map(task => (
-                                                <GanttTaskBar
-                                                    key={task.id}
-                                                    task={task}
-                                                    totalDaysInPeriod={totalDaysInPeriod}
-                                                    startDate={startDate}
-                                                    t={t}
-                                                    onEditTask={handleEditTask}
-                                                    onValidateTask={handleValidateTask}
-                                                />
-                                            ))
-                                        }
-                                    </div>
-                                </React.Fragment>
-                            ))
-                        ) : (
-                            <div className={`sticky left-0 z-10 p-4 text-sm text-center
-                                            ${isDarkMode ? 'bg-color-bg-secondary text-slate-400' : 'bg-color-bg-secondary text-color-text-secondary'}`}
-                                style={{ gridColumn: `span ${totalDaysInPeriod + 1}` }}>
-                                {t('no_gantt_tasks', 'Aucune tâche dans le planning. Ajoutez-en une pour voir votre FLOW !')}
-                            </div>
-                        )}
+            <div className={`flex flex-col flex-1 overflow-hidden ${noContentPadding ? '' : 'p-4'}`} ref={containerRef}>
+                <div className="grid grid-cols-1 gap-1 flex-1 overflow-y-auto custom-scrollbar">
+                    {/* Header des jours */}
+                    <div className="grid gap-px sticky top-0 z-10" style={{ gridTemplateColumns: `150px repeat(${totalDays}, minmax(0, 1fr))` }}>
+                        <div className={`p-2 font-bold text-sm ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-color-bg-secondary text-color-text-primary'} sticky left-0 z-20 border-b border-color-border-primary`}>
+                            {t('team_member', 'Membre d\'équipe')}
+                        </div>
+                        {daysInView.map((day, index) => {
+                            const isWeekendDay = isWeekend(day);
+                            return (
+                                <div
+                                    key={index}
+                                    className={`p-2 text-center text-xs font-semibold border-b border-color-border-primary ${
+                                        isWeekendDay ? (isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-gray-100 text-gray-400') : (isDarkMode ? 'bg-gray-700 text-white' : 'bg-color-bg-secondary text-color-text-primary')
+                                    } ${isSameDay(day, new Date()) ? (isDarkMode ? 'bg-pink-500/20 text-pink-300' : 'bg-violet-200 text-violet-800') : ''}`}
+                                >
+                                    {format(day, 'dd', { locale: fr })}
+                                    <br />
+                                    {format(day, 'EEE', { locale: fr }).charAt(0).toUpperCase()}
+                                </div>
+                            );
+                        })}
                     </div>
+
+                    {/* Lignes de tâches pour chaque personne */}
+                    {allPeople.length > 0 ? (
+                        allPeople.map((person, pIndex) => (
+                            <div key={pIndex} className="grid gap-px relative" style={{ gridTemplateColumns: `150px repeat(${totalDays}, minmax(0, 1fr))` }}>
+                                <div className={`p-2 font-medium text-sm ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-color-bg-primary text-color-text-primary'} sticky left-0 z-10 border-b border-color-border-primary`}>
+                                    {person}
+                                </div>
+                                {daysInView.map((day, dIndex) => (
+                                    <div
+                                        key={`${pIndex}-${dIndex}`}
+                                        className={`p-2 border-b border-color-border-primary ${
+                                            isWeekend(day) ? (isDarkMode ? 'bg-slate-800' : 'bg-gray-50') : (isDarkMode ? 'bg-gray-800' : 'bg-color-bg-primary')
+                                        } ${isSameDay(day, new Date()) ? (isDarkMode ? 'bg-pink-500/10' : 'bg-violet-100') : ''}`}
+                                    ></div>
+                                ))}
+                                {tasks
+                                    .filter(task => task.person === person)
+                                    .map((task, tIndex) => (
+                                        <motion.div
+                                            key={task.id || tIndex}
+                                            className={`absolute h-4 rounded-full px-2 text-xs font-semibold flex items-center shadow-md cursor-pointer ${GanttColorsMap[task.color] || GanttColorsMap.blue} ${task.completed ? 'opacity-50' : ''}`}
+                                            style={{
+                                                ...getTaskStyle(task),
+                                                top: `${50 + (tIndex % 2) * 20}%`, // Empilement simple pour éviter les chevauchements directs
+                                                transform: `translateY(-50%)`,
+                                                zIndex: 20
+                                            }}
+                                            whileHover={{ scale: 1.03, boxShadow: '0 0 10px rgba(0,0,0,0.3)' }}
+                                            title={`${task.title} (${format(new Date(task.startDate), 'dd/MM')} - ${format(new Date(task.endDate), 'dd/MM')})`}
+                                        >
+                                            {task.title}
+                                        </motion.div>
+                                    ))}
+                            </div>
+                        ))
+                    ) : (
+                        <div className="col-span-full text-center text-slate-500 py-10">
+                            {t('no_gantt_tasks', 'Aucune tâche de planification à afficher.')}
+                        </div>
+                    )}
                 </div>
-                <div className="mt-4 text-center flex-shrink-0">
-                    <motion.button
-                        onClick={() => onAddTask({ date: startDate.toISOString() })}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="main-action-button bg-gradient-to-r from-pink-500 to-violet-500 shadow-lg"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
-                        {t('add_gantt_task', 'Ajouter une tâche au Planning')}
-                    </motion.button>
-                </div>
+            </div>
+
+            <div className={`p-4 border-t border-color-border-primary flex-shrink-0 ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
+                <motion.button
+                    onClick={() => onAddTask()}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg main-action-button"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                    {t('add_gantt_task', 'Ajouter une tâche au Planning')}
+                </motion.button>
             </div>
         </DashboardCard>
     );
 });
 
-GanttChartPlanning.displayName = 'GanttChartPlanning'; // Added for React.forwardRef
-
+GanttChartPlanning.displayName = 'GanttChartPlanning';
 export default GanttChartPlanning;

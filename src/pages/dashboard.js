@@ -1,3 +1,4 @@
+// src/pages/dashboard.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -55,6 +56,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 clients: [],
                 ganttTasks: [],
                 invoices: [],
+                notes: initialMockData.notes, // Ensure notes are initialized if missing from saved data
                 user: {
                     displayName: initialGuestName,
                     photoURL: '/images/avatarguest.jpg',
@@ -83,6 +85,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         const commonData = {
             tasks: [], messages: [], meetings: [], projects: [],
             staffMembers: [], clients: [], ganttTasks: [], invoices: [],
+            notes: initialMockData.notes, // Ensure notes are initialized if missing from saved data
             user: {}
         };
         return {
@@ -105,6 +108,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 displayName: sanitizedData.user?.displayName || prevLocalData.user?.displayName || initialGuestName,
                 photoURL: sanitizedData.user?.photoURL || prevLocalData.user?.photoURL || '/images/avatarguest.jpg',
             };
+            // Ensure notes field is preserved correctly
+            sanitizedData.notes = newData.notes !== undefined ? newData.notes : prevLocalData.notes;
             if (typeof window !== 'undefined') {
                 localStorage.setItem('nocaflow_guest_data', JSON.stringify(sanitizedData));
             }
@@ -123,6 +128,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         const baseData = {
             tasks: [], messages: [], meetings: [], projects: [],
             staffMembers: [], clients: [], ganttTasks: [], invoices: [],
+            notes: initialMockData.notes, // Initialize notes with mockData
             user: { displayName: '', photoURL: '/images/avatarguest.jpg' }
         };
 
@@ -149,6 +155,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         mergedData.clients = Array.isArray(mergedData.clients) ? mergedData.clients : [];
         mergedData.ganttTasks = Array.isArray(mergedData.ganttTasks) ? mergedData.ganttTasks : [];
         mergedData.invoices = Array.isArray(mergedData.invoices) ? mergedData.invoices : [];
+        // Ensure notes field is present
+        mergedData.notes = typeof mergedData.notes === 'string' ? mergedData.notes : initialMockData.notes;
+
 
         return mergedData;
     }, [isGuestMode, localData, todos, guestName, user]);
@@ -292,8 +301,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             </DashboardCard>
 
                             {/* Cartes empilées sous Flow Live Messages */}
-                            <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]"/>
-                            <Calendar tasks={data.tasks} meetings={data.meetings} projects={data.projects} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} className="flex-1 min-h-[400px]"/>
+                            <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]" notes={localData.notes}/>
+                            <Calendar tasks={data.tasks} meetings={data.meetings} projects={data.projects} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} className="flex-1 h-auto"/> {/* MODIFICATION ICI */}
                             <InvoicesSummary invoices={data.invoices} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="flex-1 min-h-[350px]"/>
                         </div>
 
@@ -307,7 +316,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEdit={(task) => openModal('taskEdit', task)}
                                 onDelete={deleteTodo}
                                 t={t}
-                                className="flex-1 min-h-[500px]"
+                                className="flex-1 min-h-[300px]" {/* MODIFICATION ICI */}
                             />
                             <Projects
                                 projects={data.projects}
@@ -339,8 +348,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         <div className="col-span-12 lg:col-span-6">
                             <TeamManagement
                                 members={data.staffMembers}
-                                onAddMember={addStaffMember}
-                                onEditMember={updateStaffMember}
+                                onAddMember={() => openModal('teamMember', { mode: 'add' })}
+                                onEditMember={(member) => openModal('teamMember', { mode: 'edit', member })}
                                 onDeleteMember={deleteStaffMember}
                                 onQuickChat={(member) => openModal('quickChat', member)}
                                 onAssign={(member) => openModal('assignTaskProjectDeadline', member)}
@@ -352,8 +361,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         <div className="col-span-12 lg:col-span-6">
                             <ClientManagement
                                 clients={data.clients}
-                                onAddClient={addClient}
-                                onEditClient={updateClient}
+                                onAddClient={() => openModal('clientForm', { mode: 'add' })}
+                                onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })}
                                 onDeleteClient={deleteClient}
                                 onInvoiceForm={(client) => openModal('invoiceForm', { client })}
                                 onClientInvoices={(client) => openModal('invoiceList', { client })}

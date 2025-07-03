@@ -60,6 +60,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
             className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
         >
             <div className="flex items-center gap-4">
+                {/* Avatar principal pour la section du header */}
                 <div className="relative group cursor-pointer" onClick={() => openModal('avatar')}>
                     <Image
                         src={avatarUrl}
@@ -74,6 +75,14 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                 </div>
                 <div className="flex flex-col">
                     <div className="flex items-center">
+                        {/* Avatar à côté de "Ave, TOI" */}
+                        <Image
+                            src={avatarUrl}
+                            alt={displayUserNameForAvatar}
+                            width={32} // Taille plus petite pour cet avatar
+                            height={32}
+                            className={`rounded-full object-cover mr-2 border-2 ${isDarkMode ? 'border-slate-700' : 'border-color-border-primary'}`}
+                        />
                         <Greeting t={t} />
                         {!isGuestMode && (
                             <button
