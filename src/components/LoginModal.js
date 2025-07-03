@@ -122,7 +122,7 @@ export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't'
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[1000]" // Z-index ajusté
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[1000]"
         onClick={onClose}
     >
         <motion.div
@@ -133,11 +133,11 @@ export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't'
             className="glass-card p-8 rounded-2xl max-w-md w-full relative"
             onClick={(e) => e.stopPropagation()}
         >
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors"> {/* Couleurs ajustées */}
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors">
                 <X className="w-6 h-6"/>
             </button>
             <div className="text-center">
-                <h2 className="mt-2 text-3xl font-bold text-color-text-primary">{t('login_title')}</h2> {/* Couleur ajustée */}
+                <h2 className="mt-2 text-3xl font-bold text-color-text-primary">{t('login_title')}</h2>
             </div>
             <form onSubmit={handleEmailLogin} className="mt-8 space-y-4">
                 <button onClick={handleGoogleSignIn} type="button" className="w-full flex items-center justify-center gap-3 bg-white text-black font-semibold py-3 rounded-lg hover:bg-gray-200 transition-colors" disabled={loading}>
@@ -145,9 +145,9 @@ export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't'
                     <span>{t('login_with_google')}</span>
                 </button>
                 <div className="flex items-center">
-                    <hr className="w-full border-color-border-primary"/> {/* Couleur ajustée */}
-                    <span className="px-2 text-color-text-tertiary text-sm">{t('or_separator')}</span> {/* Couleur ajustée */}
-                    <hr className="w-full border-color-border-primary"/> {/* Couleur ajustée */}
+                    <hr className="w-full border-color-border-primary"/>
+                    <span className="px-2 text-color-text-tertiary text-sm">{t('or_separator')}</span>
+                    <hr className="w-full border-color-border-primary"/>
                 </div>
                 <input
                     value={email}
@@ -168,14 +168,14 @@ export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't'
                 {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
                 <div className="text-right">
-                    <a href="#" className="text-sm font-medium text-color-text-secondary hover:text-color-text-primary">{t('forgot_password')}</a> {/* Couleurs ajustées */}
+                    <a href="#" className="text-sm font-medium text-color-text-secondary hover:text-color-text-primary">{t('forgot_password')}</a>
                 </div>
                 <button type="submit" disabled={loading} className="w-full pulse-button bg-gradient-to-r from-pink-500 to-violet-500 text-white font-bold py-3 rounded-md text-lg disabled:opacity-50 disabled:animate-none">
                   {loading ? 'Connexion...' : t('login')}
                 </button>
             </form>
             <div className="text-center mt-4">
-                <p className="text-color-text-secondary text-sm"> {/* Couleur ajustée */}
+                <p className="text-color-text-secondary text-sm">
                     {t('no_account') || "Pas encore de compte ?"} <span onClick={onSwitchToRegister} className="text-pink-500 cursor-pointer hover:text-pink-400 transition-colors">{t('register_button')}</span>
                 </p>
             </div>

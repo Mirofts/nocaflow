@@ -5,22 +5,20 @@ import { appWithTranslation } from 'next-i18next';
 import Head from 'next/head';
 import { AuthContextProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
-import i18nextConfig from '../../next-i18next.config'; // Chemin vers next-i18next.config.js
-import { useTranslation } from 'react-i18next'; // Importé ici pour MyApp lui-même
-import { AnimatePresence } from 'framer-motion'; // Importez AnimatePresence pour les transitions des modales
-
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import i18nextConfig from '../../next-i18next.config';
+import { AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 
 // *** IMPORTEZ VOS VRAIS COMPOSANTS DE MODALES ICI ***
 // Assurez-vous que les chemins sont corrects par rapport à votre structure de dossiers
-import LoginModal from '../components/LoginModal';    // Ajustez le chemin si nécessaire, ex: './components/auth/LoginModal'
-import RegisterModal from '../components/RegisterModal'; // Ajustez le chemin si nécessaire, ex: './components/auth/RegisterModal'
+// Si elles sont dans le dossier 'components', le chemin est '../components/NomDuFichier'
+// Si elles sont dans 'components/auth', le chemin est '../components/auth/NomDuFichier'
+import LoginModal from '../components/LoginModal';     // Par exemple: '../components/LoginModal'
+import RegisterModal from '../components/RegisterModal'; // Par exemple: '../components/RegisterModal'
 
 
 function MyApp({ Component, pageProps }) {
-  // Décommentez cette ligne si MyApp lui-même a besoin de traductions directes (par exemple, pour le Footer ou le Head)
+  // Pas besoin de useTranslation ici si seules les modales l'utilisent, car elles l'importeront elles-mêmes
   // const { t } = useTranslation('common');
 
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -31,23 +29,21 @@ function MyApp({ Component, pageProps }) {
   const closeLoginModal = () => setShowLoginModal(false);
   const closeRegisterModal = () => setShowRegisterModal(false);
 
-  // Fonctions pour basculer entre les modales si l'utilisateur clique sur "S'inscrire" depuis la modale de connexion
+  // Fonctions pour basculer entre les modales
   const switchToRegisterFromLogin = () => {
-    closeLoginModal();
-    handleRegisterClick();
+    closeLoginModal(); // Ferme la modale de connexion
+    handleRegisterClick(); // Ouvre la modale d'inscription
   };
 
-  // Fonctions pour basculer entre les modales si l'utilisateur clique sur "Se connecter" depuis la modale d'inscription
   const switchToLoginFromRegister = () => {
-    closeRegisterModal();
-    handleLoginClick();
+    closeRegisterModal(); // Ferme la modale d'inscription
+    handleLoginClick(); // Ouvre la modale de connexion
   };
 
   const handleOpenCalculator = () => {
     console.log("Ouvrir la calculatrice");
     // Implémentez la logique pour ouvrir votre calculatrice ici
   };
-
 
   return (
     <AuthContextProvider>
@@ -78,19 +74,17 @@ function MyApp({ Component, pageProps }) {
           <Footer />
         </div>
 
-        {/* *** UTILISEZ VOS VRAIS COMPOSANTS DE MODALES ICI AVEC AnimatePresence *** */}
+        {/* *** VOS VRAIS COMPOSANTS DE MODALES SONT RENDUS ICI AVEC AnimatePresence *** */}
         <AnimatePresence>
             {showLoginModal && (
                 <LoginModal
-                    // RETIREZ LA PROP 't' car LoginModal va l'importer directement
                     onClose={closeLoginModal}
                     onSwitchToRegister={switchToRegisterFromLogin}
-                    // Si votre LoginModal prend d'autres props (ex: `setError`, `setLoading`), ajoutez-les ici
+                    // Si votre LoginModal prend d'autres props, ajoutez-les ici
                 />
             )}
             {showRegisterModal && (
                 <RegisterModal
-                    // RETIREZ LA PROP 't' car RegisterModal va l'importer directement
                     onClose={closeRegisterModal}
                     onSwitchToLogin={switchToLoginFromRegister}
                     // Si votre RegisterModal prend d'autres props, ajoutez-les ici

@@ -1,3 +1,4 @@
+// src/components/Navbar.js
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -5,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next'; // Importe useTranslation de next-i18next, PAS TranslationContext
 
 // Composant NavLink pour les liens de navigation avec animation au survol
 const NavLink = ({ href, children, t, currentPath }) => {
@@ -18,7 +19,7 @@ const NavLink = ({ href, children, t, currentPath }) => {
         <motion.div
           layoutId="underline"
           className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-pink-500 to-violet-500 rounded-full"
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
         />
       )}
     </Link>
@@ -162,7 +163,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
               !loadingAuth && !user && (
                 <div className="flex space-x-2 ml-4">
                   <button
-                    onClick={onLoginClick}
+                    onClick={onLoginClick} // Ceci appellera la fonction handleLoginClick de _app.js
                     className="px-4 py-2 rounded-full text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 transition-colors flex items-center gap-1"
                   >
                     {/* Icône de connexion */}
@@ -170,7 +171,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                     {t('login', 'Connexion')}
                   </button>
                   <button
-                    onClick={onRegisterClick}
+                    onClick={onRegisterClick} // Ceci appellera la fonction handleRegisterClick de _app.js
                     className="px-4 py-2 rounded-full text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1"
                   >
                     {/* Icône d'inscription */}
