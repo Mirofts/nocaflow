@@ -3,12 +3,11 @@ import React, { useState, useContext } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { auth, db } from '../../lib/firebase';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { setDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { AuthContext } from '../../context/AuthContext';
+// CORRECTION DES CHEMINS D'IMPORTATION :
+import { auth, db } from '../lib/firebase'; // Changé de '../../lib/firebase' à '../lib/firebase'
+import { AuthContext } from '../context/AuthContext'; // Changé de '../../context/AuthContext' à '../context/AuthContext'
 import { useRouter } from 'next/router';
-import { useTranslation } from 'react-i18next'; // Importez useTranslation ici
+import { useTranslation } from 'react-i18next';
 
 const GoogleIcon = () => (
     <svg className="w-5 h-5" viewBox="0 0 48 48">
@@ -80,9 +79,9 @@ export default function LoginModal({ t, onClose, onSwitchToRegister }) { // Rece
     } catch (err) {
       console.error("Email login error:", err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError(t('invalid_credentials', "Email ou mot de passe incorrect.")); // Utilisation de t
+        setError(t('invalid_credentials', "Email ou mot de passe incorrect."));
       } else {
-        setError(t('login_error', "Une erreur est survenue lors de la connexion. Veuillez réessayer.")); // Utilisation de t
+        setError(t('login_error', "Une erreur est survenue lors de la connexion. Veuillez réessayer."));
       }
     } finally {
       setLoading(false);
@@ -104,11 +103,11 @@ export default function LoginModal({ t, onClose, onSwitchToRegister }) { // Rece
     } catch (err) {
       console.error("Google Sign-In error:", err);
       if (err.code === 'auth/popup-closed-by-user') {
-          setError(t('google_popup_closed', "La fenêtre de connexion Google a été fermée.")); // Utilisation de t
+          setError(t('google_popup_closed', "La fenêtre de connexion Google a été fermée."));
       } else if (err.code === 'auth/cancelled-popup-request') {
-          setError(t('google_request_cancelled', "La requête de connexion Google a été annulée.")); // Utilisation de t
+          setError(t('google_request_cancelled', "La requête de connexion Google a été annulée."));
       } else {
-          setError(t('google_signin_error', "Erreur lors de la connexion avec Google. Veuillez réessayer.")); // Utilisation de t
+          setError(t('google_signin_error', "Erreur lors de la connexion avec Google. Veuillez réessayer."));
       }
     } finally {
       setLoading(false);
@@ -135,33 +134,33 @@ export default function LoginModal({ t, onClose, onSwitchToRegister }) { // Rece
                 <X className="w-6 h-6"/>
             </button>
             <div className="text-center">
-                <h2 className="mt-2 text-3xl font-bold">{t('login_title')}</h2> {/* Utilisation de t */}
+                <h2 className="mt-2 text-3xl font-bold">{t('login_title')}</h2>
             </div>
             <form onSubmit={handleEmailLogin} className="mt-8 space-y-4">
                 <button onClick={handleGoogleSignIn} type="button" className="w-full flex items-center justify-center gap-3 bg-white text-black font-semibold py-3 rounded-lg hover:bg-slate-200 transition-colors" disabled={loading}>
                     <GoogleIcon />
-                    <span>{t('login_with_google')}</span> {/* Utilisation de t */}
+                    <span>{t('login_with_google')}</span>
                 </button>
                 <div className="flex items-center">
                     <hr className="w-full border-slate-700"/>
-                    <span className="px-2 text-slate-500 text-sm">{t('or_separator')}</span> {/* Utilisation de t */}
+                    <span className="px-2 text-slate-500 text-sm">{t('or_separator')}</span>
                     <hr className="w-full border-slate-700"/>
                 </div>
-                <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('login_email')} className="w-full bg-slate-800 border border-slate-700 rounded-md px-4 py-3 focus:ring-pink-500 focus:border-pink-500 transition" required/> {/* Utilisation de t */}
-                <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder={t('login_password')} className="w-full bg-slate-800 border border-slate-700 rounded-md px-4 py-3 focus:ring-pink-500 focus:border-pink-500 transition" required/> {/* Utilisation de t */}
+                <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('login_email')} className="w-full bg-slate-800 border border-slate-700 rounded-md px-4 py-3 focus:ring-pink-500 focus:border-pink-500 transition" required/>
+                <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder={t('login_password')} className="w-full bg-slate-800 border border-slate-700 rounded-md px-4 py-3 focus:ring-pink-500 focus:border-pink-500 transition" required/>
                 
                 {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
                 <div className="text-right">
-                    <a href="#" className="text-sm font-medium text-slate-400 hover:text-white">{t('forgot_password')}</a> {/* Utilisation de t */}
+                    <a href="#" className="text-sm font-medium text-slate-400 hover:text-white">{t('forgot_password')}</a>
                 </div>
                 <button type="submit" disabled={loading} className="w-full pulse-button bg-gradient-to-r from-pink-500 to-violet-500 text-white font-bold py-3 rounded-md text-lg disabled:opacity-50 disabled:animate-none">
-                  {loading ? t('logging_in', 'Connexion...') : t('login')} {/* Utilisation de t */}
+                  {loading ? t('logging_in', 'Connexion...') : t('login')}
                 </button>
             </form>
             <div className="text-center mt-4">
                 <p className="text-slate-400 text-sm">
-                    {t('no_account') || "Pas encore de compte ?"} <span onClick={onSwitchToRegister} className="text-pink-500 cursor-pointer hover:text-pink-400 transition-colors">{t('register')}</span> {/* Utilisation de t */}
+                    {t('no_account') || "Pas encore de compte ?"} <span onClick={onSwitchToRegister} className="text-pink-500 cursor-pointer hover:text-pink-400 transition-colors">{t('register')}</span>
                 </p>
             </div>
         </motion.div>

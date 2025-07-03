@@ -316,7 +316,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEdit={(task) => openModal('taskEdit', task)}
                                 onDelete={deleteTodo}
                                 t={t}
-                                className="flex-1 min-h-[300px]" {/* MODIFICATION ICI */}
+                                className="flex-1 min-h-[300px]" 
                             />
                             <Projects
                                 projects={data.projects}

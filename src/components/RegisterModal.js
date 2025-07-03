@@ -88,7 +88,7 @@ export default function RegisterModal({ t, onClose, onSwitchToLogin }) { // Rece
         console.log("Avatar uploaded to:", photoURL);
       } catch (uploadError) {
         console.error("Error uploading avatar during registration:", uploadError);
-        setError(t('avatar_upload_failed', "Échec du téléchargement de l'avatar. Veuillez réessayer.")); // Utilisation de t
+        setError(t('avatar_upload_failed', "Échec du téléchargement de l'avatar. Veuillez réessayer."));
         setLoading(false);
         throw uploadError;
       }
@@ -109,7 +109,7 @@ export default function RegisterModal({ t, onClose, onSwitchToLogin }) { // Rece
       console.log("User document created/updated in Firestore.");
     } catch (firestoreError) {
       console.error("Error creating/updating user document in Firestore:", firestoreError);
-      setError(t('profile_save_error', "Erreur lors de la sauvegarde de votre profil. Veuillez réessayer.")); // Utilisation de t
+      setError(t('profile_save_error', "Erreur lors de la sauvegarde de votre profil. Veuillez réessayer."));
       throw firestoreError;
     }
   };
@@ -119,7 +119,7 @@ export default function RegisterModal({ t, onClose, onSwitchToLogin }) { // Rece
     e.preventDefault();
     if (loading) return;
     if (formData.password !== formData.confirmPassword) {
-      setError(t('passwords_do_not_match', "Les mots de passe ne correspondent pas.")); // Utilisation de t
+      setError(t('passwords_do_not_match', "Les mots de passe ne correspondent pas."));
       return;
     }
     setLoading(true);
@@ -140,11 +140,11 @@ export default function RegisterModal({ t, onClose, onSwitchToLogin }) { // Rece
     } catch (err) {
       console.error("Email registration error:", err);
       if (err.code === 'auth/email-already-in-use') {
-        setError(t('email_already_in_use', "Cette adresse e-mail est déjà utilisée.")); // Utilisation de t
+        setError(t('email_already_in_use', "Cette adresse e-mail est déjà utilisée."));
       } else if (err.code === 'auth/weak-password') {
-        setError(t('weak_password', "Le mot de passe doit contenir au moins 6 caractères.")); // Utilisation de t
+        setError(t('weak_password', "Le mot de passe doit contenir au moins 6 caractères."));
       } else {
-        setError(t('registration_error', "Une erreur est survenue lors de l'inscription. Veuillez réessayer.")); // Utilisation de t
+        setError(t('registration_error', "Une erreur est survenue lors de l'inscription. Veuillez réessayer."));
       }
     } finally {
       setLoading(false);
@@ -176,11 +176,11 @@ export default function RegisterModal({ t, onClose, onSwitchToLogin }) { // Rece
     } catch (err) {
       console.error("Google Sign-In error:", err);
       if (err.code === 'auth/popup-closed-by-user') {
-          setError(t('google_popup_closed', "La fenêtre de connexion Google a été fermée.")); // Utilisation de t
+          setError(t('google_popup_closed', "La fenêtre de connexion Google a été fermée."));
       } else if (err.code === 'auth/cancelled-popup-request') {
-          setError(t('google_request_cancelled', "La requête de connexion Google a été annulée.")); // Utilisation de t
+          setError(t('google_request_cancelled', "La requête de connexion Google a été annulée."));
       } else {
-          setError(t('google_signin_error', "Erreur lors de la connexion avec Google. Veuillez réessayer.")); // Utilisation de t
+          setError(t('google_signin_error', "Erreur lors de la connexion avec Google. Veuillez réessayer."));
       }
     } finally {
       setLoading(false);
@@ -207,26 +207,26 @@ export default function RegisterModal({ t, onClose, onSwitchToLogin }) { // Rece
             <X className="w-6 h-6"/>
         </button>
         <div className="text-center">
-            <h2 className="mt-2 text-3xl font-bold">{t('register_title')}</h2> {/* Utilisation de t */}
-            <p className="text-slate-400 text-sm mt-2">{t('register_subtitle')}</p> {/* Utilisation de t */}
+            <h2 className="mt-2 text-3xl font-bold">{t('register_title')}</h2>
+            <p className="text-slate-400 text-sm mt-2">{t('register_subtitle')}</p>
         </div>
         <form onSubmit={handleEmailRegister} className="mt-8 space-y-4">
           {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
           <div className="flex justify-center space-x-4 mb-6">
-            <button type="button" onClick={handleGoogleSignIn} className="flex items-center justify-center gap-3 px-6 py-3 rounded-full bg-slate-700 hover:bg-slate-600 text-white font-semibold transition"><GoogleIcon /> {t('register_with_google')}</button> {/* Utilisation de t */}
+            <button type="button" onClick={handleGoogleSignIn} className="flex items-center justify-center gap-3 px-6 py-3 rounded-full bg-slate-700 hover:bg-slate-600 text-white font-semibold transition"><GoogleIcon /> {t('register_with_google')}</button>
           </div>
 
-          <div className="text-center text-slate-400 mb-6">{t('or_separator')}</div> {/* Utilisation de t */}
+          <div className="text-center text-slate-400 mb-6">{t('or_separator')}</div>
 
           <div className="flex gap-4">
-            <IconInput type="text" name="firstname" placeholder={t('register_firstname')} value={formData.firstname} onChange={handleInputChange} icon={<User className="w-5 h-5 text-slate-400" />} required /> {/* Utilisation de t */}
-            <IconInput type="text" name="lastname" placeholder={t('register_lastname')} value={formData.lastname} onChange={handleInputChange} icon={<User className="w-5 h-5 text-slate-400" />} required /> {/* Utilisation de t */}
+            <IconInput type="text" name="firstname" placeholder={t('register_firstname')} value={formData.firstname} onChange={handleInputChange} icon={<User className="w-5 h-5 text-slate-400" />} required />
+            <IconInput type="text" name="lastname" placeholder={t('register_lastname')} value={formData.lastname} onChange={handleInputChange} icon={<User className="w-5 h-5 text-slate-400" />} required />
           </div>
-          <IconInput type="text" name="company" placeholder={t('register_company')} value={formData.company} onChange={handleInputChange} icon={<Building className="w-5 h-5 text-slate-400" />} /> {/* Utilisation de t */}
-          <IconInput type="email" name="email" placeholder={t('login_email')} value={formData.email} onChange={handleInputChange} icon={<Mail className="w-5 h-5 text-slate-400" />} required /> {/* Utilisation de t */}
-          <IconInput type="password" name="password" placeholder={t('login_password')} value={formData.password} onChange={handleInputChange} icon={<Lock className="w-5 h-5 text-slate-400" />} required /> {/* Utilisation de t */}
-          <IconInput type="password" name="confirmPassword" placeholder={t('register_confirm_password')} value={formData.confirmPassword} onChange={handleInputChange} icon={<Lock className="w-5 h-5 text-slate-400" />} required /> {/* Utilisation de t */}
+          <IconInput type="text" name="company" placeholder={t('register_company')} value={formData.company} onChange={handleInputChange} icon={<Building className="w-5 h-5 text-slate-400" />} />
+          <IconInput type="email" name="email" placeholder={t('login_email')} value={formData.email} onChange={handleInputChange} icon={<Mail className="w-5 h-5 text-slate-400" />} required />
+          <IconInput type="password" name="password" placeholder={t('login_password')} value={formData.password} onChange={handleInputChange} icon={<Lock className="w-5 h-5 text-slate-400" />} required />
+          <IconInput type="password" name="confirmPassword" placeholder={t('register_confirm_password')} value={formData.confirmPassword} onChange={handleInputChange} icon={<Lock className="w-5 h-5 text-slate-400" />} required />
 
           {/* Avatar Upload */}
           <div className="flex items-center gap-4">
@@ -238,21 +238,21 @@ export default function RegisterModal({ t, onClose, onSwitchToLogin }) { // Rece
               )}
             </div>
             <label className="flex-grow bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-md cursor-pointer text-center text-sm font-semibold transition">
-              {t('register_avatar_upload')} {/* Utilisation de t */}
+              {t('register_avatar_upload')}
               <input type="file" accept="image/*" onChange={handleAvatarFileChange} className="hidden" />
             </label>
           </div>
 
-          <Checkbox label={t('checkbox_age', 'Je confirme avoir plus de 18 ans')} required /> {/* Utilisation de t */}
-          <Checkbox label={t('checkbox_terms', "J'ai lu et j'accepte les conditions d'utilisation")} required /> {/* Utilisation de t */}
+          <Checkbox label={t('checkbox_age', 'Je confirme avoir plus de 18 ans')} required />
+          <Checkbox label={t('checkbox_terms', "J'ai lu et j'accepte les conditions d'utilisation")} required />
 
           <button type="submit" disabled={loading} className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed">
-            {loading ? t('registering', 'Inscription...') : t('register_button', 'Créer mon compte')} {/* Utilisation de t */}
+            {loading ? t('registering', 'Inscription...') : t('register_button', 'Créer mon compte')}
           </button>
 
           <p className="text-center text-sm text-slate-400 mt-4">
-            {t('already_account', 'Déjà un compte ?')} {' '} {/* Utilisation de t */}
-            <button type="button" onClick={onSwitchToLogin} className="text-pink-500 hover:underline">{t('login')}</button> {/* Utilisation de t */}
+            {t('already_account', 'Déjà un compte ?')} {' '}
+            <button type="button" onClick={onSwitchToLogin} className="text-pink-500 hover:underline">{t('login')}</button>
           </p>
         </form>
       </motion.div>
