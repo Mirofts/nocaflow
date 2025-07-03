@@ -3,6 +3,8 @@ import React, { useState, useContext } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useTranslation } from 'next-i18next'; // <-- NOUVEL IMPORT
+
 import { auth, db } from '../lib/firebase';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { setDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -18,7 +20,8 @@ const GoogleIcon = () => (
     </svg>
 );
 
-export default function LoginModal({ t, onClose, onSwitchToRegister }) {
+export default function LoginModal({ onClose, onSwitchToRegister }) { // <-- 't' RETIRÉ des props
+  const { t } = useTranslation('common'); // <-- useTranslation ajouté directement ici
   const { refreshUser } = useContext(AuthContext);
   const router = useRouter();
   const [email, setEmail] = useState('');
