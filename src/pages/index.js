@@ -6,7 +6,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { ArrowRight, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
-import LanguageSwitcher from '../components/dashboard/LanguageSwitcher';
+import LanguageSwitcher from '../components/dashboard/LanguageSwitcher'; // Note: ce composant était dans un dossier dashboard, assurez-vous que c'est le bon chemin.
 
 const FADE_UP_VARIANTS = {
   hidden: { opacity: 0, y: 20 },
@@ -70,6 +70,7 @@ export default function HomePage() {
 
         <div className="relative z-10 flex flex-col items-center">
           <motion.div variants={FADE_UP_VARIANTS} className="text-center">
+            {/* Ajout des classes dark-gradient-text et light-gradient-text */}
             <h1 className="text-5xl md:text-7xl font-bold tracking-tighter animated-gradient-text dark-gradient-text">
               {t('main_headline', "Le Système d'Exploitation Client")}
             </h1>

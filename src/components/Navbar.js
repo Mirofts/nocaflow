@@ -1,12 +1,10 @@
-// src/components/Navbar.js
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/router'; // Importe useRouter
+import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-// IMPORTE useTranslation de next-i18next, PAS TranslationContext
 import { useTranslation } from 'next-i18next';
 
 // Composant NavLink pour les liens de navigation avec animation au survol

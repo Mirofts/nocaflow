@@ -9,7 +9,6 @@ const nextConfig = {
   i18n: {
     locales: ['en', 'fr'],
     defaultLocale: 'fr', // Assurez-vous que c'est votre langue par défaut désirée
-    localeDetection: true, // Correct, doit être un boolean
   },
 };
 

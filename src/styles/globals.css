@@ -117,6 +117,13 @@
     border: 1px solid rgba(218, 226, 236, 0.9);
   }
 
+  /* Nouvelle définition pour glass-nav, si non présente */
+  .glass-nav {
+    background-color: var(--glass-nav-bg); /* Utilise la variable définie dans :root et [data-theme='dark'] */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
   .form-input {
     width: 100%;
     padding: 0.75rem;
@@ -218,6 +225,16 @@
 .pink-violet-gradient-text {
   background-image: linear-gradient(125deg, #f871b5, #c084fc, #f871b5);
 }
+
+/* Nouvelles classes pour les dégradés de texte sur la landing page */
+.dark-gradient-text {
+  background-image: linear-gradient(125deg, #ec4899, #8b5cf6, #ec4899); /* Adaptez les couleurs si nécessaire */
+}
+
+.light-gradient-text {
+  background-image: linear-gradient(125deg, #f871b5, #c084fc, #f871b5); /* Adaptez les couleurs si nécessaire */
+}
+
 
 @keyframes pulse-glow {
   0%, 100% { transform: scale(1); box-shadow: 0 0 20px var(--shadow-color); }

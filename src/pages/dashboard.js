@@ -1,4 +1,3 @@
-// src/pages/dashboard.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '../lib/mockData';
 import { useTranslation } from 'react-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations'; // <--- Import this
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 // IMPORTS CORRIGÉS DES COMPOSANTS DU DASHBOARD :
 import DashboardHeader from '../components/dashboard/DashboardHeader';
@@ -259,18 +258,22 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     />
 
                     <TimeAlerts projects={data.projects} meetings={data.meetings} t={t} lang={lang} openModal={openModal} />
+
+                    {/* Début de la grille principale du dashboard */}
                     <div className="grid grid-cols-12 gap-6">
-                        <div className="col-span-12 lg:col-span-8">
-                            <DashboardCard
-                                icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                                }
-                                title={t('flow_messages_title', 'Flow Live Messages')}
-                                className="h-[500px]"
-                                onFullscreenClick={handleFlowLiveMessagesFullscreen}
-                                t={t}
-                                noContentPadding={true}
-                            >
+
+                        {/* Colonne de gauche (8/12 sur grand écran) */}
+                        <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
+<DashboardCard
+    icon={
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    }
+    title={t('flow_messages_title', 'Flow Live Messages')}
+    className="flex-1 min-h-[500px]"
+    onFullscreenClick={handleFlowLiveMessagesFullscreen}
+    t={t}
+    noContentPadding={true}
+>
                                 <FlowLiveMessages
                                     ref={flowLiveMessagesRef}
                                     t={t}
@@ -280,159 +283,162 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
                                     availableTeamMembers={data.staffMembers}
                                 />
-                        </DashboardCard>
-                    </div>
-                    <div className="col-span-12 lg:col-span-4">
-                        <TodoList
-                            todos={data.tasks}
-                            loading={loadingTodos}
-                            onAdd={addTodo}
-                            onToggle={toggleTodo}
-                            onDelete={deleteTodo}
-                            onEdit={(task) => openModal('taskEdit', task)}
-                            t={t}
-                            className="h-[500px]"
-                        />
-                    </div>
+                            </DashboardCard>
 
-                    <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-                        <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="h-[300px]"/>
-                        <Calendar tasks={data.tasks} meetings={data.meetings} projects={data.projects} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} className="h-[400px]"/>
-                        <InvoicesSummary invoices={data.invoices} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="h-[350px]"/>
-                    </div>
-                    <div className="col-span-12 lg:col-span-4 flex flex-col">
-                        <Projects
-                            projects={data.projects}
-                            t={t}
-                            onAddProject={addProject}
-                            onEditProject={editProject}
-                            onDeleteProject={deleteProject}
-                            onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)}
-                            className="h-[1098px]"
-                        />
-                    </div>
+                            {/* Cartes empilées sous Flow Live Messages */}
+                            <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]"/>
+                            <Calendar tasks={data.tasks} meetings={data.meetings} projects={data.projects} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} className="flex-1 min-h-[400px]"/>
+                            <InvoicesSummary invoices={data.invoices} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="flex-1 min-h-[350px]"/>
+                        </div>
 
-                    <div className="col-span-12">
-                        <GanttChartPlanning
-                            ref={ganttChartPlanningRef}
-                            initialTasks={data.ganttTasks}
-                            t={t}
-                            staffMembers={data.staffMembers}
-                            clients={data.clients}
-                            onAddTask={(taskData) => openModal('ganttTaskForm', taskData)}
-                            onSave={handleSaveGanttTask}
-                            className="h-[600px]"
-                            onFullscreenClick={handleGanttChartPlanningFullscreen}
-                        />
-                    </div>
+                        {/* Colonne de droite (4/12 sur grand écran) */}
+                        <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+                         {/* Modifié pour être flexible ou avec min-height */}
+<TodoList
+    todos={data.tasks}
+    loading={loadingTodos}
+    onAdd={addTodo}
+    onToggle={toggleTodo}
+    onEdit={(task) => openModal('taskEdit', task)}
+    onDelete={deleteTodo}
+    t={t}
+    className="flex-1 min-h-[500px]"
+/>
+                  {/* Ajusté pour prendre l'espace restant */}
+<Projects
+    projects={data.projects}
+    t={t}
+    onAddProject={addProject}
+    onEditProject={editProject}
+    onDeleteProject={deleteProject}
+    onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)}
+    className="flex-1 min-h-[598px]"
+/>
+                        </div>
 
-                    <div className="col-span-12 lg:col-span-6">
-                        <TeamManagement
-                            members={data.staffMembers}
-                            onAddMember={addStaffMember}
-                            onEditMember={updateStaffMember}
-                            onDeleteMember={deleteStaffMember}
-                            onQuickChat={(member) => openModal('quickChat', member)}
-                            onAssign={(member) => openModal('assignTaskProjectDeadline', member)}
-                            t={t}
-                            className="h-[400px]"
-                        />
-                    </div>
+                        {/* Ligne pleine largeur pour Gantt Chart */}
+                        <div className="col-span-12">
+                            <GanttChartPlanning
+                                ref={ganttChartPlanningRef}
+                                initialTasks={data.ganttTasks}
+                                t={t}
+                                staffMembers={data.staffMembers}
+                                clients={data.clients}
+                                onAddTask={(taskData) => openModal('ganttTaskForm', taskData)}
+                                onSave={handleSaveGanttTask}
+                                className="h-[600px] w-full" /* Maintenu une hauteur fixe pour Gantt Chart */
+                                onFullscreenClick={handleGanttChartPlanningFullscreen}
+                            />
+                        </div>
 
-                    <div className="col-span-12 lg:col-span-6">
-                        <ClientManagement
-                            clients={data.clients}
-                            onAddClient={addClient}
-                            onEditClient={updateClient}
-                            onDeleteClient={deleteClient}
-                            onInvoiceForm={(client) => openModal('invoiceForm', { client })}
-                            onClientInvoices={(client) => openModal('invoiceList', { client })}
-                            t={t}
-                            className="h-[400px]"
-                        />
-                    </div>
-                </div>
-            </motion.div>
-        </div>
+                        {/* Ligne pour Team Management et Client Management */}
+                        <div className="col-span-12 lg:col-span-6">
+                            <TeamManagement
+                                members={data.staffMembers}
+                                onAddMember={addStaffMember}
+                                onEditMember={updateStaffMember}
+                                onDeleteMember={deleteStaffMember}
+                                onQuickChat={(member) => openModal('quickChat', member)}
+                                onAssign={(member) => openModal('assignTaskProjectDeadline', member)}
+                                t={t}
+                                className="h-[400px]"
+                            />
+                        </div>
 
-        <AnimatePresence>
-            {modals.taskEdit && <TaskEditModal t={t} task={modals.taskEdit} onSave={editTodo} onClose={closeModal} />}
-            {modals.dayDetails && <DayDetailsModal t={t} data={modals.dayDetails} onAddTask={(date) => openModal('quickTask', date)} onClose={closeModal} />}
-            {modals.quickTask && <QuickAddTaskModal t={t} date={modals.quickTask} onSave={addTodo} onClose={closeModal} />}
+                        <div className="col-span-12 lg:col-span-6">
+                            <ClientManagement
+                                clients={data.clients}
+                                onAddClient={addClient}
+                                onEditClient={updateClient}
+                                onDeleteClient={deleteClient}
+                                onInvoiceForm={(client) => openModal('invoiceForm', { client })}
+                                onClientInvoices={(client) => openModal('invoiceList', { client })}
+                                t={t}
+                                className="h-[400px]"
+                            />
+                        </div>
+                    </div> {/* Fin de la grille principale du dashboard */}
+                </motion.div>
+            </div>
 
-            {modals.guestName && isGuestMode && (
-                <GuestNameEditModal
-                    currentName={guestName}
-                    onSave={onUpdateGuestName}
-                    onClose={closeModal}
-                    t={t}
-                />
-            )}
-            {modals.userNameEdit && !isGuestMode && (
-                <UserNameEditModal
-                    currentUser={user}
-                    onClose={closeModal}
-                    t={t}
-                />
-            )}
-            {modals.avatar && (
-                <AvatarEditModal
-                    user={user}
-                    onClose={closeModal}
-                    onUpdateGuestAvatar={(newAvatar) => onUpdateGuestData(prev => ({ ...prev, user: { ...prev.user, photoURL: newAvatar } }))}
-                    isGuestMode={isGuestMode}
-                    t={t}
-                />
-            )}
-            {modals.meeting && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
-            {modals.project && modals.project.mode === 'edit' ? (
-                <ProjectFormModal t={t} initialData={modals.project.project} onSave={editProject} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />
-            ) : (
-                modals.project && <ProjectFormModal t={t} onAdd={addProject} isGuest={isGuestMode} onClose={closeModal} />
-            )}
+            <AnimatePresence>
+                {modals.taskEdit && <TaskEditModal t={t} task={modals.taskEdit} onSave={editTodo} onClose={closeModal} />}
+                {modals.dayDetails && <DayDetailsModal t={t} data={modals.dayDetails} onAddTask={(date) => openModal('quickTask', date)} onClose={closeModal} />}
+                {modals.quickTask && <QuickAddTaskModal t={t} date={modals.quickTask} onSave={addTodo} onClose={closeModal} />}
 
-            {modals.invoiceForm && <InvoiceFormModal t={t} isGuest={isGuestMode} client={modals.invoiceForm.client} onAdd={handleAddInvoice} onClose={closeModal} />}
-            {modals.invoiceList && <InvoiceListModal t={t} invoices={modals.invoiceList.client ? (data.invoices || []).filter(inv => inv.client === modals.invoiceList.client.name) : (data.invoices || [])} onClose={closeModal} />}
+                {modals.guestName && isGuestMode && (
+                    <GuestNameEditModal
+                        currentName={guestName}
+                        onSave={onUpdateGuestName}
+                        onClose={closeModal}
+                        t={t}
+                    />
+                )}
+                {modals.userNameEdit && !isGuestMode && (
+                    <UserNameEditModal
+                        currentUser={user}
+                        onClose={closeModal}
+                        t={t}
+                    />
+                )}
+                {modals.avatar && (
+                    <AvatarEditModal
+                        user={user}
+                        onClose={closeModal}
+                        onUpdateGuestAvatar={(newAvatar) => onUpdateGuestData(prev => ({ ...prev, user: { ...prev.user, photoURL: newAvatar } }))}
+                        isGuestMode={isGuestMode}
+                        t={t}
+                    />
+                )}
+                {modals.meeting && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
+                {modals.project && modals.project.mode === 'edit' ? (
+                    <ProjectFormModal t={t} initialData={modals.project.project} onSave={editProject} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />
+                ) : (
+                    modals.project && <ProjectFormModal t={t} onAdd={addProject} isGuest={isGuestMode} onClose={closeModal} />
+                )}
 
-            {modals.teamMember && <TeamMemberModal t={t} {...modals.teamMember} onSave={modals.teamMember.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
-            {modals.quickChat && <QuickChatModal t={t} member={modals.quickChat} onClose={closeModal} />}
-            {modals.assignTaskProjectDeadline && (
-                <AssignTaskProjectDeadlineModal
-                    t={t}
-                    chatData={modals.assignTaskProjectDeadline}
-                    onClose={closeModal}
-                    allStaffMembers={data.staffMembers}
-                    userUid={userUid}
-                    currentUserName={user?.displayName || 'Moi'}
-                    onAddTask={addTodo}
-                />
-            )}
+                {modals.invoiceForm && <InvoiceFormModal t={t} isGuest={isGuestMode} client={modals.invoiceForm.client} onAdd={handleAddInvoice} onClose={closeModal} />}
+                {modals.invoiceList && <InvoiceListModal t={t} invoices={modals.invoiceList.client ? (data.invoices || []).filter(inv => inv.client === modals.invoiceList.client.name) : (data.invoices || [])} onClose={closeModal} />}
 
-            {modals.clientForm && <ClientFormModal t={t} {...modals.clientForm} onSave={modals.clientForm.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
+                {modals.teamMember && <TeamMemberModal t={t} {...modals.teamMember} onSave={modals.teamMember.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
+                {modals.quickChat && <QuickChatModal t={t} member={modals.quickChat} onClose={closeModal} />}
+                {modals.assignTaskProjectDeadline && (
+                    <AssignTaskProjectDeadlineModal
+                        t={t}
+                        chatData={modals.assignTaskProjectDeadline}
+                        onClose={closeModal}
+                        allStaffMembers={data.staffMembers}
+                        userUid={userUid}
+                        currentUserName={user?.displayName || 'Moi'}
+                        onAddTask={addTodo}
+                    />
+                )}
 
-            {modals.ganttTaskForm && (
-                <GanttTaskFormModal
-                    t={t}
-                    initialData={modals.ganttTaskForm}
-                    onSave={handleSaveGanttTask}
-                    onClose={closeModal}
-                    allStaffMembers={data.staffMembers}
-                    allClients={data.clients}
-                />
-            )}
-            {modals.googleDriveLink && (
-                <GoogleDriveLinkModal
-                    t={t}
-                    projectId={modals.googleDriveLink}
-                    onSave={updateProjectGoogleDriveLink}
-                    onClose={closeModal}
-                />
-            )}
+                {modals.clientForm && <ClientFormModal t={t} {...modals.clientForm} onSave={modals.clientForm.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
 
-            {modals.addDeadline && <AddDeadlineModal t={t} onSave={handleAddDeadline} onClose={closeModal} />}
-            {modals.addMeeting && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
-        </AnimatePresence>
-    </>
+                {modals.ganttTaskForm && (
+                    <GanttTaskFormModal
+                        t={t}
+                        initialData={modals.ganttTaskForm}
+                        onSave={handleSaveGanttTask}
+                        onClose={closeModal}
+                        allStaffMembers={data.staffMembers}
+                        allClients={data.clients}
+                    />
+                )}
+                {modals.googleDriveLink && (
+                    <GoogleDriveLinkModal
+                        t={t}
+                        projectId={modals.googleDriveLink}
+                        onSave={updateProjectGoogleDriveLink}
+                        onClose={closeModal}
+                    />
+                )}
+
+                {modals.addDeadline && <AddDeadlineModal t={t} onSave={handleAddDeadline} onClose={closeModal} />}
+                {modals.addMeeting && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
+            </AnimatePresence>
+        </>
     );
 }
 
