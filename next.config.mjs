@@ -1,14 +1,15 @@
+// next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    // serverActions n'est plus nécessaire ici ou doit être un objet s'il est utilisé.
-    // Supprimé pour éviter l'erreur "Expected object, received boolean"
-  },
+  // Le bloc 'experimental' est correctement géré.
+  // Si 'serverActions' n'est pas utilisé ou doit être un objet vide, c'est bon.
+  experimental: {}, // Gardez-le vide si pas d'autres options expérimentales
+
   i18n: {
     locales: ['en', 'fr'],
-    defaultLocale: 'fr',
-    localeDetection: true, // ⚠ tu avais "false" (string), ici c’est un boolean
+    defaultLocale: 'fr', // Assurez-vous que c'est votre langue par défaut désirée
+    localeDetection: true, // Correct, doit être un boolean
   },
 };
 

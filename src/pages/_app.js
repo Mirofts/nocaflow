@@ -1,5 +1,6 @@
+// pages/_app.js
 import '@/styles/globals.css';
-import { appWithTranslation } from 'next-i18next';
+import { appWithTranslation } from 'next-i18next'; // Keep this
 import Head from 'next/head';
 import { AuthContextProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
@@ -32,4 +33,5 @@ function MyApp({ Component, pageProps }) {
   );
 }
 
+// This line is crucial for next-i18next to work correctly
 export default appWithTranslation(MyApp);
