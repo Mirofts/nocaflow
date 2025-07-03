@@ -3,11 +3,11 @@ import React, { useState, useContext } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-// CORRECTION DES CHEMINS D'IMPORTATION :
-import { auth, db } from '../lib/firebase'; // Changé de '../../lib/firebase' à '../lib/firebase'
-import { AuthContext } from '../context/AuthContext'; // Changé de '../../context/AuthContext' à '../context/AuthContext'
+// CORRECTION DES CHEMINS D'IMPORTATION : Un seul '../' est suffisant car les deux sont dans le répertoire 'src'
+import { auth, db } from '../lib/firebase';
+import { AuthContext } from '../context/AuthContext';
 import { useRouter } from 'next/router';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'; // Importez useTranslation ici
 
 const GoogleIcon = () => (
     <svg className="w-5 h-5" viewBox="0 0 48 48">

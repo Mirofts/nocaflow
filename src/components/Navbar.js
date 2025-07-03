@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useTranslation } from 'next-i18next'; // Importe useTranslation de next-i18next, PAS TranslationContext
+import { useTranslation } from 'next-i18next'; // Importe useTranslation de next-i18next
 
 // Composant NavLink pour les liens de navigation avec animation au survol
 const NavLink = ({ href, children, t, currentPath }) => {

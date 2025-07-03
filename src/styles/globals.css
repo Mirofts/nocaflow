@@ -4,7 +4,9 @@
 
 @layer base {
   [data-theme='light'] body {
+    /* Un dégradé de fond subtil pour le mode clair si vous voulez un effet futuriste */
     background: linear-gradient(135deg, #e0e7f1 0%, #c3cfe2 100%);
+    /* Ou un fond plat avec une légère texture si désiré */
   }
 
   html {
@@ -14,8 +16,10 @@
   body {
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.5s ease, color 0.5s ease; /* Transitions plus douces */
     font-family: 'Inter', sans-serif;
+    /* Optionnel: pour un design plus "propre", ajuster le line-height global */
+    line-height: 1.6;
   }
 
   button, [role="button"], a, input[type="submit"], input[type="checkbox"], .cursor-pointer {
@@ -34,49 +38,59 @@
   }
 
   :root, [data-theme='light'] {
-    --color-bg-primary: #EDF2F7;
-    --color-bg-secondary: rgba(255, 255, 255, 0.85);
-    --color-bg-tertiary: #E2E8F0;
-    --color-bg-input: #FFFFFF;
-    --color-bg-input-field: #F0F4F8;
-    --color-bg-hover: rgba(226, 232, 240, 0.7);
-    --color-text-primary: #2D3748;
-    --color-text-secondary: #4A5568;
-    --color-text-tertiary: #718096;
-    --color-border-primary: rgba(203, 213, 224, 0.7);
-    --color-border-input: #A0AEC0;
-    --color-border-active: #A855F7;
-    --glass-nav-bg: rgba(240, 244, 248, 0.9);
-    --glass-card-bg: rgba(255, 255, 255, 0.75);
-    --glass-card-border: rgba(218, 226, 236, 0.9);
+    --color-bg-primary: #EDF2F7; /* Gris très clair, presque blanc */
+    --color-bg-secondary: rgba(255, 255, 255, 0.85); /* Blanc semi-transparent pour le verre */
+    --color-bg-tertiary: #E2E8F0; /* Gris clair */
+    --color-bg-input: #FFFFFF; /* Blanc pur pour les inputs */
+    --color-bg-input-field: #F0F4F8; /* Gris très clair pour les champs */
+    --color-bg-hover: rgba(226, 232, 240, 0.7); /* Gris clair transparent */
+
+    --color-text-primary: #2D3748; /* Texte sombre principal */
+    --color-text-secondary: #4A5568; /* Texte sombre secondaire */
+    --color-text-tertiary: #718096; /* Texte gris tertiaire */
+
+    --color-border-primary: rgba(203, 213, 224, 0.7); /* Bordure claire semi-transparente */
+    --color-border-input: #A0AEC0; /* Bordure d'input grise */
+    --color-border-active: #A855F7; /* Violet vif */
+
+    --glass-nav-bg: rgba(240, 244, 248, 0.9); /* Fond de nav en verre clair, légèrement plus opaque */
+    --glass-card-bg: rgba(255, 255, 255, 0.75); /* Fond de carte en verre clair, plus transparent */
+    --glass-card-border: rgba(218, 226, 236, 0.9); /* Bordure de carte claire */
+
     --color-message-other-bg-light: #F0F4F8;
     --color-message-other-text-light: #2D3748;
-    --shadow-color: rgba(90, 100, 120, 0.1);
-    --color-border-active-shadow: rgba(168, 85, 247, 0.3);
+
+    --shadow-color: rgba(90, 100, 120, 0.15); /* Ombre plus distincte pour le mode clair */
+    --color-border-active-shadow: rgba(168, 85, 247, 0.3); /* Ombre de focus violette */
   }
 
   [data-theme='dark'] {
-    --color-bg-primary: #0d1117;
-    --color-bg-secondary: #161b22;
-    --color-bg-tertiary: #21262d;
-    --color-bg-input: #21262d;
-    --color-bg-input-field: #1a1e24;
-    --color-bg-hover: rgba(255, 255, 255, 0.1);
-    --color-text-primary: #E2E8F0;
-    --color-text-secondary: #94a3b8;
-    --color-text-tertiary: #64748b;
-    --color-border-primary: #30363d;
-    --color-border-input: #3b424d;
-    --color-border-active: #ec4899;
-    --glass-nav-bg: rgba(10, 10, 10, 0.6);
-    --glass-card-bg: rgba(22, 27, 34, 0.7);
-    --glass-card-border: rgba(255, 255, 255, 0.1);
-    --shadow-color: rgba(236, 72, 153, 0.1);
-    --color-border-active-shadow: rgba(236, 72, 153, 0.3);
+    --color-bg-primary: #0d1117; /* Très sombre, presque noir */
+    --color-bg-secondary: #161b22; /* Gris foncé */
+    --color-bg-tertiary: #21262d; /* Gris moyen foncé */
+    --color-bg-input: #21262d; /* Gris moyen foncé pour inputs */
+    --color-bg-input-field: #1a1e24; /* Gris très foncé pour champs */
+    --color-bg-hover: rgba(255, 255, 255, 0.15); /* Blanc transparent pour hover */
+
+    --color-text-primary: #E2E8F0; /* Texte clair principal */
+    --color-text-secondary: #94a3b8; /* Texte gris clair secondaire */
+    --color-text-tertiary: #64748b; /* Texte gris moyen tertiaire */
+
+    --color-border-primary: #30363d; /* Bordure foncée */
+    --color-border-input: #3b424d; /* Bordure d'input foncée */
+    --color-border-active: #ec4899; /* Rose vif */
+
+    --glass-nav-bg: rgba(10, 10, 10, 0.7); /* Fond de nav en verre sombre, plus transparent */
+    --glass-card-bg: rgba(22, 27, 34, 0.8); /* Fond de carte en verre sombre, légèrement plus opaque */
+    --glass-card-border: rgba(255, 255, 255, 0.15); /* Bordure de carte claire pour le verre */
+
+    --shadow-color: rgba(236, 72, 153, 0.2); /* Ombre plus distincte pour le mode sombre */
+    --color-border-active-shadow: rgba(236, 72, 153, 0.4); /* Ombre de focus rose */
   }
 }
 
 @layer components {
+  /* Classes de fond et texte basées sur les variables du thème */
   .bg-color-bg-primary { background-color: var(--color-bg-primary); }
   .bg-color-bg-secondary { background-color: var(--color-bg-secondary); }
   .text-color-text-primary { color: var(--color-text-primary); }
@@ -84,6 +98,7 @@
   .border-color-border-primary { border-color: var(--color-border-primary); }
   .hover\:bg-color-bg-hover:hover { background-color: var(--color-bg-hover); }
 
+  /* Dégradés pour les cartes/fonds */
   .pink-gradient-bg { background-image: linear-gradient(145deg, #fef0f8, #fce7f3); }
   .violet-gradient-bg { background-image: linear-gradient(145deg, #f7f3ff, #f3f0ff); }
   .green-gradient-bg { background-image: linear-gradient(145deg, #ecfdf5, #d1fae5); }
@@ -96,34 +111,41 @@
   [data-theme='dark'] .yellow-gradient-bg { background-image: linear-gradient(145deg, var(--color-bg-tertiary), #b45309); }
   [data-theme='dark'] .sky-gradient-bg    { background-image: linear-gradient(145deg, var(--color-bg-tertiary), #0c4a6e); }
 
+  /* Glassmorphism : Utilise les nouvelles variables de thème */
   .glass-card {
     background-color: var(--glass-card-bg);
     border: 1px solid var(--glass-card-border);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-radius: 1.25rem;
+    border-radius: 1.25rem; /* rounded-2xl */
+    /* Ajout d'une ombre par défaut pour un look plus "flottant" */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
   }
 
   .glass-card-input {
-    background-color: rgba(22, 27, 34, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--glass-card-bg); /* Utilise la même base que glass-card pour la consistance */
+    border: 1px solid var(--glass-card-border);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border-radius: 1.25rem;
+    border-radius: 1.25rem; /* rounded-2xl */
+    /* Ombre subtile pour les inputs en verre */
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
   }
 
+  /* Version light du glass-card-input, si nécessaire de la surcharger */
   [data-theme='light'] .glass-card-input {
     background-color: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(218, 226, 236, 0.9);
   }
 
-  /* Nouvelle définition pour glass-nav, si non présente */
   .glass-nav {
-    background-color: var(--glass-nav-bg); /* Utilise la variable définie dans :root et [data-theme='dark'] */
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background-color: var(--glass-nav-bg);
+    backdrop-filter: blur(10px); /* Légèrement plus flou pour la nav */
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 0; /* Pas de border-radius pour la nav supérieure */
   }
 
+  /* Styles des inputs et focus */
   .form-input {
     width: 100%;
     padding: 0.75rem;
@@ -133,7 +155,7 @@
     color: var(--color-text-primary);
     font-size: 1rem;
     font-family: 'Inter', sans-serif;
-    transition: all 0.2s;
+    transition: all 0.3s ease-in-out; /* Transition plus fluide */
   }
 
   .form-input::placeholder {
@@ -147,6 +169,7 @@
     box-shadow: 0 0 0 3px var(--color-border-active-shadow);
   }
 
+  /* Form input avec effet de lueur (glow) */
   .form-input-glow {
     width: 100%;
     padding: 0.75rem;
@@ -156,13 +179,14 @@
     color: var(--color-text-primary);
     font-size: 1rem;
     font-family: 'Inter', sans-serif;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    transition: all 0.2s;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.2); /* Ombre interne subtile */
+    transition: all 0.3s ease-in-out;
   }
 
   .form-input-glow:focus {
     border-color: var(--color-border-active);
-    box-shadow: 0 0 0 3px var(--color-border-active), inset 0 0 8px rgba(0,0,0,0.2);
+    /* Lueur plus prononcée sur le focus */
+    box-shadow: 0 0 0 3px var(--color-border-active-shadow), inset 0 0 8px var(--color-border-active-shadow);
   }
 
   [data-theme='light'] .form-input-glow {
@@ -176,6 +200,7 @@
     box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3), inset 0 0 8px rgba(168, 85, 247, 0.15);
   }
 
+  /* Scrollbar customisée pour un look plus futuriste */
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--color-border-primary) transparent;
@@ -183,16 +208,74 @@
 
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
+    height: 8px; /* Pour les scrollbars horizontales */
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
+    border-radius: 10px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: var(--color-border-primary);
     border-radius: 10px;
-    border: 2px solid var(--color-bg-secondary);
+    border: 2px solid var(--color-bg-secondary); /* Bordure pour l'effet flottant */
+  }
+
+  /* Classes pour les boutons d'action principaux */
+  .main-action-button {
+    @apply text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 ease-in-out flex items-center justify-center gap-2;
+    background-size: 200% auto;
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+  }
+
+  .main-action-button:hover {
+    background-position: right center; /* Déplace le dégradé au survol */
+    box-shadow: 0 0 20px var(--color-border-active-shadow); /* Lueur plus forte au survol */
+    transform: translateY(-2px); /* Léger mouvement vers le haut */
+  }
+
+  .main-button-secondary {
+    @apply text-color-text-primary bg-color-bg-tertiary hover:bg-color-bg-hover font-medium py-2.5 px-5 rounded-lg border border-color-border-primary transition-all duration-300 ease-in-out flex items-center justify-center gap-2;
+  }
+
+  .main-button-secondary:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  /* Cartes générales des composants du Dashboard */
+  .futuristic-card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: 1.25rem; /* rounded-2xl */
+    box-shadow: 0 4px 12px var(--shadow-color);
+    transition: all 0.3s ease-in-out;
+  }
+
+  .futuristic-card:hover {
+    box-shadow: 0 6px 16px var(--shadow-color);
+    transform: translateY(-2px);
+  }
+
+  .review-card {
+    @apply futuristic-card; /* Hérite du style futuristic-card */
+    background-color: var(--color-bg-tertiary); /* Une nuance un peu plus foncée */
+    border: 1px solid var(--color-border-primary);
+    padding: 1rem;
+  }
+
+  /* Animation pour les bulles de notification */
+  .animate-bounce-slow {
+    animation: bounce 2s infinite cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
   }
 
   .minimized-card {
@@ -207,6 +290,7 @@
   }
 }
 
+/* Animations de texte */
 @keyframes gradient-move {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -226,15 +310,13 @@
   background-image: linear-gradient(125deg, #f871b5, #c084fc, #f871b5);
 }
 
-/* Nouvelles classes pour les dégradés de texte sur la landing page */
 .dark-gradient-text {
-  background-image: linear-gradient(125deg, #ec4899, #8b5cf6, #ec4899); /* Adaptez les couleurs si nécessaire */
+  background-image: linear-gradient(125deg, #ec4899, #8b5cf6, #ec4899);
 }
 
 .light-gradient-text {
-  background-image: linear-gradient(125deg, #f871b5, #c084fc, #f871b5); /* Adaptez les couleurs si nécessaire */
+  background-image: linear-gradient(125deg, #f871b5, #c084fc, #f871b5);
 }
-
 
 @keyframes pulse-glow {
   0%, 100% { transform: scale(1); box-shadow: 0 0 20px var(--shadow-color); }
@@ -243,4 +325,28 @@
 
 .pulse-button {
   animation: pulse-glow 4s infinite ease-in-out;
+}
+
+/* Nouvelles classes pour les boutons d'action */
+.action-icon-button {
+    @apply p-2 rounded-full transition-colors duration-200;
+    @apply text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary;
+}
+
+/* Style de l'input dans les modales pour le look futuriste */
+.form-input.modal-input {
+    background-color: var(--color-bg-input-field); /* Garder le fond d'input du thème */
+    border: 1px solid var(--color-border-input);
+    color: var(--color-text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.3s ease-in-out;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+}
+
+.form-input.modal-input:focus {
+    outline: none;
+    border-color: var(--color-border-active);
+    box-shadow: 0 0 0 3px var(--color-border-active-shadow), inset 0 0 8px rgba(0,0,0,0.1);
 }

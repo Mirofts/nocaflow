@@ -3,11 +3,11 @@ import React, { useState, useContext } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Mail, Lock, Building } from 'lucide-react';
-import { auth, db, storage } from '../lib/firebase';
+import { auth, db, storage } from '../lib/firebase'; // Chemin corrigé
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../context/AuthContext'; // Chemin corrigé
 import { useRouter } from 'next/router';
 import { useTranslation } from 'react-i18next'; // Importez useTranslation ici
 
@@ -107,7 +107,8 @@ export default function RegisterModal({ t, onClose, onSwitchToLogin }) { // Rece
     try {
       await setDoc(userDocRef, userData, { merge: true });
       console.log("User document created/updated in Firestore.");
-    } catch (firestoreError) {
+    }
+    catch (firestoreError) {
       console.error("Error creating/updating user document in Firestore:", firestoreError);
       setError(t('profile_save_error', "Erreur lors de la sauvegarde de votre profil. Veuillez réessayer."));
       throw firestoreError;
