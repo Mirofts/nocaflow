@@ -2,228 +2,339 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  [data-theme='light'] body {
-    background: linear-gradient(135deg, #e0e7f1 0%, #c3cfe2 100%);
-  }
+/* --- Dark/Light Mode Variables (Initial Setup) --- */
+/* These variables need to be applied throughout your components' styles */
+:root {
+  /* Dark mode defaults */
+  --color-bg-primary: #0d1117;
+  --color-text-primary: #E2E8F0;
+  --color-card-bg: rgba(255, 255, 255, 0.05);
+  --color-card-border: rgba(255, 255, 255, 0.1);
+  --color-input-bg: #1e293b; /* slate-800 */
+  --color-input-border: #334155; /* slate-700 */
+  --color-placeholder: #94a3b8; /* slate-400 */
+  --color-secondary-text: #94a3b8; /* slate-400 */
+  --color-hover-bg: rgba(255,255,255,0.1); /* For list items, etc. */
+  --color-nav-button-text: #cbd5e1; /* slate-300 */
+  --color-nav-button-hover-bg: rgba(255,255,255,0.1);
+  --color-nav-button-hover-text: #ffffff;
+}
 
-  html {
-    /* Intentionally left empty */
-  }
+/* This is just an example. You'll need to define a data-theme attribute on <html> or <body> */
+/* and then apply these variables based on that attribute. */
+[data-theme='light'] {
+  --color-bg-primary: #f0f2f5;
+  --color-text-primary: #1a202c;
+  --color-card-bg: rgba(255, 255, 255, 0.9);
+  --color-card-border: rgba(0, 0, 0, 0.1);
+  --color-input-bg: #e2e8f0; /* slate-200 */
+  --color-input-border: #cbd5e1; /* slate-300 */
+  --color-placeholder: #64748b; /* slate-600 */
+  --color-secondary-text: #475569; /* slate-700 */
+  --color-hover-bg: rgba(0,0,0,0.05);
+  --color-nav-button-text: #475569;
+  --color-nav-button-hover-bg: rgba(0,0,0,0.08);
+  --color-nav-button-hover-text: #1a202c;
+}
 
-  body {
-    background-color: var(--color-bg-primary);
-    color: var(--color-text-primary);
-    transition: background-color 0.3s ease, color 0.3s ease;
-    font-family: 'Inter', sans-serif;
-  }
+body {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition: background 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  button, [role="button"], a, input[type="submit"], input[type="checkbox"], .cursor-pointer {
-    cursor: pointer;
-  }
+/* MODIFICATION: L'animation de fond ne s'exécute qu'une fois au démarrage, puis reste fixe. */
+.futuristic-background {
+  background-color: var(--color-bg-primary); /* Use variable for base color */
+  background-image: radial-gradient(at 47% 33%, hsl(260, 60%, 15%) 0px, transparent 50%),
+                    radial-gradient(at 9% 65%, hsl(290, 70%, 12%) 0px, transparent 50%),
+                    radial-gradient(at 93% 45%, hsl(320, 65%, 10%) 0px, transparent 50%);
+  animation: initial-fade-in 2s forwards; /* Nouvelle animation pour 2s */
+}
 
-  select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-  }
+/* Nouvelle keyframe pour l'animation initiale du background */
+@keyframes initial-fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
 
-  select option {
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-tertiary);
-  }
+.glass-nav {
+  background-color: rgba(10, 10, 10, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
 
-  :root, [data-theme='light'] {
-    --color-bg-primary: #EDF2F7;
-    --color-bg-secondary: rgba(255, 255, 255, 0.85);
-    --color-bg-tertiary: #E2E8F0;
-    --color-bg-input: #FFFFFF;
-    --color-bg-input-field: #F0F4F8;
-    --color-bg-hover: rgba(226, 232, 240, 0.7);
-    --color-text-primary: #2D3748;
-    --color-text-secondary: #4A5568;
-    --color-text-tertiary: #718096;
-    --color-border-primary: rgba(203, 213, 224, 0.7);
-    --color-border-input: #A0AEC0;
-    --color-border-active: #A855F7;
-    --glass-nav-bg: rgba(240, 244, 248, 0.9);
-    --glass-card-bg: rgba(255, 255, 255, 0.75);
-    --glass-card-border: rgba(218, 226, 236, 0.9);
-    --color-message-other-bg-light: #F0F4F8;
-    --color-message-other-text-light: #2D3748;
-    --shadow-color: rgba(90, 100, 120, 0.1);
-    --color-border-active-shadow: rgba(168, 85, 247, 0.3);
-  }
+.nav-button {
+  @apply px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 cursor-pointer;
+  color: var(--color-nav-button-text);
+}
 
-  [data-theme='dark'] {
-    --color-bg-primary: #0d1117;
-    --color-bg-secondary: #161b22;
-    --color-bg-tertiary: #21262d;
-    --color-bg-input: #21262d;
-    --color-bg-input-field: #1a1e24;
-    --color-bg-hover: rgba(255, 255, 255, 0.1);
-    --color-text-primary: #E2E8F0;
-    --color-text-secondary: #94a3b8;
-    --color-text-tertiary: #64748b;
-    --color-border-primary: #30363d;
-    --color-border-input: #3b424d;
-    --color-border-active: #ec4899;
-    --glass-nav-bg: rgba(10, 10, 10, 0.6);
-    --glass-card-bg: rgba(22, 27, 34, 0.7);
-    --glass-card-border: rgba(255, 255, 255, 0.1);
-    --shadow-color: rgba(236, 72, 153, 0.1);
-    --color-border-active-shadow: rgba(236, 72, 153, 0.3);
+.nav-button:hover {
+  background-color: var(--color-nav-button-hover-bg);
+  color: var(--color-nav-button-hover-text);
+  @apply scale-105;
+}
+
+/* MODIFICATION: Style des cartes - dégradés PLUS VIFS et futuristes pour les fonds de cartes spécifiques du dashboard */
+.glass-card {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  @apply rounded-2xl transition-all duration-300;
+}
+
+.glass-card:hover {
+  @apply border-white/20 bg-white/10 transform-gpu scale-[1.02];
+}
+
+/* Dégradés VIFS et futuristes */
+.pink-gradient-bg {
+  background: linear-gradient(135deg, #EC4899, #D946EF); /* Rose vif à violet vif */
+  animation: none; /* Toujours statique pour le fond de carte */
+  background-size: auto;
+}
+.violet-gradient-bg {
+  background: linear-gradient(135deg, #A855F7, #6D28D9); /* Violet vif à violet plus foncé */
+  animation: none;
+  background-size: auto;
+}
+.green-gradient-bg {
+  background: linear-gradient(135deg, #22C55E, #16A34A); /* Vert vif à vert plus foncé */
+  animation: none;
+  background-size: auto;
+}
+.sky-gradient-bg {
+  background: linear-gradient(135deg, #0EA5E9, #0284C7); /* Bleu ciel vif à bleu plus foncé */
+  animation: none;
+  background-size: auto;
+}
+.yellow-gradient-bg {
+  background: linear-gradient(135deg, #FACC15, #EAB308); /* Jaune vif à jaune plus foncé */
+  animation: none;
+  background-size: auto;
+}
+
+/* Nouvelle keyframe pour un effet de lueur survolable si désiré */
+@keyframes gradient-glow {
+  0% { box-shadow: 0 0 10px rgba(236, 72, 153, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); }
+  100% { box-shadow: 0 0 10px rgba(236, 72, 153, 0.4); }
+}
+/* Vous pouvez appliquer cette classe à des cartes spécifiques si vous voulez cet effet */
+.card-glow-effect:hover {
+  animation: gradient-glow 3s infinite;
+}
+
+
+.futuristic-card { @apply p-6 sm:p-8 rounded-2xl border cursor-pointer transition-all duration-500; backdrop-filter: blur(8px);
+  background-color: rgba(29, 36, 52, 0.5); /* Use a slightly adjusted slate-900/50 for clarity */
+  border-color: #334155; /* slate-700 */
+}
+.futuristic-card:hover { @apply border-pink-500/50 transform-gpu scale-[1.03] shadow-2xl shadow-pink-500/10; }
+
+/* MODIFICATION: Nouvelle animation pour les boutons d'action (pulse-button) */
+@keyframes pulse-grow-shrink {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(236, 72, 153, 0.4); }
+  50% { transform: scale(1.03); box-shadow: 0 0 20px rgba(236, 72, 153, 0.7); }
+}
+
+.pulse-button {
+  animation: pulse-grow-shrink 4s infinite ease-in-out;
+  cursor: pointer;
+  background: linear-gradient(to right, #ec4899, #d946ef);
+  color: white;
+}
+
+.action-button-primary {
+  background: linear-gradient(to right, #ec4899, #d946ef);
+  color: white;
+  @apply px-4 py-2.5 rounded-lg font-semibold;
+}
+.action-button-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.5);
+}
+
+.action-button-secondary {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #d1d5db;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.action-button-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+
+.tier-silver { @apply border-slate-700 bg-slate-800/20; }
+.tier-gold { @apply border-yellow-500/50 bg-yellow-500/10; }
+.tier-platinum { @apply border-purple-500/50 bg-purple-500/10 glowing-featured-card; }
+
+@keyframes glowing-border {
+  0% { border-color: #ec4899; box-shadow: 0 0 15px -5px #ec4899; }
+  50% { border-color: #a855f7; box-shadow: 0 0 25px -5px #a855f7; }
+  100% { border-color: #ec4899; box-shadow: 0 0 15px -5px #ec4899; }
+}
+.glowing-featured-card { animation: glowing-border 3s infinite; }
+
+
+.bio-card, .review-card, .role-card {
+  background: linear-gradient(135deg, rgba(30, 27, 47, 0.5), rgba(15, 12, 27, 0.5));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.bio-card:before, .review-card:before, .role-card:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: radial-gradient(circle at top left, rgba(236, 72, 153, 0.15), transparent 40%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.bio-card:hover:before, .review-card:hover:before, .role-card:hover:before { opacity: 1; }
+.review-card { padding: 1.5rem; }
+.role-card { padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+.role-card:hover { transform: translateY(-5px); border-color: rgba(236, 72, 153, 0.5); }
+
+.action-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #d1d5db;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.action-icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.preview-overlay-box {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  padding: 1rem 1.5rem;
+  color: white;
+  font-weight: 700;
+  font-size: 1.125rem;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.3s ease-in-out;
+}
+/* Styles pour les icônes de priorité si besoin de styles spécifiques */
+.priority-icon-fire {
+  color: #ef4444; /* Red for urgent */
+}
+
+.priority-icon-leaf {
+  color: #3b82f6; /* Blue for normal (ListTodo by default) */
+}
+
+.priority-icon-ice {
+  color: #64748b; /* Gray-blue for cold */
+}
+
+/* These classes help flex elements behave better on mobile */
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .group:hover .preview-overlay-box {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-@layer components {
-  .bg-color-bg-primary { background-color: var(--color-bg-primary); }
-  .bg-color-bg-secondary { background-color: var(--color-bg-secondary); }
-  .text-color-text-primary { color: var(--color-text-primary); }
-  .text-color-text-secondary { color: var(--color-text-secondary); }
-  .border-color-border-primary { border-color: var(--color-border-primary); }
-  .hover\:bg-color-bg-hover:hover { background-color: var(--color-bg-hover); }
-
-  .pink-gradient-bg { background-image: linear-gradient(145deg, #fef0f8, #fce7f3); }
-  .violet-gradient-bg { background-image: linear-gradient(145deg, #f7f3ff, #f3f0ff); }
-  .green-gradient-bg { background-image: linear-gradient(145deg, #ecfdf5, #d1fae5); }
-  .yellow-gradient-bg { background-image: linear-gradient(145deg, #fffbeb, #fef3c7); }
-  .sky-gradient-bg { background-image: linear-gradient(145deg, #eff6ff, #dbeafe); }
-
-  [data-theme='dark'] .pink-gradient-bg   { background-image: linear-gradient(145deg, var(--color-bg-tertiary), #be185d); }
-  [data-theme='dark'] .violet-gradient-bg { background-image: linear-gradient(145deg, var(--color-bg-tertiary), #581c87); }
-  [data-theme='dark'] .green-gradient-bg  { background-image: linear-gradient(145deg, var(--color-bg-tertiary), #065f46); }
-  [data-theme='dark'] .yellow-gradient-bg { background-image: linear-gradient(145deg, var(--color-bg-tertiary), #b45309); }
-  [data-theme='dark'] .sky-gradient-bg    { background-image: linear-gradient(145deg, var(--color-bg-tertiary), #0c4a6e); }
-
-  .glass-card {
-    background-color: var(--glass-card-bg);
-    border: 1px solid var(--glass-card-border);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 1.25rem;
-  }
-
-  .glass-card-input {
-    background-color: rgba(22, 27, 34, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-radius: 1.25rem;
-  }
-
-  [data-theme='light'] .glass-card-input {
-    background-color: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(218, 226, 236, 0.9);
-  }
-
-  .form-input {
-    width: 100%;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    background-color: var(--color-bg-input-field);
-    border: 1px solid var(--color-border-input);
-    color: var(--color-text-primary);
-    font-size: 1rem;
-    font-family: 'Inter', sans-serif;
-    transition: all 0.2s;
-  }
-
-  .form-input::placeholder {
-    color: var(--color-text-secondary);
-    opacity: 0.7;
-  }
-
-  .form-input:focus {
-    outline: none;
-    border-color: var(--color-border-active);
-    box-shadow: 0 0 0 3px var(--color-border-active-shadow);
-  }
-
-  .form-input-glow {
-    width: 100%;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    background-color: var(--color-bg-input-field);
-    border: 1px solid var(--color-border-input);
-    color: var(--color-text-primary);
-    font-size: 1rem;
-    font-family: 'Inter', sans-serif;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    transition: all 0.2s;
-  }
-
-  .form-input-glow:focus {
-    border-color: var(--color-border-active);
-    box-shadow: 0 0 0 3px var(--color-border-active), inset 0 0 8px rgba(0,0,0,0.2);
-  }
-
-  [data-theme='light'] .form-input-glow {
-    background-color: #fff;
-    color: #1f2937;
-    border-color: #d1d5db;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.08);
-  }
-
-  [data-theme='light'] .form-input-glow:focus {
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3), inset 0 0 8px rgba(168, 85, 247, 0.15);
-  }
-
-  .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-border-primary) transparent;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: var(--color-border-primary);
-    border-radius: 10px;
-    border: 2px solid var(--color-bg-secondary);
-  }
-
-  .minimized-card {
-    height: 70px !important;
-    transition: height 0.3s ease-in-out, padding 0.3s ease-in-out;
-    padding-bottom: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .flex-grow[style*="height: auto"] {
-    min-height: 0;
-  }
+/* New animation for blinking */
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
+.blink-animation {
+    animation: blink 1.5s infinite;
+}
+
+/* NEW: Gradients for Dashboard titles */
+/* These gradients are for text, so they can be more vivid */
+.dark-dashboard-gradient-text {
+  background-image: linear-gradient(125deg, #A855F7, #EC4899, #A855F7); /* Violet to Pink */
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+  animation: gradient-move 5s ease-in-out infinite; /* Animation for text */
+}
+
+.light-dashboard-gradient-text {
+  background-image: linear-gradient(125deg, #D8B4FE, #FBCFE8, #D8B4FE); /* Lighter versions of the same colors */
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+  animation: gradient-move 5s ease-in-out infinite reverse; /* Animation for text */
+}
+
+/* Keep this keyframe as it is used for titles */
 @keyframes gradient-move {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 
-.animated-gradient-text {
+/* Custom scrollbar for better aesthetics in dashboard cards */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-gradient {
   background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent !important;
-  animation: gradient-move 5s ease-in-out infinite;
-  display: inline-block;
+  animation: gradientMove 3s ease infinite;
 }
-
-.pink-violet-gradient-text {
-  background-image: linear-gradient(125deg, #f871b5, #c084fc, #f871b5);
-}
-
-@keyframes pulse-glow {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 20px var(--shadow-color); }
-  50% { transform: scale(1.05); box-shadow: 0 0 35px var(--shadow-color); }
-}
-
-.pulse-button {
-  animation: pulse-glow 4s infinite ease-in-out;
-}
+/* Duplicate keyframes and classes removed for brevity, as they were identical */
