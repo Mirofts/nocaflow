@@ -2,6 +2,8 @@ import '@/styles/globals.css';
 import { appWithTranslation } from 'next-i18next';
 import { AuthContextProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
+import i18nextConfig from '../../next-i18next.config';
+
 
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer'; // Facultatif, tu peux le retirer si tu n’en veux pas
@@ -24,4 +26,4 @@ function MyApp({ Component, pageProps }) {
   );
 }
 
-export default appWithTranslation(MyApp);
+export default appWithTranslation(MyApp, i18nextConfig);
