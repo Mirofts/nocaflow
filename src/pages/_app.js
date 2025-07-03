@@ -8,6 +8,8 @@ import { ThemeProvider } from '../context/ThemeContext';
 import i18nextConfig from '../../next-i18next.config';
 import { AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer'; 
 
 // *** IMPORTEZ VOS VRAIS COMPOSANTS DE MODALES ICI ***
 // Assurez-vous que les chemins sont corrects par rapport à votre structure de dossiers
