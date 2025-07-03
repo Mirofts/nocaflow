@@ -239,7 +239,13 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     return (
         <>
             <Head><title>Dashboard - NocaFLOW</title></Head>
-            {isGuestMode && <GuestBanner onRegisterClick={onRegisterClick} t={t} />}
+            {isGuestMode && (
+                <GuestBanner
+                    onRegisterClick={onRegisterClick}
+                    onLoginClick={onLoginClick} // Passe onLoginClick au GuestBanner
+                    t={t}
+                />
+            )}
             <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
                 <motion.div
                     className="max-w-screen-2xl mx-auto space-y-6"
@@ -264,16 +270,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                         {/* Colonne de gauche (8/12 sur grand écran) */}
                         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-<DashboardCard
-    icon={
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-    }
-    title={t('flow_messages_title', 'Flow Live Messages')}
-    className="flex-1 min-h-[500px]"
-    onFullscreenClick={handleFlowLiveMessagesFullscreen}
-    t={t}
-    noContentPadding={true}
->
+                            <DashboardCard
+                                icon={
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                }
+                                title={t('flow_messages_title', 'Flow Live Messages')}
+                                className="flex-1 min-h-[500px]"
+                                onFullscreenClick={handleFlowLiveMessagesFullscreen}
+                                t={t}
+                                noContentPadding={true}
+                            >
                                 <FlowLiveMessages
                                     ref={flowLiveMessagesRef}
                                     t={t}
@@ -293,27 +299,25 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                         {/* Colonne de droite (4/12 sur grand écran) */}
                         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-                         {/* Modifié pour être flexible ou avec min-height */}
-<TodoList
-    todos={data.tasks}
-    loading={loadingTodos}
-    onAdd={addTodo}
-    onToggle={toggleTodo}
-    onEdit={(task) => openModal('taskEdit', task)}
-    onDelete={deleteTodo}
-    t={t}
-    className="flex-1 min-h-[500px]"
-/>
-                  {/* Ajusté pour prendre l'espace restant */}
-<Projects
-    projects={data.projects}
-    t={t}
-    onAddProject={addProject}
-    onEditProject={editProject}
-    onDeleteProject={deleteProject}
-    onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)}
-    className="flex-1 min-h-[598px]"
-/>
+                            <TodoList
+                                todos={data.tasks}
+                                loading={loadingTodos}
+                                onAdd={addTodo}
+                                onToggle={toggleTodo}
+                                onEdit={(task) => openModal('taskEdit', task)}
+                                onDelete={deleteTodo}
+                                t={t}
+                                className="flex-1 min-h-[500px]"
+                            />
+                            <Projects
+                                projects={data.projects}
+                                t={t}
+                                onAddProject={addProject}
+                                onEditProject={editProject}
+                                onDeleteProject={deleteProject}
+                                onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)}
+                                className="flex-1 min-h-[598px]"
+                            />
                         </div>
 
                         {/* Ligne pleine largeur pour Gantt Chart */}
@@ -326,7 +330,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 clients={data.clients}
                                 onAddTask={(taskData) => openModal('ganttTaskForm', taskData)}
                                 onSave={handleSaveGanttTask}
-                                className="h-[600px] w-full" /* Maintenu une hauteur fixe pour Gantt Chart */
+                                className="h-[600px] w-full"
                                 onFullscreenClick={handleGanttChartPlanningFullscreen}
                             />
                         </div>
@@ -446,10 +450,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 export async function getServerSideProps({ locale }) {
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common', 'dashboard'])), // Ensure 'common' and 'dashboard' namespaces are loaded
-            // You can also pass other props specific to the dashboard here if needed.
-            // For example, if you had server-side fetched user data:
-            // initialUserData: {},
+            ...(await serverSideTranslations(locale, ['common', 'dashboard'])),
         },
     };
 }
