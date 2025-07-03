@@ -495,11 +495,11 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
 
                 {/* Zone d'affichage des messages */}
                 <FlowLiveMessagesDisplay
-                    messages={filteredMessages} {/* CORRECTION ICI: Passe filteredMessages au lieu de messages */}
+                    messages={filteredMessages}
                     chatPanelRef={chatPanelRef}
                     currentFirebaseUid={currentFirebaseUid}
                     activeConversationId={activeConversationId}
-                    activeConversationInfo={activeConversationInfo} {/* Passe les infos complètes de la conversation */}
+                    activeConversationInfo={activeConversationInfo} 
                     openEphemeralImagePreview={openEphemeralImagePreview}
                     t={t}
                     isDarkMode={isDarkMode}
