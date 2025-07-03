@@ -8,21 +8,18 @@ import { ThemeProvider } from '../context/ThemeContext';
 import i18nextConfig from '../../next-i18next.config';
 import { AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+
+// *** IMPORTS DES COMPOSANTS DE LAYOUT ***
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer'; 
+import Footer from '../components/Footer';
 
 // *** IMPORTEZ VOS VRAIS COMPOSANTS DE MODALES ICI ***
 // Assurez-vous que les chemins sont corrects par rapport à votre structure de dossiers
-// Si elles sont dans le dossier 'components', le chemin est '../components/NomDuFichier'
-// Si elles sont dans 'components/auth', le chemin est '../components/auth/NomDuFichier'
-import LoginModal from '../components/LoginModal';     // Par exemple: '../components/LoginModal'
-import RegisterModal from '../components/RegisterModal'; // Par exemple: '../components/RegisterModal'
+import LoginModal from '../components/LoginModal';
+import RegisterModal from '../components/RegisterModal';
 
 
 function MyApp({ Component, pageProps }) {
-  // Pas besoin de useTranslation ici si seules les modales l'utilisent, car elles l'importeront elles-mêmes
-  // const { t } = useTranslation('common');
-
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
@@ -33,13 +30,13 @@ function MyApp({ Component, pageProps }) {
 
   // Fonctions pour basculer entre les modales
   const switchToRegisterFromLogin = () => {
-    closeLoginModal(); // Ferme la modale de connexion
-    handleRegisterClick(); // Ouvre la modale d'inscription
+    closeLoginModal();
+    handleRegisterClick();
   };
 
   const switchToLoginFromRegister = () => {
-    closeRegisterModal(); // Ferme la modale d'inscription
-    handleLoginClick(); // Ouvre la modale de connexion
+    closeRegisterModal();
+    handleLoginClick();
   };
 
   const handleOpenCalculator = () => {
@@ -58,6 +55,7 @@ function MyApp({ Component, pageProps }) {
             <title>NocaFLOW</title>
           </Head>
 
+          {/* *** NAVBAR EST MAINTENANT RENDUE ICI *** */}
           <Navbar
             onLoginClick={handleLoginClick}
             onRegisterClick={handleRegisterClick}
@@ -67,29 +65,26 @@ function MyApp({ Component, pageProps }) {
           <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8 pt-16">
             <Component
               {...pageProps}
-              // Passe les fonctions de gestion des modales aux pages (comme index.js) si elles en ont besoin
               onLoginClick={handleLoginClick}
               onRegisterClick={handleRegisterClick}
             />
           </main>
 
+          {/* *** FOOTER EST MAINTENANT RENDU ICI *** */}
           <Footer />
         </div>
 
-        {/* *** VOS VRAIS COMPOSANTS DE MODALES SONT RENDUS ICI AVEC AnimatePresence *** */}
         <AnimatePresence>
             {showLoginModal && (
                 <LoginModal
                     onClose={closeLoginModal}
                     onSwitchToRegister={switchToRegisterFromLogin}
-                    // Si votre LoginModal prend d'autres props, ajoutez-les ici
                 />
             )}
             {showRegisterModal && (
                 <RegisterModal
                     onClose={closeRegisterModal}
                     onSwitchToLogin={switchToLoginFromRegister}
-                    // Si votre RegisterModal prend d'autres props, ajoutez-les ici
                 />
             )}
         </AnimatePresence>
