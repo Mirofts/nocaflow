@@ -1,4 +1,6 @@
 // next.config.mjs
+import path from 'path'; // <-- Correction ici : utilisez 'import' au lieu de 'require'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

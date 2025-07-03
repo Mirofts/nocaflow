@@ -2,57 +2,57 @@
 import Head from 'next/head';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useMemo } from 'react';
 
 export default function PricingPage() {
   const { t } = useTranslation('common'); // Ou 'pricing' si vous avez un namespace spécifique pour cette page
 
-  // Exemple de données pour les plans tarifaires
-  const pricingPlans = [
-    {
-      name: t('plan_basic_title', 'Basique'),
-      price: '0 €',
-      period: t('plan_period_month', '/ mois'),
-      features: [
-        t('plan_feature_task_management', 'Gestion de tâches basique'),
-        t('plan_feature_1_project', '1 projet'),
-        t('plan_feature_guest_mode', 'Mode invité'),
-        t('plan_feature_email_support', 'Support par e-mail'),
-      ],
-      buttonText: t('plan_button_start_free', 'Commencer Gratuitement'),
-      buttonLink: '/register',
-      isFree: true,
-    },
-    {
-      name: t('plan_pro_title', 'Pro'),
-      price: '29 €',
-      period: t('plan_period_month', '/ mois'),
-      features: [
-        t('plan_feature_all_basic', 'Toutes les fonctionnalités Basiques'),
-        t('plan_feature_unlimited_projects', 'Projets illimités'),
-        t('plan_feature_team_access', 'Accès équipe (jusqu\'à 5 membres)'),
-        t('plan_feature_priority_support', 'Support prioritaire'),
-        t('plan_feature_custom_domain', 'Domaine personnalisé'),
-      ],
-      buttonText: t('plan_button_get_started', 'Démarrer'),
-      buttonLink: '/register?plan=pro',
-      isPopular: true,
-    },
-    {
-      name: t('plan_enterprise_title', 'Entreprise'),
-      price: t('plan_price_contact', 'Contactez-nous'),
-      period: '',
-      features: [
-        t('plan_feature_all_pro', 'Toutes les fonctionnalités Pro'),
-        t('plan_feature_unlimited_members', 'Membres illimités'),
-        t('plan_feature_dedicated_manager', 'Manager de compte dédié'),
-        t('plan_feature_onboarding_training', 'Formation et intégration'),
-        t('plan_feature_advanced_analytics', 'Analyses avancées'),
-      ],
-      buttonText: t('plan_button_contact_sales', 'Contacter les Ventes'),
-      buttonLink: '/contact',
-      isFree: false,
-    },
-  ];
+  // Exemple de données pour les plans tarifairesconst pricingPlans = useMemo(() => [
+  {
+    name: t('plan_basic_title', 'Basique'),
+    price: '0 €',
+    period: t('plan_period_month', '/ mois'),
+    features: [
+      t('plan_feature_task_management', 'Gestion de tâches basique'),
+      t('plan_feature_1_project', '1 projet'),
+      t('plan_feature_guest_mode', 'Mode invité'),
+      t('plan_feature_email_support', 'Support par e-mail'),
+    ],
+    buttonText: t('plan_button_start_free', 'Commencer Gratuitement'),
+    buttonLink: '/register',
+    isFree: true,
+  },
+  {
+    name: t('plan_pro_title', 'Pro'),
+    price: '29 €',
+    period: t('plan_period_month', '/ mois'),
+    features: [
+      t('plan_feature_all_basic', 'Toutes les fonctionnalités Basiques'),
+      t('plan_feature_unlimited_projects', 'Projets illimités'),
+      t('plan_feature_team_access', 'Accès équipe (jusqu\'à 5 membres)'),
+      t('plan_feature_priority_support', 'Support prioritaire'),
+      t('plan_feature_custom_domain', 'Domaine personnalisé'),
+    ],
+    buttonText: t('plan_button_get_started', 'Démarrer'),
+    buttonLink: '/register?plan=pro',
+    isPopular: true,
+  },
+  {
+    name: t('plan_enterprise_title', 'Entreprise'),
+    price: t('plan_price_contact', 'Contactez-nous'),
+    period: '',
+    features: [
+      t('plan_feature_all_pro', 'Toutes les fonctionnalités Pro'),
+      t('plan_feature_unlimited_members', 'Membres illimités'),
+      t('plan_feature_dedicated_manager', 'Manager de compte dédié'),
+      t('plan_feature_onboarding_training', 'Formation et intégration'),
+      t('plan_feature_advanced_analytics', 'Analyses avancées'),
+    ],
+    buttonText: t('plan_button_contact_sales', 'Contacter les Ventes'),
+    buttonLink: '/contact',
+    isFree: false,
+  },
+], [t]);
 
   return (
     <>
