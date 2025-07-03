@@ -15,7 +15,8 @@ export const initialMockData = {
     user: {
         uid: 'guest_noca_flow',
         displayName: 'Visiteur Curieux',
-        photoURL: '/images/avatars/yves.jpg',
+        // Assurez-vous que cette image existe et que son nom est propre (pas de caractères spéciaux)
+        photoURL: '/images/avatars/yves.jpg', // Par exemple, si 'yves.jpg' est valide et existe.
     },
     tasks: [
         { id: '1', title: 'Préparer la démo NocaFLOW pour le client Alpha', completed: false, priority: 'urgent', deadline: getDate(2, 10), assignedTo: 'Alice Dubois', ownerUid: 'guest_noca_flow' },
@@ -149,6 +150,8 @@ export const initialMockData = {
         { id: 'msg13', sender: 'David Chen', avatar: '/images/avatars/avatar-7.jpg', text: 'Voici les premières ébauches de la campagne "Été Éclatant". Qu\'en penses-tu ?', timestamp: 'Aujourd’hui 12:00', unread: true, type: 'image', fileURL: 'https://picsum.photos/id/237/200/300' },
         { id: 'msg14', sender: 'Visiteur Curieux', avatar: '/images/avatars/yves.jpg', text: 'Wow, ça a l\'air génial ! J\'adore le concept. 🎉', timestamp: 'Aujourd’hui 12:05', unread: false, recipient: 'David Chen' },
     ],
+    // Renommé planningTasks en ganttTasks pour être cohérent avec le dashboard.js
+    // Mettez à jour vos données réelles pour correspondre à ces chemins si nécessaire.
     planningTasks: [
         { id: 'pt1', person: 'Alice Dubois', title: 'Préparer la démo UX', startDate: getDate(0).split('T')[0], endDate: getDate(5).split('T')[0], completed: false, priority: 'normal', color: 'pink' },
         { id: 'pt2', person: 'Bob Martin', title: 'Développement Backend V1', startDate: getDate(3).split('T')[0], endDate: getDate(10).split('T')[0], completed: false, priority: 'urgent', color: 'red' },
@@ -186,7 +189,7 @@ export const mockPortalData = {
     documentTitle: 'Stratégie de Lancement Produit V2',
     author: {
         name: 'Yves P. (Votre profil)',
-        avatarUrl: '/images/avatars/yves.jpg',
+        avatarUrl: '/images/avatars/yves.jpg', // Assurez-vous que cette image existe et que son nom est propre
     },
     isFeatured: true,
     viewCount: '2.5k',

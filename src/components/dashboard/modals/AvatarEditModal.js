@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import Image from 'next/image'; // Importez Image de next/image
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db, storage } from '../../../lib/firebase'; // Assurez-vous que ce chemin est correct
-import { useAuth } from '../../../context/AuthContext'; // Assurez-vous que ce chemin est correct
+import { db, storage } from '../../../lib/firebase';
+import { useAuth } from '../../../context/AuthContext';
 import { ModalWrapper } from './ModalWrapper';
 
-// Avatars NocaFlow prédéfinis
+// Avatars NocaFlow prédéfinis (ASSUREZ-VOUS QUE CES FICHIERS EXISTENT DANS PUBLIC/IMAGES/AVATARS ET SONT RENOMMÉS SANS CARACTÈRES SPÉCIAUX)
 const nocaflowAvatars = [
     '/images/avatars/avatar-1.jpg',
     '/images/avatars/avatar-2.jpg',
@@ -19,7 +19,7 @@ const nocaflowAvatars = [
     '/images/avatars/avatar-7.jpg',
     '/images/avatars/avatar-8.jpg',
     '/images/avatars/avatar-9.jpg',
-    '/images/avatars/yves.jpg',
+    '/images/avatars/yves.jpg', // Assurez-vous que ce fichier existe et est correctement nommé
 ];
 
 const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
@@ -34,7 +34,7 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
     useEffect(() => {
         if (isGuestMode && typeof window !== 'undefined') {
             const guestData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
-            if (guestData.user?.photoURL) { // Check user?.photoURL for guest
+            if (guestData.user?.photoURL) {
                 setPreviewUrl(guestData.user.photoURL);
             }
         } else if (user?.photoURL) {
@@ -72,7 +72,7 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
         setError('');
         try {
             if (isGuestMode) {
-                onUpdateGuestAvatar(url); // This updates local storage
+                onUpdateGuestAvatar(url);
             } else {
                 const userDocRef = doc(db, 'users', user.uid);
                 await updateDoc(userDocRef, {

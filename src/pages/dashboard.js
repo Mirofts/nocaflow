@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos';
-import { initialMockData } from '../lib/mockData';
+import { initialMockData } from '../lib/mockData'; // Assurez-vous que mockData est bien exporté et importé
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
@@ -37,85 +37,133 @@ import {
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
     const { user, logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
-    // No need to get 't' from props anymore, use useTranslation hook directly:
-    const { t } = useTranslation('common'); // The namespace 'common' must be listed in getServerSideProps
+    const { t } = useTranslation('common');
 
     const isGuestMode = !user || user.uid === 'guest_noca_flow';
-    const initialGuestName = (typeof window !== 'undefined' && localStorage.getItem('nocaflow_guest_name')) || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : user?.displayName || '');
+    // S'assurer que le nom de l'invité est toujours une chaîne de caractères
+    const initialGuestName = (typeof window !== 'undefined' && localStorage.getItem('nocaflow_guest_name')) || t('guest_user_default', 'Visiteur Curieux');
     const userUid = user?.uid;
 
     const [localData, setLocalData] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const savedData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
-            const defaultDataStructure = {
-                tasks: [],
-                messages: [],
-                meetings: [],
-                projects: [],
-                staffMembers: [],
-                clients: [],
-                ganttTasks: [],
-                invoices: [],
-                notes: initialMockData.notes, // Ensure notes are initialized if missing from saved data
+        // Cette fonction ne doit s'exécuter qu'une seule fois à l'initialisation du composant
+        if (typeof window === 'undefined') {
+            // Côté serveur, retourne une structure de données par défaut, sans localStorage
+            return {
+                tasks: initialMockData.tasks || [],
+                messages: initialMockData.messages || [],
+                meetings: initialMockData.meetings || [],
+                projects: initialMockData.projects || [],
+                staffMembers: initialMockData.staffMembers || [],
+                clients: initialMockData.clients || [],
+                ganttTasks: initialMockData.planningTasks || [], // Utilisez planningTasks de mockData
+                invoices: initialMockData.invoices || [],
+                notes: initialMockData.notes || '', // Assurez-vous que les notes sont initialisées
                 user: {
                     displayName: initialGuestName,
-                    photoURL: '/images/avatarguest.jpg',
+                    photoURL: initialMockData.user?.photoURL || '/images/avatarguest.jpg',
                 }
             };
-            const mergedData = {
-                ...defaultDataStructure,
-                ...(Object.keys(savedData).length === 0 ? initialMockData : {}),
-                ...savedData
-            };
-
-            for (const key of ['tasks', 'messages', 'meetings', 'projects', 'staffMembers', 'clients', 'ganttTasks', 'invoices']) {
-                mergedData[key] = Array.isArray(mergedData[key]) ? mergedData[key] : [];
-            }
-
-            mergedData.user = {
-                ...(defaultDataStructure.user || {}),
-                ...(initialMockData?.user || {}),
-                ...(savedData.user || {}),
-                displayName: savedData.user?.displayName || initialGuestName,
-                photoURL: savedData.user?.photoURL || (initialMockData?.user?.photoURL || '/images/avatarguest.jpg'),
-            };
-            return mergedData;
         }
-        const defaultMockData = initialMockData || {};
-        const commonData = {
-            tasks: [], messages: [], meetings: [], projects: [],
-            staffMembers: [], clients: [], ganttTasks: [], invoices: [],
-            notes: initialMockData.notes, // Ensure notes are initialized if missing from saved data
-            user: {}
+
+        // Côté client
+        const savedData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
+        const defaultDataStructure = {
+            tasks: initialMockData.tasks || [],
+            messages: initialMockData.messages || [],
+            meetings: initialMockData.meetings || [],
+            projects: initialMockData.projects || [],
+            staffMembers: initialMockData.staffMembers || [],
+            clients: initialMockData.clients || [],
+            ganttTasks: initialMockData.planningTasks || [], // Utilisez planningTasks de mockData
+            invoices: initialMockData.invoices || [],
+            notes: initialMockData.notes || '', // Assurez-vous que les notes sont initialisées
+            user: {
+                displayName: initialGuestName,
+                photoURL: initialMockData.user?.photoURL || '/images/avatarguest.jpg',
+            }
         };
-        return {
-            ...commonData,
-            ...defaultMockData,
-            user: { ...(defaultMockData.user || {}), displayName: initialGuestName, photoURL: (defaultMockData.user?.photoURL || '/images/avatarguest.jpg') }
+
+        // Fusionner les données sauvegardées avec la structure par défaut et les mockData initiales
+        // La priorité est: savedData > initialMockData (si savedData est vide) > defaultDataStructure
+        const mergedData = {
+            ...defaultDataStructure, // Base par défaut
+            ...(Object.keys(savedData).length === 0 ? initialMockData : {}), // Si pas de savedData, utiliser mockData
+            ...savedData // Appliquer savedData par-dessus (prioritaire)
         };
+
+        // Assurer que les champs sont bien des tableaux ou des chaînes
+        for (const key of ['tasks', 'messages', 'meetings', 'projects', 'staffMembers', 'clients', 'ganttTasks', 'invoices']) {
+            mergedData[key] = Array.isArray(mergedData[key]) ? mergedData[key] : [];
+        }
+        mergedData.notes = typeof mergedData.notes === 'string' ? mergedData.notes : initialMockData.notes;
+
+        // Gérer spécifiquement les informations de l'utilisateur invité
+        mergedData.user = {
+            ...(defaultDataStructure.user || {}),
+            ...(initialMockData?.user || {}), // Les infos de l'utilisateur mock
+            ...(savedData.user || {}), // Les infos de l'utilisateur sauvegardées
+            displayName: savedData.user?.displayName || initialGuestName, // Nom de l'invité
+            photoURL: savedData.user?.photoURL || (initialMockData?.user?.photoURL || '/images/avatarguest.jpg'), // Photo de l'invité
+        };
+
+        return mergedData;
     });
+
+    // Gardez guestName séparé si c'est la seule chose qui peut être modifiée par le GuestNameEditModal
     const [guestName, setGuestName] = useState(initialGuestName);
+
+    // Mettez à jour localData.user.displayName et localStorage lorsque guestName change
+    useEffect(() => {
+        if (isGuestMode) {
+            onUpdateGuestData(prev => ({
+                ...prev,
+                user: {
+                    ...prev.user,
+                    displayName: guestName,
+                    photoURL: prev.user?.photoURL || '/images/avatarguest.jpg' // S'assurer que photoURL persiste
+                },
+                // Assurez-vous que le reste des données persiste correctement
+                tasks: prev.tasks || [],
+                messages: prev.messages || [],
+                meetings: prev.meetings || [],
+                projects: prev.projects || [],
+                staffMembers: prev.staffMembers || [],
+                clients: prev.clients || [],
+                ganttTasks: prev.ganttTasks || [],
+                invoices: prev.invoices || [],
+                notes: prev.notes || ''
+            }));
+        }
+    }, [guestName, isGuestMode]); // Dépendance ajoutée pour réagir au changement de guestName
+
 
     const onUpdateGuestData = useCallback((updater) => {
         setLocalData(prevLocalData => {
             const newData = typeof updater === 'function' ? updater(prevLocalData) : updater;
             const sanitizedData = { ...newData };
+
+            // Assurer que toutes les listes sont des tableaux
             for (const key of ['tasks', 'messages', 'meetings', 'projects', 'staffMembers', 'clients', 'ganttTasks', 'invoices']) {
                 sanitizedData[key] = Array.isArray(sanitizedData[key]) ? sanitizedData[key] : [];
             }
+            // Assurer que 'notes' est une chaîne de caractères
+            sanitizedData.notes = typeof sanitizedData.notes === 'string' ? sanitizedData.notes : (prevLocalData.notes || initialMockData.notes || '');
+
+
+            // Conserver les propriétés user.displayName et user.photoURL si elles ne sont pas fournies par l'updater
             sanitizedData.user = {
-                ...(sanitizedData.user || {}),
-                displayName: sanitizedData.user?.displayName || prevLocalData.user?.displayName || initialGuestName,
-                photoURL: sanitizedData.user?.photoURL || prevLocalData.user?.photoURL || '/images/avatarguest.jpg',
+                ...(prevLocalData.user || {}), // Conserver les anciennes propriétés user
+                ...(newData.user || {}), // Appliquer les nouvelles propriétés user
+                displayName: (newData.user && newData.user.displayName !== undefined) ? newData.user.displayName : prevLocalData.user?.displayName || initialGuestName,
+                photoURL: (newData.user && newData.user.photoURL !== undefined) ? newData.user.photoURL : prevLocalData.user?.photoURL || (initialMockData.user?.photoURL || '/images/avatarguest.jpg'),
             };
-            // Ensure notes field is preserved correctly
-            sanitizedData.notes = newData.notes !== undefined ? newData.notes : prevLocalData.notes;
+
             if (typeof window !== 'undefined') {
                 localStorage.setItem('nocaflow_guest_data', JSON.stringify(sanitizedData));
             }
             return sanitizedData;
         });
-    }, [initialGuestName]);
+    }, [initialGuestName]); // Ajout de initialGuestName comme dépendance de useCallback
 
     const stableGuestInitialTasks = useMemo(() => {
         return isGuestMode ? (localData.tasks || []) : [];
@@ -135,11 +183,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         let mergedData;
         if (isGuestMode) {
             mergedData = { ...baseData, ...localData };
+            // L'objet user est déjà mis à jour via le useState guestName et l'useEffect associé
+            // On s'assure que photoURL est pris en compte
             mergedData.user = {
-                ...baseData.user,
-                ...(localData.user || {}),
-                displayName: guestName,
-                photoURL: (localData.user?.photoURL || baseData.user?.photoURL)
+                ...mergedData.user, // Garde les infos de localData.user
+                displayName: guestName, // Priorise guestName pour l'affichage
+                photoURL: localData.user?.photoURL || '/images/avatarguest.jpg' // Assure une photo URL
             };
             mergedData.tasks = localData.tasks;
         } else {
@@ -148,6 +197,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             mergedData.tasks = todos;
         }
 
+        // Assurer la robustesse des types de données
         mergedData.messages = Array.isArray(mergedData.messages) ? mergedData.messages : [];
         mergedData.meetings = Array.isArray(mergedData.meetings) ? mergedData.meetings : [];
         mergedData.projects = Array.isArray(mergedData.projects) ? mergedData.projects : [];
@@ -155,28 +205,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         mergedData.clients = Array.isArray(mergedData.clients) ? mergedData.clients : [];
         mergedData.ganttTasks = Array.isArray(mergedData.ganttTasks) ? mergedData.ganttTasks : [];
         mergedData.invoices = Array.isArray(mergedData.invoices) ? mergedData.invoices : [];
-        // Ensure notes field is present
-        mergedData.notes = typeof mergedData.notes === 'string' ? mergedData.notes : initialMockData.notes;
+        mergedData.notes = typeof mergedData.notes === 'string' ? mergedData.notes : (initialMockData.notes || '');
 
 
         return mergedData;
     }, [isGuestMode, localData, todos, guestName, user]);
 
 
-    const onUpdateGuestName = useCallback((newName) => {
-        setGuestName(newName);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('nocaflow_guest_name', newName);
-            onUpdateGuestData(prev => ({
-                ...prev,
-                user: {
-                    ...(prev.user || {}),
-                    displayName: newName
-                }
-            }));
-        }
-    }, [onUpdateGuestData]);
-
+    // Les modales et leurs gestionnaires
     const [modals, setModals] = useState({
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
@@ -185,7 +221,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     });
 
     const openModal = useCallback((name, modalData = true) => setModals(prev => ({
-        ...Object.keys(prev).reduce((acc, key) => (acc[key] = false, acc), {}),
+        ...Object.keys(prev).reduce((acc, key) => (acc[key] = false, acc), {}), // Ferme toutes les modales
         [name]: modalData
     })), []);
 
@@ -196,6 +232,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false
     }), []);
 
+    // Gestionnaires de données pour le mode invité (localData)
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
     const deleteProject = useCallback((projectId) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).filter(p => p.id !== projectId) })); }, [onUpdateGuestData]);
@@ -224,7 +261,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     const handleGanttChartPlanningFullscreen = useCallback(() => {
         if (ganttChartPlanningRef.current && ganttChartPlanningRef.current.toggleFullScreen) {
-            // CORRECTION ICI : la ref est ganttChartPlanningRef, pas flowLiveMessagesRef
             ganttChartPlanningRef.current.toggleFullScreen();
         } else {
             console.warn('Gantt Chart Planning Fullscreen function not available yet.');
@@ -251,7 +287,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             {isGuestMode && (
                 <GuestBanner
                     onRegisterClick={onRegisterClick}
-                    onLoginClick={onLoginClick} // Passe onLoginClick au GuestBanner
+                    onLoginClick={onLoginClick}
                     t={t}
                 />
             )}
@@ -301,8 +337,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             </DashboardCard>
 
                             {/* Cartes empilées sous Flow Live Messages */}
-                            <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]" notes={localData.notes}/>
-                            <Calendar tasks={data.tasks} meetings={data.meetings} projects={data.projects} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} className="flex-1 h-auto"/> {/* MODIFICATION ICI */}
+                            {/* Assurer que la prop 'notes' est bien passée et que Notepad l'utilise */}
+                            <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]" notes={data.notes}/>
+                            <Calendar tasks={data.tasks} meetings={data.meetings} projects={data.projects} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} className="flex-1 h-auto"/>
                             <InvoicesSummary invoices={data.invoices} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="flex-1 min-h-[350px]"/>
                         </div>
 
@@ -316,7 +353,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEdit={(task) => openModal('taskEdit', task)}
                                 onDelete={deleteTodo}
                                 t={t}
-                                className="flex-1 min-h-[300px]" 
+                                className="flex-1 h-auto" // MODIFICATION ICI : h-auto au lieu de min-h fixe pour plus de flexibilité
                             />
                             <Projects
                                 projects={data.projects}
@@ -455,7 +492,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     );
 }
 
-// Add getServerSideProps to fetch translations
 export async function getServerSideProps({ locale }) {
     return {
         props: {
