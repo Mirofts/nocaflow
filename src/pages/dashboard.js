@@ -4,9 +4,10 @@ import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useUserTodos } from '../hooks/useUserTodos'; // Assurez-vous que useUserTodos.js existe dans src/hooks/
+import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '../lib/mockData';
 import { useTranslation } from 'react-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations'; // <--- Import this
 
 // IMPORTS CORRIGÉS DES COMPOSANTS DU DASHBOARD :
 import DashboardHeader from '../components/dashboard/DashboardHeader';
@@ -30,14 +31,14 @@ import {
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
-} from '../components/dashboard/modals/modals'; // <-- Import depuis le fichier unique modals.js
-
+} from '../components/dashboard/modals/modals';
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
     const { user, logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
-    const { t } = useTranslation('common'); // Get t using useTranslation here
+    // No need to get 't' from props anymore, use useTranslation hook directly:
+    const { t } = useTranslation('common'); // The namespace 'common' must be listed in getServerSideProps
 
     const isGuestMode = !user || user.uid === 'guest_noca_flow';
     const initialGuestName = (typeof window !== 'undefined' && localStorage.getItem('nocaflow_guest_name')) || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : user?.displayName || '');
@@ -432,5 +433,17 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             {modals.addMeeting && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
         </AnimatePresence>
     </>
-);
+    );
+}
+
+// Add getServerSideProps to fetch translations
+export async function getServerSideProps({ locale }) {
+    return {
+        props: {
+            ...(await serverSideTranslations(locale, ['common', 'dashboard'])), // Ensure 'common' and 'dashboard' namespaces are loaded
+            // You can also pass other props specific to the dashboard here if needed.
+            // For example, if you had server-side fetched user data:
+            // initialUserData: {},
+        },
+    };
 }

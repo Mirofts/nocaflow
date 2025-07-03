@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useTranslation } from 'react-i18next'; // ✅ CORRECT
-
+import { useTranslation } from 'react-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations'; // <-- Import this!
 
 
 export default function PricingPage({ onLoginClick, onRegisterClick }) {
   const { user, isGuestMode } = useContext(AuthContext) || {};
-  const { t } = useTranslation('common');
+  const { t } = useTranslation('common'); // The 'common' namespace is used here.
   const router = useRouter();
 
 
@@ -86,4 +86,14 @@ export default function PricingPage({ onLoginClick, onRegisterClick }) {
       </div>
     </>
   );
+}
+
+// Add getStaticProps to fetch translations at build time
+export async function getStaticProps({ locale }) {
+  return {
+    props: {
+      // Load the 'common' namespace, as used by useTranslation in the component
+      ...(await serverSideTranslations(locale, ['common'])),
+    },
+  };
 }
