@@ -83,9 +83,11 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
         initial="hidden"
         animate="visible"
         variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-        className="relative min-h-[90vh] w-full flex flex-col items-center justify-center text-center px-4 pt-32 pb-20 overflow-hidden bg-purple-900"
+        // FIX: Removed `px-4` and used `w-screen` to ensure true fullscreen background
+        className="relative min-h-screen w-screen flex flex-col items-center justify-center text-center pt-32 pb-20 overflow-hidden bg-purple-900"
       >
         {/* Fullscreen Video Background */}
+        {/* FIX: Ensure video div also takes full width and height */}
         <div className="absolute inset-0 z-0 w-full h-full">
           <video
             autoPlay
@@ -102,7 +104,8 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
           <div className="absolute inset-0 bg-black opacity-50"></div>
         </div>
 
-        <div className="relative z-10 flex flex-col items-center max-w-6xl mx-auto">
+        {/* Content over the video, still constrained by max-w and centered */}
+        <div className="relative z-10 flex flex-col items-center max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"> {/* Added back px for content padding */}
           <motion.div variants={FADE_UP_VARIANTS} className="text-center">
             {/* New Headline Structure */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter text-slate-600 mb-2">
