@@ -1,18 +1,29 @@
 // src/components/Navbar.js
-import React, { useState, useEffect, useMemo } from 'react'; // Added useMemo
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useTranslation } from 'next-i18next'; // Correct import
+import { useTranslation } from 'next-i18next'; 
 import Image from 'next/image';
 import Greeting from './dashboard/Greeting';
-import { initialMockData } from '../lib/mockData'; // Import mock data
+import { initialMockData } from '../lib/mockData'; 
+
+// FIX: Déplacer mainNavLinks en dehors du composant Navbar
+// Le 't' ne peut pas être utilisé ici, donc nous devrons le passer via props si NavLink en a besoin,
+// ou utiliser les labels hardcodés pour les routes statiques.
+// Puisque NavLink prend déjà 'children' (le label), cela fonctionnera.
+const STATIC_MAIN_NAV_LINKS = [
+  { href: '/', i18nKey: 'about' },
+  { href: '/features', i18nKey: 'features' },
+  { href: '/pricing', i18nKey: 'pricing' },
+];
+
 
 // Composant NavLink pour les liens de navigation avec animation au survol
-const NavLink = ({ href, children, currentPath }) => {
+const NavLink = ({ href, children, currentPath }) => { // children will be the translated label
   const isActive = currentPath === href || (href === '/' && currentPath === '/');
   return (
     <Link href={href} className={`relative px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap 
@@ -88,10 +99,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
 
 
   // Mock stats for guest mode in Navbar (if needed, otherwise fetch real stats in dashboard page)
-  // For simplicity here, just show static numbers if user is guest for these stats
   const navbarStats = useMemo(() => {
-      // In a real app, if on Dashboard, these would come from `dashboard.js` props
-      // For global Navbar, we might need a simpler/mocked version or fetch common stats
       return {
           messages: isGuestMode ? (initialMockData.messages || []).length : 0, 
           tasks: isGuestMode ? (initialMockData.tasks || []).filter(task => !task.completed).length : 0,
@@ -122,9 +130,9 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
 
           {/* Desktop Navigation Links & User Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* Standard Nav Links */}
-            {mainNavLinks.map(link => (
-                <NavLink key={link.href} href={link.href} currentPath={currentPath}>{link.label}</NavLink>
+            {/* Standard Nav Links (using STATIC_MAIN_NAV_LINKS and t() for labels) */}
+            {STATIC_MAIN_NAV_LINKS.map(link => (
+                <NavLink key={link.href} href={link.href} currentPath={currentPath}>{t(link.i18nKey, link.label)}</NavLink>
             ))}
 
             {/* Dashboard Link (always visible) */}
@@ -172,8 +180,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
             {/* User Avatar, Greeting, and Login/Register Buttons */}
             {user && !loadingAuth ? ( // User is logged in (or guest)
               <div className="flex items-center space-x-2 ml-4">
-                {/* Dashboard-specific content (only if on Dashboard page) */}
-                {isDashboardPage && (
+                {isDashboardPage && ( // Only show Dashboard-specific content if on Dashboard page
                   <>
                     <div className="relative group cursor-pointer" onClick={() => router.push('/dashboard')}>
                         <Image
@@ -298,9 +305,9 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
             className="md:hidden fixed inset-x-0 top-16 z-40 glass-card mx-4 rounded-b-2xl p-4 border-t-0"
           >
             <div className="pt-2 pb-3 space-y-1 sm:px-3">
-              {mainNavLinks.map(link => (
+              {STATIC_MAIN_NAV_LINKS.map(link => ( // Utilisation de STATIC_MAIN_NAV_LINKS ici aussi
                 <Link key={link.href} href={link.href} className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors">
-                  {link.label}
+                  {t(link.i18nKey, link.label)}
                 </Link>
               ))}
               {!loadingAuth && (
