@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import Greeting from './Greeting';
+import Greeting from './Greeting'; // Keep Greeting as it contains the "Ave, TOI" text
 
 const PulsingIcon = ({ children, isPulsing, pulseColorClass = 'bg-pink-500' }) => (
     <motion.div
@@ -61,7 +61,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
             className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
         >
             <div className="flex items-center gap-4">
-                {/* Avatar principal pour la section du header (cliquable pour changer) */}
+                {/* Avatar principal (le grand, cliquable pour changer) */}
                 <div className="relative group cursor-pointer" onClick={() => openModal('avatar')}>
                     <Image
                         src={avatarUrl}
@@ -76,19 +76,15 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                 </div>
                 <div className="flex flex-col">
                     <div className="flex items-center">
-                        {/* Avatar à côté de "Ave, TOI" - IL N'Y A PLUS DE "DEUXIÈME" AVATAR BUGGÉ.
-                            Ce code ci-dessous est celui que vous aviez ajouté pour le deuxième avatar.
-                            S'il est buggé, il faut s'assurer que la `avatarUrl` est la bonne et que l'hydratation est stable.
-                            Je le garde, car c'était votre demande.
-                        */}
-                        <Image
-                            src={avatarUrl} // Utilise la même URL que l'avatar principal, maintenant correcte
+                        {/* ANCIEN PETIT AVATAR (32x32) SUPPRIMÉ ICI */}
+                        {/* <Image
+                            src={avatarUrl}
                             alt={displayUserNameForAvatar}
-                            width={32} // Taille plus petite pour cet avatar
+                            width={32}
                             height={32}
                             className={`rounded-full object-cover mr-2 border-2 ${isDarkMode ? 'border-slate-700' : 'border-color-border-primary'}`}
-                        />
-                        <Greeting t={t} />
+                        /> */}
+                        <Greeting t={t} /> {/* Greeting component contains the "Ave, TOI" text */}
                         {!isGuestMode && (
                             <button
                                 onClick={() => openModal('userNameEdit')}
