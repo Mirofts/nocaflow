@@ -140,7 +140,7 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
           </div>
 
           <motion.div variants={FADE_UP_VARIANTS} className="mt-8 text-slate-600 text-sm">
-            <p>{t('no_credit_card', 'Pas de carte de crédit requise. Annulez à tout temps.')}</p>
+            <p>{t('no_credit_card', 'Pas de carte de crédit requise.')}</p>
           </motion.div>
         </div>
       </motion.section>
