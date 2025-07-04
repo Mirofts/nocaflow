@@ -16,7 +16,7 @@ import Footer from '../components/Footer';
 
 // IMPORTEZ VOS VRAIS COMPOSANTS DE MODALES ICI
 import LoginModal from '../components/LoginModal';
-import RegisterModal from '../components/components/RegisterModal'; // Chemin corrigé si RegisterModal est dans components/components
+import RegisterModal from '../components/RegisterModal'; // Chemin corrigé si RegisterModal est dans components/components
 
 function MyApp({ Component, pageProps }) {
   const { t } = useTranslation('common');
