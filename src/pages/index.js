@@ -1,3 +1,4 @@
+// src/pages/index.js
 import Head from 'next/head';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -6,7 +7,6 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { ArrowRight, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
-// import LanguageSwitcher from '../components/dashboard/LanguageSwitcher'; // <-- Suppression du LanguageSwitcher ici, car il est dans la Navbar globale
 
 const FADE_UP_VARIANTS = {
   hidden: { opacity: 0, y: 20 },
@@ -17,18 +17,20 @@ const FADE_UP_VARIANTS = {
   },
 };
 
-// Modifiez la signature de la fonction pour accepter les props onLoginClick et onRegisterClick
 export default function HomePage({ onLoginClick, onRegisterClick }) {
   const { t } = useTranslation('common');
   const { user, loadingAuth, loginAsGuest } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    // Exécuter la redirection uniquement côté client et après l'authentification
+    // Cela évite un désalignement d'hydratation en SSR
     if (!loadingAuth && user) {
       router.push('/dashboard');
     }
   }, [user, loadingAuth, router]);
 
+  // Affiche un loader si l'authentification est en cours ou si l'utilisateur est déjà connecté (avant redirection)
   if (loadingAuth || user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-color-bg-primary">
@@ -50,25 +52,29 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
         />
       </Head>
 
-      {/* Supprimez le LanguageSwitcher ici, il est désormais dans la Navbar globale */}
-      {/* <LanguageSwitcher className="absolute top-6 right-6 z-20" /> */}
-
       <motion.section
         initial="hidden"
         animate="visible"
         variants={{ visible: { transition: { staggerChildren: 0.2 } } }}
-        // pt-32 est déjà présent, pas besoin d'ajouter pt-16 supplémentaire
         className="relative min-h-[90vh] w-full flex flex-col items-center justify-center text-center px-4 pt-32 pb-20 overflow-hidden bg-purple-500"
       >
         <div className="absolute inset-0 z-0">
+          {/* Correction pour la vidéo: Utilisation de <source> pour la compatibilité */}
           <video
             autoPlay
             loop
             muted
             playsInline
             className="w-full h-full object-cover opacity-20"
-            src="/realbg.mp4"
-          ></video>
+            // Retiré `src` directement sur la balise `video`
+          >
+            {/* Ordre des sources : mp4 d'abord car plus compatible sur la plupart des plateformes */}
+            <source src="/realbg.mp4" type="video/mp4" />
+            <source src="/realbg.webm" type="video/webm" />
+            {/* Fallback si aucune source vidéo n'est supportée */}
+            {/* Remplacez ceci par une image si possible, car un .mp4 en fallback est redondant */}
+            Votre navigateur ne supporte pas la lecture de vidéos.
+          </video>
         </div>
 
         <div className="relative z-10 flex flex-col items-center">
@@ -89,7 +95,6 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
 
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              // Utilisez la prop onRegisterClick reçue de _app.js
               onClick={onRegisterClick}
               className="pulse-button inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-white rounded-full bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 transition-all duration-300"
             >
@@ -97,7 +102,7 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
             </button>
 
             <button
-              onClick={loginAsGuest} // Gardez loginAsGuest, car c'est une action directe, pas une modal
+              onClick={loginAsGuest}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-slate-300 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-800 transition-colors"
             >
               <Eye size={20} /> {t('try_as_guest', 'Essayer en mode invité')}
@@ -132,25 +137,10 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
   );
 }
 
-// Nous devons modifier `getStaticProps` dans index.js pour inclure `onLoginClick` et `onRegisterClick` dans `pageProps`.
-// Cependant, `getStaticProps` ne peut pas inclure de fonctions.
-// La solution est de passer ces fonctions de `_app.js` directement à `Component` via `pageProps`.
-
-// Donc, pour que `HomePage` reçoive `onLoginClick` et `onRegisterClick`,
-// le `_app.js` doit les passer explicitement à `Component`:
-// <Component {...pageProps} onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />
-// OU vous pouvez créer un contexte pour les modales si elles sont très utilisées.
-
-// Pour l'instant, je vais modifier getStaticProps pour refléter la signature de HomePage,
-// mais sachez que les fonctions ne seront pas sérialisées si vous les passez directement ici.
-// La meilleure pratique est de les passer via _app.js ou un Contexte.
 export async function getStaticProps({ locale }) {
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common'])),
-      // Les fonctions onLoginClick et onRegisterClick ne peuvent PAS être passées via getStaticProps.
-      // Elles doivent être passées par _app.js ou un contexte.
-      // Donc, nous les retirerons d'ici et nous nous assurerons que _app.js les transmet.
     },
   };
 }
