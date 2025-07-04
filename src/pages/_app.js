@@ -45,15 +45,13 @@ function MyApp({ Component, pageProps }) {
   };
 
   // Déterminez si la page actuelle est la page d'accueil pour ajuster le layout
-  // Utilisez router.pathname pour une détection fiable côté client
   const isHomePage = router.pathname === '/';
 
   return (
     <AuthContextProvider>
       <ThemeProvider>
         {/* Le conteneur principal de l'application.
-            Ajout de `overflow-x-hidden` pour éviter les barres de défilement horizontales.
-            `!p-0 !m-0 !max-w-none` pour annuler tout padding/margin/max-width global sur le wrapper.
+            Assure qu'il n'y a pas de padding/margin global pour permettre le full-bleed.
         */}
         <div className="flex flex-col min-h-screen bg-color-bg-primary text-color-text-primary !p-0 !m-0 !max-w-none overflow-x-hidden">
           <Head>
@@ -77,26 +75,27 @@ function MyApp({ Component, pageProps }) {
               {...pageProps}
               onLoginClick={handleLoginClick}
               onRegisterClick={handleRegisterClick}
-              t={t}
+              t={t} // Passe la fonction de traduction 't' à toutes les pages/composants
             />
           </main>
 
           <Footer />
         </div>
 
+        {/* AnimatePresence pour les animations d'entrée/sortie des modales */}
         <AnimatePresence>
             {showLoginModal && (
                 <LoginModal
                     onClose={closeLoginModal}
                     onSwitchToRegister={switchToRegisterFromLogin}
-                    t={t}
+                    t={t} // Passe la fonction de traduction
                 />
             )}
             {showRegisterModal && (
                 <RegisterModal
                     onClose={closeRegisterModal}
                     onSwitchToLogin={switchToLoginFromRegister}
-                    t={t}
+                    t={t} // Passe la fonction de traduction
                 />
             )}
         </AnimatePresence>
@@ -106,9 +105,5 @@ function MyApp({ Component, pageProps }) {
   );
 }
 
-// Retiré getInitialProps car router.pathname est directement disponible avec useRouter dans le composant
-// et pageProps.router n'est plus nécessaire pour cette logique.
-// La détection de `isHomePage` est maintenant purement côté client avec `useRouter`.
-
-
+// Pas besoin de getInitialProps ici, useRouter gère déjà le pathname côté client.
 export default appWithTranslation(MyApp, i18nextConfig);

@@ -42,61 +42,51 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     console.log('DashboardPage: Start render'); // Debug Log
 
     const isGuestMode = !user || user.uid === 'guest_noca_flow';
-    // Le nom initial de l'invité sera toujours une chaîne, pour SSR safety
-    // MODIFICATION: Hardcoded initialGuestNameSSR to avoid hydration issues
-    const initialGuestNameSSR = 'Visiteur Curieux'; // Removed t() call
+    const initialGuestNameSSR = 'Visiteur Curieux'; // Hardcoded
     const userUid = user?.uid;
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
 
-    // Initialisation robuste de localData
     const [localData, setLocalData] = useState(() => {
         console.log('DashboardPage: Initializing localData state'); // Debug Log
-        let initialValue = initialMockData; // Valeur par défaut pour SSR
+        let initialValue = initialMockData;
 
-        // Ce bloc s'exécute uniquement côté client pour l'initialisation après hydratation
         if (typeof window !== 'undefined') {
             const savedData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
             initialValue = {
-                ...initialMockData, // Commence avec les données mockées
-                ...savedData // Surcharge avec les données sauvegardées
+                ...initialMockData,
+                ...savedData
             };
-            // Met à jour le nom de l'invité depuis localStorage si disponible
             const savedGuestName = localStorage.getItem('nocaflow_guest_name');
             if (savedGuestName) {
                 initialValue.user.displayName = savedGuestName;
             }
         }
 
-        // Assurez la robustesse des types de données pour toutes les propriétés
         initialValue.tasks = Array.isArray(initialValue.tasks) ? initialValue.tasks : [];
         initialValue.messages = Array.isArray(initialValue.messages) ? initialValue.messages : [];
         initialValue.meetings = Array.isArray(initialValue.meetings) ? initialValue.meetings : [];
         initialValue.projects = Array.isArray(initialValue.projects) ? initialValue.projects : [];
         initialValue.staffMembers = Array.isArray(initialValue.staffMembers) ? initialValue.staffMembers : [];
         initialValue.clients = Array.isArray(initialValue.clients) ? initialValue.clients : [];
-        initialValue.ganttTasks = Array.isArray(initialValue.planningTasks) ? initialValue.planningTasks : []; // Correction: utilisez initialValue.planningTasks
+        initialValue.ganttTasks = Array.isArray(initialValue.planningTasks) ? initialValue.planningTasks : [];
         initialValue.invoices = Array.isArray(initialValue.invoices) ? initialValue.invoices : [];
         initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : initialMockData.notes || '';
-        initialValue.user = initialValue.user || {}; // S'assurer que user est un objet
+        initialValue.user = initialValue.user || {};
 
         console.log('DashboardPage: Initial localData state value:', initialValue); // Debug Log
         return initialValue;
     });
 
-    // Mettez à jour le localStorage chaque fois que localData change (côté client uniquement)
     useEffect(() => {
         if (typeof window !== 'undefined' && isGuestMode) {
             localStorage.setItem('nocaflow_guest_data', JSON.stringify(localData));
-            // S'assurer que guestName est synchronisé avec localData.user.displayName pour l'affichage
             if (localData.user?.displayName !== guestName) {
                 setGuestName(localData.user?.displayName || initialGuestNameSSR);
             }
         }
     }, [localData, isGuestMode, guestName, initialGuestNameSSR]);
 
-    // Gérer la mise à jour des données de l'invité
-    // MODIFICATION: Moved this definition BEFORE onUpdateGuestName
     const onUpdateGuestData = useCallback((updater) => {
         setLocalData(prevLocalData => {
             const newData = typeof updater === 'function' ? updater(prevLocalData) : updater;
@@ -123,8 +113,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         });
     }, [initialGuestNameSSR]);
 
-    // Gérer la mise à jour du nom de l'invité
-    // MODIFICATION: This now uses the already defined onUpdateGuestData
     const onUpdateGuestName = useCallback((newName) => {
         setGuestName(newName);
         onUpdateGuestData(prev => ({
@@ -141,7 +129,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return isGuestMode ? (localData.tasks || []) : [];
     }, [isGuestMode, localData.tasks]);
 
-    // useUserTodos utilise initialGuestTasks, assurez-vous que c'est stable
     const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
         useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
     console.log('DashboardPage: todos from useUserTodos:', todos); // Debug Log
@@ -165,16 +152,13 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             // currentData.messages = fetchedFirebaseMessages;
             // currentData.projects = fetchedFirebaseProjects;
             // ... etc.
-            // Pour l'instant, s'ils ne sont pas chargés de Firebase, ils restent ceux des mockData/localData.
         } else {
-            // En mode invité, s'assurer que le displayName de l'utilisateur dans data reflète guestName
             currentData.user = {
                 ...currentData.user,
                 displayName: guestName,
             };
         }
 
-        // Assurer la robustesse des types de données (vérifications finales)
         currentData.messages = Array.isArray(currentData.messages) ? currentData.messages : [];
         currentData.meetings = Array.isArray(currentData.meetings) ? currentData.meetings : [];
         currentData.projects = Array.isArray(currentData.projects) ? currentData.projects : [];
@@ -209,8 +193,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false
     }), []);
 
-    // Gestionnaires de données pour le mode invité (localData)
-    // S'assurer que chaque `onUpdateGuestData` est bien encapsulé dans useCallback avec les bonnes dépendances
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
     const deleteProject = useCallback((projectId) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).filter(p => p.id !== projectId) })); }, [onUpdateGuestData]);
@@ -245,13 +227,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, []);
 
-    // Calcul des statistiques, assurez-vous qu'il est SSR-safe
     console.log('DashboardPage: Before stats useMemo - data for stats:', data); // Debug Log
     const stats = useMemo(() => {
         console.log('DashboardPage: Inside stats useMemo - data being used:', data); // Debug Log
         const now = new Date();
 
-        // Explicitly ensure 'data' is not null/undefined before accessing properties
         const messages = data?.messages || [];
         const tasks = data?.tasks || [];
         const meetings = data?.meetings || [];
@@ -261,7 +241,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             tasks: tasks.filter(task => !task.completed).length,
             meetings: meetings.filter(m => new Date(m.dateTime) > now).length,
         };
-    }, [data]); // Changed dependency to 'data' for robustness
+    }, [data]);
     console.log('DashboardPage: Stats calculated:', stats); // Debug Log
 
     const handleOpenAddTaskFromChat = useCallback((chatData) => {
@@ -301,10 +281,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                     <TimeAlerts projects={data.projects} meetings={data.meetings} t={t} lang={lang} openModal={openModal} />
 
-                    {/* Début de la grille principale du dashboard */}
                     <div className="grid grid-cols-12 gap-6">
 
-                        {/* Colonne de gauche (8/12 sur grand écran) */}
                         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
                             <DashboardCard
                                 icon={
@@ -330,14 +308,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 />
                             </DashboardCard>
 
-                            {/* Cartes empilées sous Flow Live Messages */}
-                            {/* Assurer que la prop 'notes' est bien passée et que Notepad l'utilise */}
                             <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]" notes={data.notes}/>
                             <Calendar tasks={data.tasks} meetings={data.meetings} projects={data.projects} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} className="flex-1 h-auto"/>
                             <InvoicesSummary invoices={data.invoices} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="flex-1 min-h-[350px]"/>
                         </div>
 
-                        {/* Colonne de droite (4/12 sur grand écran) */}
                         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
                             <TodoList
                                 todos={data.tasks}
@@ -347,20 +322,19 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEdit={(task) => openModal('taskEdit', task)}
                                 onDelete={deleteTodo}
                                 t={t}
-                                className="flex-1 h-auto" // MODIFICATION ICI : h-auto au lieu de min-h fixe pour plus de flexibilité
+                                className="flex-1 h-auto"
                             />
                             <Projects
                                 projects={data.projects}
                                 t={t}
-                                onAddProject={addProject} // Ne pas englober dans openModal ici
-                                onEditProject={editProject} // Ne pas englober dans openModal ici
+                                onAddProject={addProject}
+                                onEditProject={editProject}
                                 onDeleteProject={deleteProject}
                                 onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)}
                                 className="flex-1 min-h-[598px]"
                             />
                         </div>
 
-                        {/* Ligne pleine largeur pour Gantt Chart */}
                         <div className="col-span-12">
                             <GanttChartPlanning
                                 ref={ganttChartPlanningRef}
@@ -375,7 +349,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             />
                         </div>
 
-                        {/* Ligne pour Team Management et Client Management */}
                         <div className="col-span-12 lg:col-span-6">
                             <TeamManagement
                                 members={data.staffMembers}
@@ -401,7 +374,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 className="h-[400px]"
                             />
                         </div>
-                    </div> {/* Fin de la grille principale du dashboard */}
+                    </div>
                 </motion.div>
             </div>
 

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import Greeting from './Greeting'; // Keep Greeting as it contains the "Ave, TOI" text
+import Greeting from './Greeting'; 
 
 const PulsingIcon = ({ children, isPulsing, pulseColorClass = 'bg-pink-500' }) => (
     <motion.div
@@ -29,7 +29,6 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
     const { isDarkMode, toggleTheme } = useTheme();
 
     const displayUserNameForAvatar = user?.displayName || t('guest_user_default', 'Cher Invité');
-    // MODIFICATION ICI : Utilise default-avatar.jpg pour les invités et comme fallback général
     const avatarUrl = isGuestMode ? '/images/avatars/default-avatar.jpg' : (user?.photoURL || '/images/avatars/default-avatar.jpg');
 
     const phrases = [
@@ -58,7 +57,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
     return (
         <motion.header
             variants={{ hidden: { opacity: 0, y: -20 }, visible: { opacity: 1, y: 0 } }}
-            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-8 md:mt-0" // Add mt-8 for spacing below Navbar
         >
             <div className="flex items-center gap-4">
                 {/* Avatar principal (le grand, cliquable pour changer) */}
@@ -76,7 +75,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                 </div>
                 <div className="flex flex-col">
                     <div className="flex items-center">
-                        {/* ANCIEN PETIT AVATAR (32x32) SUPPRIMÉ ICI */}
+                        {/* ANCIEN PETIT AVATAR (32x32) SUPPRIMÉ ICI - C'ÉTAIT LA SOURCE DU DUPLICA */}
                         {/* <Image
                             src={avatarUrl}
                             alt={displayUserNameForAvatar}
