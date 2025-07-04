@@ -19,19 +19,19 @@ const FADE_UP_VARIANTS = {
 
 export default function HomePage({ onLoginClick, onRegisterClick }) {
   const { t } = useTranslation('common');
-  const { user, loadingAuth, loginAsGuest } = useAuth();
+const { currentUser, loadingAuth, loginAsGuest } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     // Exécuter la redirection uniquement côté client et après l'authentification
     // Cela évite un désalignement d'hydratation en SSR
-    if (!loadingAuth && user) {
+    if (!loadingAuth && currentUser) {
       router.push('/dashboard');
     }
-  }, [user, loadingAuth, router]);
+  }, [currentUser, loadingAuth, router]);
 
   // Affiche un loader si l'authentification est en cours ou si l'utilisateur est déjà connecté (avant redirection)
-  if (loadingAuth || user) {
+  if (loadingAuth || currentUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-color-bg-primary">
         <div className="w-12 h-12 border-4 border-dashed rounded-full animate-spin border-pink-500"></div>
