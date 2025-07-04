@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { ArrowRight, Eye, LayoutDashboard, MessageSquare, Briefcase, FileText, CalendarDays, ClipboardCheck, Lightbulb, TrendingUp, Users, DollarSign, Cloud } from 'lucide-react'; // Added more icons
+import { ArrowRight, Eye, LayoutDashboard, MessageSquare, Briefcase, FileText, CalendarDays, ClipboardCheck, Lightbulb, TrendingUp, Users, DollarSign, Cloud } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // Re-using and slightly adjusting existing variants
@@ -60,6 +60,12 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
     );
   }
 
+  // Handle guest login redirection
+  const handleGuestLogin = () => {
+    loginAsGuest(); // Potentially sets up guest user
+    router.push('/dashboard'); // Redirect to dashboard immediately after initiating guest login
+  };
+
   return (
     <>
       <Head>
@@ -111,8 +117,8 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
             variants={FADE_UP_VARIANTS}
             className="mt-6 text-xl md:text-2xl text-slate-300 max-w-4xl leading-relaxed"
           >
-            {/* New Sub-headline */}
-            Découvrez NocaFLOW, la solution tout-en-un où **l'innovation rencontre la fluidité**. Unifiez projets, tchats, fichiers, factures, **calendrier, notes, meetings, et listes de tâches** dans un seul espace de travail conçu pour un **Flow ininterrompu**. Accélérez votre productivité et transformez la complexité en simplicité.
+            {/* New Sub-headline with bold, white text */}
+            Découvrez NocaFLOW, la solution tout-en-un où <strong className="text-white">l'innovation rencontre la fluidité</strong>. Unifiez <strong className="text-white">projets</strong>, <strong className="text-white">tchats</strong>, <strong className="text-white">fichiers</strong>, <strong className="text-white">factures</strong>, <strong className="text-white">calendrier</strong>, <strong className="text-white">notes</strong>, <strong className="text-white">meetings</strong>, et <strong className="text-white">listes de tâches</strong> dans un seul espace de travail conçu pour un <strong className="text-white">Flow ininterrompu</strong>. Accélérez votre productivité et transformez la complexité en simplicité.
           </motion.p>
 
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -124,7 +130,7 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
             </button>
 
             <button
-              onClick={loginAsGuest}
+              onClick={handleGuestLogin} // Updated to directly call handleGuestLogin
               className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-slate-300 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-800 transition-colors shadow-md"
             >
               <Eye size={20} /> {t('try_as_guest', 'Essayer en mode invité')}
@@ -132,7 +138,7 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
           </div>
 
           <motion.div variants={FADE_UP_VARIANTS} className="mt-8 text-slate-600 text-sm">
-            <p>{t('no_credit_card', 'Pas de carte de crédit requise. Annulez à tout moment.')}</p>
+            <p>{t('no_credit_card', 'Pas de carte de crédit requise. Annulez à tout temps.')}</p>
           </motion.div>
         </div>
       </motion.section>
@@ -156,8 +162,7 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto"
           >
-            {/* New description emphasizing uniqueness */}
-            NocaFLOW n'est pas qu'un outil, c'est une philosophie : celle de la productivité sans friction. Plongez dans un écosystème où chaque module travaille en synergie pour un **Flow optimal**.
+            NocaFLOW n'est pas qu'un outil, c'est une philosophie : celle de la productivité sans friction. Plongez dans un écosystème où chaque module travaille en synergie pour un <strong className="text-white">Flow optimal</strong>.
           </motion.p>
 
           <motion.div
