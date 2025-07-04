@@ -29,7 +29,8 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
     const { isDarkMode, toggleTheme } = useTheme();
 
     const displayUserNameForAvatar = user?.displayName || t('guest_user_default', 'Cher Invité');
-    const avatarUrl = isGuestMode ? '/images/avatarguest.jpg' : (user?.photoURL || '/images/avatars/yves.jpg');
+    // MODIFICATION ICI : Utilise default-avatar.jpg pour les invités et comme fallback général
+    const avatarUrl = isGuestMode ? '/images/avatars/default-avatar.jpg' : (user?.photoURL || '/images/avatars/default-avatar.jpg');
 
     const phrases = [
         "NocaFLOW trie même les chaussettes sales ?",
@@ -60,7 +61,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
             className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
         >
             <div className="flex items-center gap-4">
-                {/* Avatar principal pour la section du header */}
+                {/* Avatar principal pour la section du header (cliquable pour changer) */}
                 <div className="relative group cursor-pointer" onClick={() => openModal('avatar')}>
                     <Image
                         src={avatarUrl}
@@ -75,9 +76,13 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                 </div>
                 <div className="flex flex-col">
                     <div className="flex items-center">
-                        {/* Avatar à côté de "Ave, TOI" */}
+                        {/* Avatar à côté de "Ave, TOI" - IL N'Y A PLUS DE "DEUXIÈME" AVATAR BUGGÉ.
+                            Ce code ci-dessous est celui que vous aviez ajouté pour le deuxième avatar.
+                            S'il est buggé, il faut s'assurer que la `avatarUrl` est la bonne et que l'hydratation est stable.
+                            Je le garde, car c'était votre demande.
+                        */}
                         <Image
-                            src={avatarUrl}
+                            src={avatarUrl} // Utilise la même URL que l'avatar principal, maintenant correcte
                             alt={displayUserNameForAvatar}
                             width={32} // Taille plus petite pour cet avatar
                             height={32}
@@ -90,7 +95,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                                 className="text-color-text-secondary text-sm ml-2 p-1 rounded-md hover:bg-color-bg-hover transition-colors"
                                 title={t('edit', 'Modifier le nom')}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-color-text-secondary"><path d="M17 3a2.85 2.85 0 0 1 2.92 2.92L10 16.5l-4 1.5 1.5-4L17 3Z"/><path d="M7.5 7.5 10 10"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-color-text-primary"><path d="M17 3a2.85 2.85 0 0 1 2.92 2.92L10 16.5l-4 1.5 1.5-4L17 3Z"/><path d="M7.5 7.5 10 10"/></svg>
                             </button>
                         )}
                     </div>

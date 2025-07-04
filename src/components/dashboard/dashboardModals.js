@@ -6,35 +6,22 @@ import { format, parseISO, isToday, isValid, intervalToDuration } from 'date-fns
 import { fr } from 'date-fns/locale';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db, storage } from '../../lib/firebase'; // Ensure this path is correct
+import { db, storage } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext'; 
 
 // Avatars NocaFlow prédéfinis (réutilisés ici)
+// MODIFICATION ICI : Chemins mis à jour pour correspondre à vos fichiers réels
 const nocaflowAvatars = [
-    '/images/avatars/avatar-1.jpg',
-    '/images/avatars/avatar-2.jpg',
-    '/images/avatars/avatar-3.jpg',
-    '/images/avatars/avatar-4.jpg',
-    '/images/avatars/avatar-5.jpg',
-    '/images/avatars/avatar-6.jpg',
-    '/images/avatars/avatar-7.jpg',
-    '/images/avatars/avatar-8.jpg',
-    '/images/avatars/avatar-9.jpg',
-    '/images/avatars/yves.jpg', 
+    '/images/avatars/avatarguest.jpg', // Vous avez avatarguest.jpg
+    '/images/avatars/chloe.jpg',
+    '/images/avatars/david.jpg',
+    '/images/avatars/default-avatar.jpg', // Vous avez default-avatar.png
+    '/images/avatars/elena.jpg',
+    '/images/avatars/leo.jpg',
+    '/images/avatars/marcus.jpg',
+    '/images/avatars/sophia.jpg',
+    '/images/avatars/yves.jpg', // Vous avez yves.jpg
 ];
-
-// --- Couleurs pour le Gantt Chart ---
-const GanttColors = [
-    { name: 'Pink', class: 'bg-pink-500', value: 'pink' },
-    { name: 'Red', class: 'bg-red-500', value: 'red' },
-    { name: 'Violet', class: 'bg-violet-500', value: 'violet' },
-    { name: 'Blue', class: 'bg-blue-500', value: 'blue' },
-    { name: 'Cyan', class: 'bg-cyan-500', value: 'cyan' },
-    { name: 'Green', class: 'bg-green-500', value: 'green' },
-    { name: 'Amber', class: 'bg-amber-500', value: 'amber' },
-    { name: 'Gray', class: 'bg-gray-500', value: 'gray' },
-];
-
 
 // --- Conteneur de Modale Standardisé ---
 const ModalWrapper = ({ children, onClose, size = 'max-w-md' }) => (
@@ -55,7 +42,6 @@ const ModalWrapper = ({ children, onClose, size = 'max-w-md' }) => (
       onClick={e => e.stopPropagation()}
     >
       <button onClick={onClose} className="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10">
-        {/* X Icon SVG */}
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
       {children}
@@ -137,7 +123,7 @@ const DayDetailsModal = ({ data, onAddTask, onClose, t }) => {
             <p className="text-slate-400 text-center mb-6">{t('day_events_summary', 'Voici les événements prévus pour ce jour.')}</p>
 
             <div className="space-y-3 mb-6 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                {Array.isArray(events) && events.length > 0 ? events.map(event => { // Added Array.isArray(events)
+                {Array.isArray(events) && events.length > 0 ? events.map(event => {
                     const type = getEventType(event);
                     return (
                         <div key={event.id} className="bg-slate-800/50 p-3 rounded-lg flex items-center gap-3">
@@ -160,7 +146,6 @@ const DayDetailsModal = ({ data, onAddTask, onClose, t }) => {
                 whileTap={{ scale: 0.98 }}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white font-bold py-2.5 rounded-lg hover:from-pink-600 hover:to-violet-600 transition-all shadow-lg main-action-button"
             >
-                {/* PlusCircle Icon SVG */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
                 {t('add_event_for_day', 'Ajouter un événement pour ce jour')}
             </motion.button>
@@ -342,8 +327,9 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
     useEffect(() => {
     if (isGuestMode && typeof window !== 'undefined') {
         const guestData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
-        if (guestData.avatar) {
-            setPreviewUrl(guestData.avatar);
+        // MODIFICATION ICI: guestData.user?.photoURL pour récupérer l'avatar du guest
+        if (guestData.user?.photoURL) {
+            setPreviewUrl(guestData.user.photoURL);
         }
     } else if (user?.photoURL) {
         setPreviewUrl(user.photoURL);
@@ -380,6 +366,7 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
     setError('');
     try {
         if (isGuestMode) {
+            // MODIFICATION ICI: Passe l'URL de l'avatar et met à jour l'objet user du guest
             onUpdateGuestAvatar(url);
         } else {
             const userDocRef = doc(db, 'users', user.uid);
@@ -445,7 +432,6 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
     >
         <div className="glass-card p-8 rounded-2xl max-w-xl w-full relative overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10">
-            {/* X Icon SVG */}
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
         <h2 className="text-2xl font-bold text-white mb-6 text-center">
@@ -459,7 +445,6 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
                     className={`px-4 py-2 rounded-l-lg text-sm font-semibold transition-colors ${activeTab === 'upload' ? 'bg-pink-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                     onClick={() => setActiveTab('upload')}
                 >
-                    {/* UploadCloud Icon SVG */}
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
                     {t('upload_tab', 'Télécharger')}
                 </button>
@@ -467,7 +452,6 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
                     className={`px-4 py-2 rounded-r-lg text-sm font-semibold transition-colors ${activeTab === 'choose' ? 'bg-pink-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                     onClick={() => setActiveTab('choose')}
                 >
-                    {/* Image Icon SVG */}
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                     {t('choose_tab', 'Choisir')}
                 </button>
@@ -525,7 +509,6 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
             </div>
         ) : (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
-            {/* CheckCircle Icon SVG */}
             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <p className="text-xl font-semibold text-white">{t('avatar_updated_success', 'Avatar mis à jour !')}</p>
             </motion.div>
@@ -555,7 +538,6 @@ const MeetingSchedulerModal = ({ onSchedule, isGuest, onClose, t }) => {
     return (
         <ModalWrapper onClose={onClose}>
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                {/* Video Icon SVG */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><path d="M14 12H2V4h12v8Z"/></svg>
                 {t('schedule_meeting_title', 'Planifier une réunion')}
             </h2>
@@ -566,7 +548,6 @@ const MeetingSchedulerModal = ({ onSchedule, isGuest, onClose, t }) => {
                     <input type="time" value={time} onChange={e=>setTime(e.target.value)} className="form-input"/>
                 </div>
                 {isGuest && <p className="text-xs text-amber-400 text-center flex items-center gap-2">
-                    {/* Info Icon SVG */}
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                     {t('guest_feature_restricted', 'Fonctionnalité réservée aux membres inscrits.')}</p>}
                 <motion.button 
@@ -666,7 +647,6 @@ const ProjectFormModal = ({ initialData = {}, onSave, onDelete, onClose, isGuest
                         whileTap={{ scale: 0.98 }}
                         className="w-full bg-red-600 hover:bg-red-700 text-white mt-2 main-button-secondary"
                     >
-                        {/* Trash2 Icon SVG */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         {t('delete_project_button', 'Supprimer le Projet')}
                     </motion.button>
@@ -703,7 +683,6 @@ const InvoiceFormModal = ({ isGuest, client = null, onAdd, onClose, t }) => {
     return (
         <ModalWrapper onClose={onClose}>
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                {/* DollarSign Icon SVG */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 {t('create_invoice_title', 'Créer une nouvelle facture')}
             </h2>
@@ -712,7 +691,6 @@ const InvoiceFormModal = ({ isGuest, client = null, onAdd, onClose, t }) => {
                 <input type="text" value={invoiceClient} onChange={e => setInvoiceClient(e.target.value)} placeholder={t('invoice_client_placeholder', 'Nom du client...')} className="form-input" required />
                 <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder={t('invoice_amount_placeholder', 'Montant (€)...')} className="form-input" step="0.01" required />
                 {isGuest && <p className="text-xs text-amber-400 text-center flex items-center gap-2">
-                    {/* Info Icon SVG */}
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                     {t('guest_feature_restricted', 'Fonctionnalité réservée aux membres inscrits.')}</p>}
                 <motion.button 
@@ -733,12 +711,11 @@ const InvoiceListModal = ({ invoices = [], onClose, t }) => {
     return (
         <ModalWrapper onClose={onClose} size="max-w-xl">
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                {/* FileText Icon SVG */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
                 {t('all_invoices_title', 'Toutes les factures')}
             </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar p-2">
-                {Array.isArray(invoices) && invoices.length > 0 ? ( // Added Array.isArray(invoices)
+                {Array.isArray(invoices) && invoices.length > 0 ? (
                     invoices.map(invoice => (
                         <div key={invoice.id} className="futuristic-card flex items-center justify-between p-3 rounded-lg">
                             <div>
@@ -776,7 +753,8 @@ const TeamMemberModal = ({ mode, member, onSave, onDelete, onClose, t }) => {
     const [name, setName] = useState(member?.name || '');
     const [role, setRole] = useState(member?.role || '');
     const [email, setEmail] = useState(member?.email || '');
-    const [avatar, setAvatar] = useState(member?.avatar || '/images/default-avatar.png'); 
+    // MODIFICATION ICI: Utilise default-avatar.png comme fallback
+    const [avatar, setAvatar] = useState(member?.avatar || '/images/avatars/default-avatar.jpg'); 
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -804,10 +782,8 @@ const TeamMemberModal = ({ mode, member, onSave, onDelete, onClose, t }) => {
         <ModalWrapper onClose={onClose}>
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
                 {mode === 'add' ? (
-                    // PlusCircle Icon SVG
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
                 ) : (
-                    // Edit Icon SVG
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 0 1 2.92 2.92L10 16.5l-4 1.5 1.5-4L17 3Z"/><path d="M7.5 7.5 10 10"/></svg>
                 )} 
                 {mode === 'add' ? t('add_member_title', 'Ajouter un membre') : t('edit_member_title', 'Modifier le membre')}
@@ -836,7 +812,6 @@ const TeamMemberModal = ({ mode, member, onSave, onDelete, onClose, t }) => {
                         whileTap={{ scale: 0.98 }}
                         className="w-full bg-red-600 hover:bg-red-700 text-white mt-2 main-button-secondary"
                     >
-                        {/* Trash2 Icon SVG */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         {t('delete_member_button', 'Supprimer le membre')}
                     </motion.button>
@@ -852,13 +827,18 @@ const QuickChatModal = ({ member, onClose, t }) => {
     const [chatHistory, setChatHistory] = useState([]); 
 
     useEffect(() => {
+        // MODIFICATION ICI: Assure que l'historique de chat est initialisé une seule fois
         if (chatHistory.length === 0) {
             setChatHistory([
                 { sender: member?.name || 'Partenaire', text: t('chat_intro_message', 'Salut ! Comment vas-tu ?'), timestamp: '14:00' },
                 { sender: 'Vous', text: t('chat_my_reply', 'Salut ! Ça va bien et toi ?'), timestamp: '14:01' },
             ]);
         }
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        // MODIFICATION ICI: S'assurer que le scrollIntoView est appelé après le rendu
+        const timer = setTimeout(() => {
+            chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100); // Petit délai pour le rendu
+        return () => clearTimeout(timer);
     }, [chatHistory, member?.name, t]); 
 
     const chatEndRef = useRef(null); 
@@ -885,7 +865,6 @@ const QuickChatModal = ({ member, onClose, t }) => {
     return (
         <ModalWrapper onClose={onClose} size="max-w-lg">
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                {/* Users Icon SVG */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 {t('chat_with', 'Chat avec')} {member?.name || 'Inconnu'} 
             </h2>
@@ -894,7 +873,8 @@ const QuickChatModal = ({ member, onClose, t }) => {
                     {chatHistory.map((msg, index) => (
                         <div key={index} className={`flex gap-3 ${msg.sender === 'Vous' ? 'justify-end' : 'justify-start'}`}>
                             {msg.sender !== 'Vous' && (
-                                <Image src={member?.avatar || '/images/default-avatar.png'} alt={member?.name || 'Partenaire'} width={32} height={32} className="rounded-full object-cover flex-shrink-0" />
+                                // MODIFICATION ICI: Utilise default-avatar.png comme fallback pour le membre
+                                <Image src={member?.avatar || '/images/avatars/default-avatar.jpg'} alt={member?.name || 'Partenaire'} width={32} height={32} className="rounded-full object-cover flex-shrink-0" />
                             )}
                             <div className={`p-3 rounded-lg max-w-[80%] ${msg.sender === 'Vous' ? 'bg-violet-600 text-white rounded-br-none' : 'bg-slate-700 text-slate-200 rounded-bl-none'}`}>
                                 <div className="flex justify-between items-center mb-1">
@@ -904,7 +884,8 @@ const QuickChatModal = ({ member, onClose, t }) => {
                                 <p className="text-sm break-words">{msg.text}</p>
                             </div>
                             {msg.sender === 'Vous' && (
-                                <Image src="/images/avatars/yves.jpg" alt="Vous" width={32} height={32} className="rounded-full object-cover flex-shrink-0" />
+                                // MODIFICATION ICI: Utilise default-avatar.png pour l'utilisateur
+                                <Image src="/images/avatars/default-avatar.jpg" alt="Vous" width={32} height={32} className="rounded-full object-cover flex-shrink-0" />
                             )}
                         </div>
                     ))}
@@ -919,7 +900,6 @@ const QuickChatModal = ({ member, onClose, t }) => {
                         whileTap={{ scale: 0.95 }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-pink-500 hover:bg-pink-600 text-white shadow-lg main-action-button"
                     >
-                        {/* Send Icon SVG */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg>
                     </motion.button>
                 </form>
@@ -965,7 +945,6 @@ const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = 
     return (
         <ModalWrapper onClose={onClose} size="max-w-md">
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                {/* Briefcase Icon SVG */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                 {t('assign_to', 'Assigner à')} {member?.name || currentUserName || 'cet utilisateur'} 
             </h2>
@@ -974,17 +953,14 @@ const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = 
                     <label className="block text-slate-300 text-sm mb-2 font-medium">{t('assignment_type', 'Type d\'attribution')}</label>
                     <div className="flex space-x-2 bg-slate-800/50 border border-slate-700 rounded-lg p-1.5">
                         <button type="button" onClick={() => setAssignmentType('task')} className={`flex-1 p-2 rounded-md transition-all flex items-center justify-center gap-2 text-sm font-semibold ${assignmentType === 'task' ? 'bg-pink-500 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-700'}`}>
-                            {/* CheckCircle Icon SVG */}
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11L12 14L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                             {t('task', 'Tâche')}
                         </button>
                         <button type="button" onClick={() => setAssignmentType('project')} className={`flex-1 p-2 rounded-md transition-all flex items-center justify-center gap-2 text-sm font-semibold ${assignmentType === 'project' ? 'bg-pink-500 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-700'}`}>
-                            {/* Briefcase Icon SVG */}
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                             {t('project', 'Projet')}
                         </button>
                         <button type="button" onClick={() => setAssignmentType('deadline')} className={`flex-1 p-2 rounded-md transition-all flex items-center justify-center gap-2 text-sm font-semibold ${assignmentType === 'deadline' ? 'bg-pink-500 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-700'}`}>
-                            {/* CalendarDays Icon SVG */}
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                             {t('deadline', 'Deadline')}
                         </button>
@@ -1003,14 +979,13 @@ const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = 
                         required
                     >
                         <option value={currentUserName}>{currentUserName} ({t('me', 'Moi')})</option>
-                        {(Array.isArray(assignableStaff) ? assignableStaff : []).map(member => ( // Added Array.isArray here for safety
+                        {(Array.isArray(assignableStaff) ? assignableStaff : []).map(member => (
                             <option key={member.firebaseUid} value={member.name}>
                                 {member.name}
                             </option>
                         ))}
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                        {/* ChevronDown SVG */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                     </div>
                 </div>
@@ -1074,7 +1049,6 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
     return (
         <ModalWrapper onClose={onClose} size="max-w-md">
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                {/* GanttChart Icon SVG */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 11h10"/><path d="M7 15h10"/></svg>
                 {t('gantt_form_title', 'Ajouter/Modifier une tâche Planning')}
             </h2>
@@ -1092,10 +1066,6 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
                             <option value="">{t('select_person_placeholder', 'Sélectionner une personne...')}</option>
                             {(Array.isArray(availablePeople) ? availablePeople : []).map(p => <option key={p} value={p}>{p}</option>)} 
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                            {/* ChevronDown SVG */}
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                        </div>
                         <button type="button" onClick={() => setIsNewPerson(true)} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-xs text-pink-400 hover:underline">
                             {t('add_new', 'Nouvelle ?')}
                         </button>
@@ -1164,7 +1134,6 @@ const GoogleDriveLinkModal = ({ projectId, onSave, onClose, t }) => {
     return (
         <ModalWrapper onClose={onClose} size="max-w-sm">
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                {/* Google Drive Icon SVG (placeholder, replace with actual if needed) */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1L3 6v12l9 5 9-5V6l-9-5z"/><path d="M3 6l9 5 9-5"/><path d="M12 1l9 5"/><path d="M12 1v22"/><path d="M3 6v12"/><path d="M21 6v12"/></svg>
                 {t('add_drive_link_title', 'Ajouter un dossier Google Drive')}
             </h2>
@@ -1220,7 +1189,6 @@ const AddDeadlineModal = ({ onSave, onClose, t }) => {
     return (
         <ModalWrapper onClose={onClose} size="max-w-md">
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                {/* CalendarDays Icon SVG */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                 {t('add_deadline', 'Ajouter une deadline')}
             </h2>
@@ -1333,7 +1301,6 @@ const AddMeetingModal = ({ onSave, onClose, t }) => {
     return (
         <ModalWrapper onClose={onClose} size="max-w-md">
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                {/* Video Icon SVG */}
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><path d="M14 12H2V4h12v8Z"/></svg>
                 {t('add_meeting', 'Ajouter une réunion')}
             </h2>
@@ -1393,7 +1360,6 @@ const AddMeetingModal = ({ onSave, onClose, t }) => {
                         rel="noopener noreferrer" 
                         className="mt-2 w-full flex items-center justify-center gap-2 main-button-secondary"
                     >
-                        {/* Google Meet Icon (simplified) */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         {t('open_google_meet_button', 'Ouvrir Google Meet (Simulation)')}
                     </a>
@@ -1436,10 +1402,8 @@ export const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) 
         <ModalWrapper onClose={onClose}>
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
                 {mode === 'add' ? (
-                    // UserPlus Icon SVG
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
                 ) : (
-                    // Edit Icon SVG
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 0 1 2.92 2.92L10 16.5l-4 1.5 1.5-4L17 3Z"/><path d="M7.5 7.5 10 10"/></svg>
                 )}
                 {mode === 'add' ? t('add_client_title', 'Ajouter un client') : t('edit_client_title', 'Modifier le client')}
@@ -1469,7 +1433,6 @@ export const ClientFormModal = ({ mode, client, onSave, onDelete, onClose, t }) 
                         whileTap={{ scale: 0.98 }}
                         className="w-full bg-red-600 hover:bg-red-700 text-white mt-2 main-button-secondary"
                     >
-                        {/* Trash2 Icon SVG */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         {t('delete_client_button', 'Supprimer le client')}
                     </motion.button>
