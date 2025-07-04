@@ -1,32 +1,35 @@
 // pages/privacy.js
 import React from 'react';
 import Head from 'next/head';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'; // Still needed if other parts of the app use it
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function PrivacyPage() {
+  // If you are completely removing all translations from this page,
+  // you might consider removing useTranslation, but for now, keep it
+  // as it's typically used throughout the app.
   const { t } = useTranslation('common');
 
   return (
     <>
       <Head>
-        <title>{t('privacy', 'Privacy Policy')}</title>
+        <title>Politique de Confidentialité</title> {/* Hardcoded */}
       </Head>
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-color-bg-primary text-color-text-primary">
-        <div className="max-w-prose glass-card p-8 rounded-2xl shadow-lg"> {/* Appliquer glass-card */}
-          <h1 className="text-3xl font-bold mb-4 text-color-text-primary">{t('privacy', 'Privacy Policy')}</h1>
+        <div className="max-w-prose glass-card p-8 rounded-2xl shadow-lg">
+          <h1 className="text-3xl font-bold mb-4 text-color-text-primary">Politique de Confidentialité</h1> {/* Hardcoded */}
           <p className="mb-4 text-color-text-secondary">
-            {t('privacy_policy_intro', 'This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.')}
+            Cette Politique de Confidentialité décrit Nos politiques et procédures sur la collecte, l'utilisation et la divulgation de Vos informations lorsque Vous utilisez le Service et Vous informe de Vos droits en matière de confidentialité et de la manière dont la loi Vous protège. {/* Hardcoded */}
           </p>
-          <h2 className="text-2xl font-semibold mb-3 text-color-text-primary">{t('privacy_policy_data_collection', 'Collecting and Using Your Personal Data')}</h2>
-          <h3 className="text-xl font-semibold mb-2 text-color-text-primary">{t('privacy_policy_types_of_data', 'Types of Data Collected')}</h3>
+          <h2 className="text-2xl font-semibold mb-3 text-color-text-primary">Collecte et Utilisation de Vos Données Personnelles</h2> {/* Hardcoded */}
+          <h3 className="text-xl font-semibold mb-2 text-color-text-primary">Types de Données Collectées</h3> {/* Hardcoded */}
           <p className="mb-2 text-color-text-secondary">
-            {t('privacy_policy_personal_data', 'While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to: Email address, First name and last name, Phone number, Usage Data.')}
+            Lors de l'utilisation de Notre Service, Nous pouvons Vous demander de Nous fournir certaines informations personnellement identifiables qui peuvent être utilisées pour Vous contacter ou Vous identifier. Les informations personnellement identifiables peuvent inclure, sans s'y limiter : l'adresse e-mail, le prénom et le nom, le numéro de téléphone, les données d'utilisation. {/* Hardcoded */}
           </p>
           <p className="mt-4 text-color-text-secondary">
-            {t('privacy_policy_contact_us', 'If you have any questions about this Privacy Policy, You can contact us:')}
-            <ul className="list-disc list-inside mt-2 ml-4"> {/* Ajout de styles de liste */}
-              <li>{t('privacy_policy_contact_email', 'By email: privacy@nocaflow.com')}</li>
+            Si vous avez des questions sur cette Politique de Confidentialité, Vous pouvez nous contacter : {/* Hardcoded */}
+            <ul className="list-disc list-inside mt-2 ml-4">
+              <li>Par e-mail : privacy@nocaflow.com</li> {/* Hardcoded */}
             </ul>
           </p>
         </div>

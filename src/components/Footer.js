@@ -9,7 +9,8 @@ const Footer = () => {
     <footer className="bg-color-bg-secondary border-t border-color-border-primary py-10 px-4 mt-auto">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-color-text-secondary text-sm space-y-6 md:space-y-0">
         <div className="text-center md:text-left">
-          <p>{t('footer_copyright') || '© 2025 NocaFLOW. Tous droits réservés.'}</p>
+          {/* Removed t('footer_copyright') to address hydration issue */}
+          <p>© 2025 NocaFLOW. Le travail, unifié.</p>
         </div>
         <div className="flex items-center space-x-6">
           <Link href="/privacy" className="hover:text-color-text-primary transition-colors">

@@ -41,7 +41,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     const isGuestMode = !user || user.uid === 'guest_noca_flow';
     // Le nom initial de l'invité sera toujours une chaîne, pour SSR safety
-    const initialGuestNameSSR = t('guest_user_default', 'Visiteur Curieux');
+    // MODIFICATION: Hardcoding initialGuestNameSSR to avoid hydration issues
+    const initialGuestNameSSR = 'Visiteur Curieux'; // Removed t() call
     const userUid = user?.uid;
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
@@ -230,18 +231,22 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     // Calcul des statistiques, assurez-vous qu'il est SSR-safe
     const stats = useMemo(() => {
-        // Ces calculs ne doivent pas utiliser `new Date()` directement dans useMemo sans une gestion stricte
-        // pour que la "date d'aujourd'hui" soit la même en SSR et CSR.
-        // Pour les mockData, c'est généralement moins problématique car les dates sont fixes.
-        // Si vous utilisez des dates réelles, il faut les passer comme prop ou les calculer dans useEffect.
-        const now = new Date(); // Déplacez ceci si vous rencontrez des problèmes d'hydratation spécifiques ici
+        // IMPORTANT: Ensure 'data' object is stable and accessible.
+        // It's safer to depend on the whole 'data' object and access properties inside.
+        // Also, `now` should be consistently generated or passed.
+        const now = new Date(); 
+
+        // Add defensive checks for 'data' object's existence before accessing properties
+        const messages = data?.messages || [];
+        const tasks = data?.tasks || [];
+        const meetings = data?.meetings || [];
 
         return {
-            messages: (data.messages || []).length, // Ne pas filtrer si messages n'ont pas de readBy en mock
-            tasks: (data.tasks || []).filter(task => !task.completed).length,
-            meetings: (data.meetings || []).filter(m => new Date(m.dateTime) > now).length, // Compare avec 'now'
+            messages: messages.length,
+            tasks: tasks.filter(task => !task.completed).length,
+            meetings: meetings.filter(m => new Date(m.dateTime) > now).length,
         };
-    }, [data.messages, data.tasks, data.meetings]);
+    }, [data]); // Changed dependency to 'data'
 
     const handleOpenAddTaskFromChat = useCallback((chatData) => {
         openModal('assignTaskProjectDeadline', {
