@@ -1,6 +1,7 @@
 // src/lib/mockData.js
 
 // Fonction utilitaire pour générer des dates réalistes (pour les démos)
+// Retourne une chaîne de caractères ISO pour éviter les problèmes d'hydratation avec les objets Date
 const getDate = (daysAhead = 0, hoursAhead = 0) => {
   const date = new Date();
   date.setDate(date.getDate() + daysAhead);
@@ -8,15 +9,14 @@ const getDate = (daysAhead = 0, hoursAhead = 0) => {
   date.setMinutes(Math.floor(date.getMinutes() / 5) * 5); // Arrondi à la 5min près
   date.setSeconds(0);
   date.setMilliseconds(0);
-  return date.toISOString();
+  return date.toISOString(); // Retourne la date au format ISO string
 };
 
 export const initialMockData = {
     user: {
         uid: 'guest_noca_flow',
         displayName: 'Visiteur Curieux',
-        // Assurez-vous que cette image existe et que son nom est propre (pas de caractères spéciaux)
-        photoURL: '/images/avatars/yves.jpg', // Par exemple, si 'yves.jpg' est valide et existe.
+        photoURL: '/images/avatars/avatarguest.jpg', // Utilise avatarguest.jpg qui est présent
     },
     tasks: [
         { id: '1', title: 'Préparer la démo NocaFLOW pour le client Alpha', completed: false, priority: 'urgent', deadline: getDate(2, 10), assignedTo: 'Alice Dubois', ownerUid: 'guest_noca_flow' },
@@ -46,7 +46,8 @@ export const initialMockData = {
             client: 'Interne',
             progress: 85,
             deadline: getDate(3, 17),
-            staff: ['/images/avatars/avatar-1.jpg', '/images/avatars/avatar-2.jpg', '/images/avatars/yves.jpg', '/images/avatars/avatar-5.jpg'],
+            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
+            staff: ['/images/avatars/chloe.jpg', '/images/avatars/david.jpg', '/images/avatars/yves.jpg', '/images/avatars/elena.jpg'],
             paidAmount: '25 000 €',
             nextPayment: '5 000 € (01/07)',
             totalAmount: '30 000 €',
@@ -60,7 +61,7 @@ export const initialMockData = {
             client: 'CyberGuard Inc.',
             progress: 20,
             deadline: getDate(1, 4),
-            staff: ['/images/avatars/avatar-8.jpg'],
+            staff: ['/images/avatars/marcus.jpg'], // Utilise marcus.jpg
             paidAmount: '0 €',
             nextPayment: 'N/A',
             totalAmount: '10 000 €',
@@ -74,7 +75,8 @@ export const initialMockData = {
             client: 'Tech Solutions Inc.',
             progress: 40,
             deadline: getDate(25, 18),
-            staff: ['/images/avatars/avatar-3.jpg', '/images/avatars/avatar-4.jpg', '/images/avatars/avatar-6.jpg'],
+            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
+            staff: ['/images/avatars/sophia.jpg', '/images/avatars/leo.jpg', '/images/avatars/elena.jpg'],
             paidAmount: '15 000 €',
             nextPayment: '10 000 € (15/07)',
             totalAmount: '40 000 €',
@@ -88,7 +90,8 @@ export const initialMockData = {
             client: 'Summer Wear Co.',
             progress: 98,
             deadline: getDate(-2, 17),
-            staff: ['/images/avatars/avatar-5.jpg', '/images/avatars/avatar-7.jpg', '/images/avatars/avatar-9.jpg'],
+            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
+            staff: ['/images/avatars/elena.jpg', '/images/avatars/marcus.jpg', '/images/avatars/chloe.jpg'],
             paidAmount: '12 000 €',
             nextPayment: '0 € (Terminé)',
             totalAmount: '12 000 €',
@@ -102,7 +105,8 @@ export const initialMockData = {
             client: 'Global CyberSafe',
             progress: 10,
             deadline: getDate(40, 10),
-            staff: ['/images/avatars/avatar-8.jpg', '/images/avatars/avatar-10.jpg'],
+            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
+            staff: ['/images/avatars/marcus.jpg', '/images/avatars/david.jpg'],
             paidAmount: '0 €',
             nextPayment: '7 500 € (À l\'acceptation)',
             totalAmount: '15 000 €',
@@ -116,7 +120,8 @@ export const initialMockData = {
             client: 'Gourmet Guides',
             progress: 60,
             deadline: getDate(15, 12),
-            staff: ['/images/avatars/avatar-11.jpg', '/images/avatars/avatar-12.jpg'],
+            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
+            staff: ['/images/avatars/chloe.jpg', '/images/avatars/sophia.jpg'],
             paidAmount: '2 000 €',
             nextPayment: '2 000 € (Fin de mois)',
             totalAmount: '5 000 €',
@@ -135,23 +140,22 @@ export const initialMockData = {
         { id: 'inv7', title: 'Facture Maintenance Annuelle', client: 'Old Client Corp.', amount: '1 200.00 €', date: '10/07/2025', status: 'Pending' },
     ],
     messages: [
-        { id: 'msg1', sender: 'Alice Dubois', avatar: '/images/avatars/avatar-1.jpg', text: 'Salut l\'équipe ! Des nouvelles sur la refonte du site NocaFLOW ?', timestamp: '10:00', unread: false },
-        { id: 'msg2', sender: 'Visiteur Curieux', avatar: '/images/avatars/yves.jpg', text: 'Oui, on a terminé la phase de conception UX hier soir. Prêt pour la revue !', timestamp: '10:05', unread: false, recipient: 'Alice Dubois' },
-        { id: 'msg3', sender: 'Alice Dubois', avatar: '/images/avatars/avatar-1.jpg', text: 'Super nouvelle ! On se voit à 11h pour discuter des prochaines étapes. N\'oublie pas les maquettes 😉', timestamp: '10:15', unread: true },
-        { id: 'msg4', sender: 'Bob Martin', avatar: '/images/avatars/avatar-3.jpg', text: 'Besoin d’aide sur le rapport de performance. Tu es dispo ?', timestamp: 'Hier 14:30', unread: false },
-        { id: 'msg5', sender: 'Visiteur Curieux', avatar: '/images/avatars/yves.jpg', text: 'Je suis un peu pris, mais je peux regarder ça en fin de journée.', timestamp: 'Hier 14:45', unread: false, recipient: 'Bob Martin' },
-        { id: 'msg6', sender: 'Bob Martin', avatar: '/images/avatars/avatar-3.jpg', text: 'Pas de problème, merci !', timestamp: 'Hier 14:50', unread: false },
-        { id: 'msg7', sender: 'Charlie Dupont', avatar: '/images/avatars/avatar-2.jpg', text: 'Le rapport annuel est prêt pour relecture.', timestamp: 'Lun. 09:00', unread: false },
-        { id: 'msg8', sender: 'Visiteur Curieux', avatar: '/images/avatars/yves.jpg', text: 'Parfait, je vais le relire dans la matinée.', timestamp: 'Lun. 09:10', unread: false, recipient: 'Charlie Dupont' },
-        { id: 'msg9', sender: 'Diana Prince', avatar: '/images/avatars/avatar-4.jpg', text: 'Peux-tu m’envoyer les dernières versions des maquettes finales s’il te plaît ?', timestamp: 'Aujourd’hui 09:30', unread: true },
-        { id: 'msg10', sender: 'Ethan Hunt', avatar: '/images/avatars/avatar-5.jpg', text: 'N’oublie pas les statistiques de la semaine dernière pour le meeting de 15h ! 📈', timestamp: 'Aujourd’hui 10:01', unread: true },
-        { id: 'msg11', sender: 'Carla Lopez', avatar: '/images/avatars/avatar-6.jpg', text: 'J\'ai quelques idées géniales pour l\'UI de la nouvelle app, hâte de vous montrer !', timestamp: 'Aujourd’hui 11:00', unread: false },
-        { id: 'msg12', sender: 'Visiteur Curieux', avatar: '/images/avatars/yves.jpg', text: 'Super ! Envoie ça quand tu peux. 👍', timestamp: 'Aujourd’hui 11:05', unread: false, recipient: 'Carla Lopez' },
-        { id: 'msg13', sender: 'David Chen', avatar: '/images/avatars/avatar-7.jpg', text: 'Voici les premières ébauches de la campagne "Été Éclatant". Qu\'en penses-tu ?', timestamp: 'Aujourd’hui 12:00', unread: true, type: 'image', fileURL: 'https://picsum.photos/id/237/200/300' },
-        { id: 'msg14', sender: 'Visiteur Curieux', avatar: '/images/avatars/yves.jpg', text: 'Wow, ça a l\'air génial ! J\'adore le concept. 🎉', timestamp: 'Aujourd’hui 12:05', unread: false, recipient: 'David Chen' },
+        // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
+        { id: 'msg1', sender: 'Alice Dubois', avatar: '/images/avatars/chloe.jpg', text: 'Salut l\'équipe ! Des nouvelles sur la refonte du site NocaFLOW ?', timestamp: '10:00', unread: false },
+        { id: 'msg2', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Oui, on a terminé la phase de conception UX hier soir. Prêt pour la revue !', timestamp: '10:05', unread: false, recipient: 'Alice Dubois' },
+        { id: 'msg3', sender: 'Alice Dubois', avatar: '/images/avatars/chloe.jpg', text: 'Super nouvelle ! On se voit à 11h pour discuter des prochaines étapes. N\'oublie pas les maquettes 😉', timestamp: '10:15', unread: true },
+        { id: 'msg4', sender: 'Bob Martin', avatar: '/images/avatars/david.jpg', text: 'Besoin d’aide sur le rapport de performance. Tu es dispo ?', timestamp: 'Hier 14:30', unread: false },
+        { id: 'msg5', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Je suis un peu pris, mais je peux regarder ça en fin de journée.', timestamp: 'Hier 14:45', unread: false, recipient: 'Bob Martin' },
+        { id: 'msg6', sender: 'Bob Martin', avatar: '/images/avatars/david.jpg', text: 'Pas de problème, merci !', timestamp: 'Hier 14:50', unread: false },
+        { id: 'msg7', sender: 'Charlie Dupont', avatar: '/images/avatars/elena.jpg', text: 'Le rapport annuel est prêt pour relecture.', timestamp: 'Lun. 09:00', unread: false },
+        { id: 'msg8', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Parfait, je vais le relire dans la matinée.', timestamp: 'Lun. 09:10', unread: false, recipient: 'Charlie Dupont' },
+        { id: 'msg9', sender: 'Diana Prince', avatar: '/images/avatars/leo.jpg', text: 'Peux-tu m’envoyer les dernières versions des maquettes finales s’il te plaît ?', timestamp: 'Aujourd’hui 09:30', unread: true },
+        { id: 'msg10', sender: 'Ethan Hunt', avatar: '/images/avatars/marcus.jpg', text: 'N’oublie pas les statistiques de la semaine dernière pour le meeting de 15h ! 📈', timestamp: 'Aujourd’hui 10:01', unread: true },
+        { id: 'msg11', sender: 'Carla Lopez', avatar: '/images/avatars/sophia.jpg', text: 'J\'ai quelques idées géniales pour l\'UI de la nouvelle app, hâte de vous montrer !', timestamp: 'Aujourd’hui 11:00', unread: false },
+        { id: 'msg12', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Super ! Envoie ça quand tu peux. 👍', timestamp: 'Aujourd’hui 11:05', unread: false, recipient: 'Carla Lopez' },
+        { id: 'msg13', sender: 'David Chen', avatar: '/images/avatars/david.jpg', text: 'Voici les premières ébauches de la campagne "Été Éclatant". Qu\'en penses-tu ?', timestamp: 'Aujourd’hui 12:00', unread: true, type: 'image', fileURL: 'https://picsum.photos/id/237/200/300' },
+        { id: 'msg14', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Wow, ça a l\'air génial ! J\'adore le concept. 🎉', timestamp: 'Aujourd’hui 12:05', unread: false, recipient: 'David Chen' },
     ],
-    // Renommé planningTasks en ganttTasks pour être cohérent avec le dashboard.js
-    // Mettez à jour vos données réelles pour correspondre à ces chemins si nécessaire.
     planningTasks: [
         { id: 'pt1', person: 'Alice Dubois', title: 'Préparer la démo UX', startDate: getDate(0).split('T')[0], endDate: getDate(5).split('T')[0], completed: false, priority: 'normal', color: 'pink' },
         { id: 'pt2', person: 'Bob Martin', title: 'Développement Backend V1', startDate: getDate(3).split('T')[0], endDate: getDate(10).split('T')[0], completed: false, priority: 'urgent', color: 'red' },
@@ -165,15 +169,17 @@ export const initialMockData = {
         { id: 'pt10', person: 'Diana Prince', title: 'Stratégie de Contenu Q3', startDate: getDate(5).split('T')[0], endDate: getDate(9).split('T')[0], completed: false, priority: 'cold', color: 'teal' },
     ],
     staffMembers: [
-        { id: 's1', name: 'Alice Dubois', role: 'Chef de Projet Senior', email: 'alice.d@example.com', avatar: '/images/avatars/avatar-1.jpg' },
-        { id: 's2', name: 'Bob Martin', role: 'Développeur Fullstack', email: 'bob.m@example.com', avatar: '/images/avatars/avatar-3.jpg' },
-        { id: 's3', name: 'Carla Lopez', role: 'Designer UX/UI', email: 'carla.l@example.com', avatar: '/images/avatars/avatar-5.jpg' },
-        { id: 's4', name: 'David Chen', role: 'Spécialiste Marketing Digital', email: 'david.c@example.com', avatar: '/images/avatars/avatar-7.jpg' },
-        { id: 's5', name: 'Ethan Hunt', role: 'Analyste Données', email: 'ethan.h@example.com', avatar: '/images/avatars/avatar-9.jpg' },
-        { id: 's6', name: 'Diana Prince', role: 'Consultante Stratégie', email: 'diana.p@example.com', avatar: '/images/avatars/avatar-4.jpg' },
-        { id: 's7', name: 'Charlie Dupont', role: 'Responsable Qualité', email: 'charlie.d@example.com', avatar: '/images/avatars/avatar-2.jpg' },
-        { id: 's8', name: 'Sophie Laurent', role: 'Développeur Frontend', email: 'sophie.l@example.com', avatar: '/images/avatars/avatar-11.jpg' },
-        { id: 's9', name: 'Marc Tremblay', role: 'Architecte Cloud', email: 'marc.t@example.com', avatar: '/images/avatars/avatar-10.jpg' },
+        // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
+        { id: 's1', name: 'Alice Dubois', role: 'Chef de Projet Senior', email: 'alice.d@example.com', avatar: '/images/avatars/chloe.jpg' },
+        { id: 's2', name: 'Bob Martin', role: 'Développeur Fullstack', email: 'bob.m@example.com', avatar: '/images/avatars/david.jpg' },
+        { id: 's3', name: 'Carla Lopez', role: 'Designer UX/UI', email: 'carla.l@example.com', avatar: '/images/avatars/elena.jpg' },
+        { id: 's4', name: 'David Chen', role: 'Spécialiste Marketing Digital', email: 'david.c@example.com', avatar: '/images/avatars/leo.jpg' },
+        { id: 's5', name: 'Ethan Hunt', role: 'Analyste Données', email: 'ethan.h@example.com', avatar: '/images/avatars/marcus.jpg' },
+        { id: 's6', name: 'Diana Prince', role: 'Consultante Stratégie', email: 'diana.p@example.com', avatar: '/images/avatars/sophia.jpg' },
+        { id: 's7', name: 'Charlie Dupont', role: 'Responsable Qualité', email: 'charlie.d@example.com', avatar: '/images/avatars/yves.jpg' },
+        // Ajout des membres restants s'ils ne sont pas déjà dans la liste
+        { id: 's8', name: 'Sophie Laurent', role: 'Développeur Frontend', email: 'sophie.l@example.com', avatar: '/images/avatars/sophia.jpg' }, // Supposons sophia.jpg pour Sophie
+        { id: 's9', name: 'Marc Tremblay', role: 'Architecte Cloud', email: 'marc.t@example.com', avatar: '/images/avatars/marcus.jpg' }, // Supposons marcus.jpg pour Marc
     ],
     clients: [
         { id: 'cl1', name: 'Tech Solutions Inc.', contactEmail: 'contact@techsol.com', phone: '0123456789', lastContact: getDate(-5), projects: ['p2'] },
@@ -184,12 +190,11 @@ export const initialMockData = {
     ],
 };
 
-// Ré-export de mockPortalData si nécessaire (à vérifier si utilisé)
 export const mockPortalData = {
     documentTitle: 'Stratégie de Lancement Produit V2',
     author: {
         name: 'Yves P. (Votre profil)',
-        avatarUrl: '/images/avatars/yves.jpg', // Assurez-vous que cette image existe et que son nom est propre
+        avatarUrl: '/images/avatars/yves.jpg', // Confirmez que cette image existe et est nommée correctement
     },
     isFeatured: true,
     viewCount: '2.5k',
