@@ -5,9 +5,10 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { ArrowRight, Eye } from 'lucide-react';
+import { ArrowRight, Eye, LayoutDashboard, MessageSquare, Briefcase, FileText, CalendarDays, ClipboardCheck, Lightbulb, TrendingUp, Users, DollarSign, Cloud } from 'lucide-react'; // Added more icons
 import { motion } from 'framer-motion';
 
+// Re-using and slightly adjusting existing variants
 const FADE_UP_VARIANTS = {
   hidden: { opacity: 0, y: 20 },
   visible: {
@@ -17,9 +18,29 @@ const FADE_UP_VARIANTS = {
   },
 };
 
+// New variant for staggered children, slightly faster for lists
+const STAGGER_CHILD_VARIANTS = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'spring', stiffness: 100, damping: 12 },
+  },
+};
+
+// Variant for features cards
+const CARD_VARIANTS = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 100, damping: 10 },
+  },
+};
+
 export default function HomePage({ onLoginClick, onRegisterClick }) {
   const { t } = useTranslation('common');
-const { currentUser, loadingAuth, loginAsGuest } = useAuth();
+  const { currentUser, loadingAuth, loginAsGuest } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -55,84 +76,199 @@ const { currentUser, loadingAuth, loginAsGuest } = useAuth();
       <motion.section
         initial="hidden"
         animate="visible"
-        variants={{ visible: { transition: { staggerChildren: 0.2 } } }}
-        className="relative min-h-[90vh] w-full flex flex-col items-center justify-center text-center px-4 pt-32 pb-20 overflow-hidden bg-purple-500"
+        variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+        className="relative min-h-[90vh] w-full flex flex-col items-center justify-center text-center px-4 pt-32 pb-20 overflow-hidden bg-purple-900"
       >
-        <div className="absolute inset-0 z-0">
-          {/* Correction pour la vidéo: Utilisation de <source> pour la compatibilité */}
+        {/* Fullscreen Video Background */}
+        <div className="absolute inset-0 z-0 w-full h-full">
           <video
             autoPlay
             loop
             muted
             playsInline
             className="w-full h-full object-cover opacity-20"
-            // Retiré `src` directement sur la balise `video`
           >
-            {/* Ordre des sources : mp4 d'abord car plus compatible sur la plupart des plateformes */}
             <source src="/realbg.mp4" type="video/mp4" />
             <source src="/realbg.webm" type="video/webm" />
-            {/* Fallback si aucune source vidéo n'est supportée */}
-            {/* Remplacez ceci par une image si possible, car un .mp4 en fallback est redondant */}
             Votre navigateur ne supporte pas la lecture de vidéos.
           </video>
+          {/* Overlay for darker effect */}
+          <div className="absolute inset-0 bg-black opacity-50"></div>
         </div>
 
-        <div className="relative z-10 flex flex-col items-center">
+        <div className="relative z-10 flex flex-col items-center max-w-6xl mx-auto">
           <motion.div variants={FADE_UP_VARIANTS} className="text-center">
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tighter animated-gradient-text dark-gradient-text">
-              {t('main_headline', "Le Système d'Exploitation Client")}
+            {/* New Headline Structure */}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter text-slate-600 mb-2">
+              La fin du chaos.
             </h1>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tighter animated-gradient-text light-gradient-text mt-2 md:mt-4">
-              {t('main_headline_2', 'Tout-en-Un pour Votre Business.')}
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter animated-gradient-text light-gradient-text">
+              Le début du FLOW.
             </h1>
           </motion.div>
 
           <motion.p
             variants={FADE_UP_VARIANTS}
-            className="mt-6 text-xl md:text-2xl text-slate-300 max-w-3xl"
-            dangerouslySetInnerHTML={{ __html: t('sub_headline') }}
-          />
+            className="mt-6 text-xl md:text-2xl text-slate-300 max-w-4xl leading-relaxed"
+          >
+            {/* New Sub-headline */}
+            Découvrez NocaFLOW, la solution tout-en-un où **l'innovation rencontre la fluidité**. Unifiez projets, tchats, fichiers, factures, **calendrier, notes, meetings, et listes de tâches** dans un seul espace de travail conçu pour un **Flow ininterrompu**. Accélérez votre productivité et transformez la complexité en simplicité.
+          </motion.p>
 
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={onRegisterClick}
-              className="pulse-button inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-white rounded-full bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 transition-all duration-300"
+              className="pulse-button inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-white rounded-full bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 transition-all duration-300 shadow-lg"
             >
               {t('start', 'Commencer')} <ArrowRight size={20} />
             </button>
 
             <button
               onClick={loginAsGuest}
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-slate-300 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-slate-300 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-800 transition-colors shadow-md"
             >
               <Eye size={20} /> {t('try_as_guest', 'Essayer en mode invité')}
             </button>
           </div>
 
-          <motion.div variants={FADE_UP_VARIANTS} className="mt-8 text-slate-400 text-sm">
+          <motion.div variants={FADE_UP_VARIANTS} className="mt-8 text-slate-600 text-sm">
             <p>{t('no_credit_card', 'Pas de carte de crédit requise. Annulez à tout moment.')}</p>
           </motion.div>
         </div>
       </motion.section>
 
-      <section className="py-20 px-4 bg-gray-900/50">
+      {/* Re-introduced Features Overview Section */}
+      <section className="py-24 px-4 bg-gradient-to-br from-gray-900 to-black text-white">
         <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-8">
+          <motion.h2
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.5 }}
+            className="text-4xl md:text-5xl font-bold tracking-tight mb-4 animated-gradient-text pink-violet-gradient-text"
+          >
             {t('features_overview', 'Aperçu des Fonctionnalités')}
-          </h2>
-          <p className="text-lg text-slate-400 max-w-3xl mx-auto">
-            {t('features_overview_description', 'Découvrez comment NocaFLOW simplifie votre gestion quotidienne avec des outils puissants et intégrés.')}
-          </p>
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto"
+          >
+            {/* New description emphasizing uniqueness */}
+            NocaFLOW n'est pas qu'un outil, c'est une philosophie : celle de la productivité sans friction. Plongez dans un écosystème où chaque module travaille en synergie pour un **Flow optimal**.
+          </motion.p>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={{ visible: { transition: { staggerChildren: 0.15 } } }}
+            className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {[
+              { icon: <LayoutDashboard size={40} className="text-violet-400" />, title: 'Dashboard Intuitif', description: 'Une vue d\'ensemble claire pour une gestion sans effort de toutes vos activités.' },
+              { icon: <ClipboardCheck size={40} className="text-pink-400" />, title: 'Listes de Tâches Intelligentes', description: 'Organisez, priorisez et suivez vos tâches avec une efficacité inégalée.' },
+              { icon: <MessageSquare size={40} className="text-blue-400" />, title: 'Messagerie Collaboratif (Flow Live Messages)', description: 'Communiquez en temps réel, transformez les discussions en actions en un clic.' },
+              { icon: <Briefcase size={40} className="text-green-400" />, title: 'Gestion de Projets Avancée', description: 'De la planification Gantt aux échéances, maîtrisez chaque phase de vos projets.' },
+              { icon: <FileText size={40} className="text-orange-400" />, title: 'Facturation et Suivi Client', description: 'Créez des factures professionnelles et suivez les paiements directement depuis l\'app.' },
+              { icon: <CalendarDays size={40} className="text-yellow-400" />, title: 'Calendrier Synchronisé', description: 'Planifiez meetings, événements et deadlines avec une intégration parfaite.' },
+              { icon: <Users size={40} className="text-cyan-400" />, title: 'Management d\'Équipe Centralisé', description: 'Gérez vos collaborateurs, attribuez des rôles et optimisez la collaboration.' },
+              { icon: <Lightbulb size={40} className="text-purple-400" />, title: 'Bloc-notes Intelligent', description: 'Capturez vos idées, rédigez des notes structurées avec support Markdown.' },
+              { icon: <Cloud size={40} className="text-emerald-400" />, title: 'Intégration Cloud (Google Drive)', description: 'Liez vos documents importants directement à vos projets pour un accès rapide.' },
+            ].map((feature, index) => (
+              <motion.div key={index} variants={CARD_VARIANTS} className="glass-card p-8 rounded-xl shadow-2xl flex flex-col items-center transform hover:scale-105 transition-transform duration-300 ease-out border border-gray-700">
+                {feature.icon}
+                <h3 className="text-2xl font-semibold mt-4 mb-2 text-white">{feature.title}</h3>
+                <p className="text-slate-300 text-center">{feature.description}</p>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
-      <section className="py-20 px-4">
+      {/* Re-introduced Testimonials Section */}
+      <section className="py-24 px-4 bg-gradient-to-br from-black to-gray-900 text-white">
         <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-8">
+          <motion.h2
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.5 }}
+            className="text-4xl md:text-5xl font-bold tracking-tight mb-4 animated-gradient-text violet-pink-gradient-text"
+          >
             {t('testimonials', 'Ce que nos utilisateurs disent')}
-          </h2>
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto"
+          >
+            Découvrez l'impact réel de NocaFLOW à travers les témoignages de ceux qui l'utilisent chaque jour pour transformer leur productivité.
+          </motion.p>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={{ visible: { transition: { staggerChildren: 0.2 } } }}
+            className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {[
+              { name: 'Sarah L., CEO TechInnov', quote: 'NocaFLOW a révolutionné notre façon de travailler. Moins de chaos, plus de Flow. Indispensable !', avatar: '/images/avatars/avatar1.jpg' },
+              { name: 'Marc D., Chef de Projet', quote: 'La gestion des tâches et des projets n\'a jamais été aussi fluide. Les intégrations sont parfaites.', avatar: '/images/avatars/avatar2.jpg' },
+              { name: 'Émilie R., Consultante Freelance', quote: 'Un outil unique qui regroupe tout ce dont j\'ai besoin. Gain de temps énorme au quotidien.', avatar: '/images/avatars/avatar3.jpg' },
+              { name: 'David C., Responsable Marketing', quote: 'La messagerie intégrée et la conversion en tâches, c\'est un game-changer pour notre équipe.', avatar: '/images/avatars/avatar4.jpg' },
+              { name: 'Léa P., Gérante PME', quote: 'J\'apprécie la simplicité et la puissance. Notre facturation est enfin organisée.', avatar: '/images/avatars/avatar5.jpg' },
+              { name: 'Tom F., Développeur Lead', quote: 'Le Gantt Chart est visuellement impressionnant et extrêmement utile pour le suivi. Top !', avatar: '/images/avatars/avatar6.jpg' },
+            ].map((testimonial, index) => (
+              <motion.div key={index} variants={STAGGER_CHILD_VARIANTS} className="glass-card p-6 rounded-xl shadow-xl flex flex-col items-center transform hover:scale-[1.02] transition-transform duration-200 ease-out border border-gray-800 backdrop-blur-sm">
+                <img src={testimonial.avatar} alt={testimonial.name} className="w-20 h-20 rounded-full object-cover mb-4 border-2 border-violet-500" />
+                <p className="italic text-lg text-slate-200 mb-4">"{testimonial.quote}"</p>
+                <p className="font-semibold text-pink-400">- {testimonial.name}</p>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
+
+       {/* Call to Action Section */}
+      <section className="py-20 px-4 bg-purple-950 text-white text-center">
+        <div className="max-w-5xl mx-auto">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.5 }}
+            className="text-4xl md:text-5xl font-bold tracking-tight mb-6 animated-gradient-text light-gradient-text"
+          >
+            Prêt à transformer votre productivité ?
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-xl md:text-2xl text-slate-300 mb-10 max-w-3xl mx-auto"
+          >
+            Rejoignez des milliers de professionnels qui simplifient leur quotidien avec NocaFLOW.
+          </motion.p>
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ type: 'spring', stiffness: 100, damping: 10, delay: 0.2 }}
+            onClick={onRegisterClick}
+            className="pulse-button inline-flex items-center justify-center gap-2 px-10 py-5 text-xl font-bold text-white rounded-full bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 transition-all duration-300 shadow-2xl"
+          >
+            Démarrer Votre FLOW Gratuitement <ArrowRight size={24} />
+          </motion.button>
+        </div>
+      </section>
+
     </>
   );
 }
