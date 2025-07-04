@@ -1,19 +1,16 @@
 // pages/privacy.js
 import React from 'react';
 import Head from 'next/head';
-import { useTranslation } from 'react-i18next'; // Still needed if other parts of the app use it
+import { useTranslation } from 'react-i18next'; // Still imported, but its usage is removed for problematic parts
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function PrivacyPage() {
-  // If you are completely removing all translations from this page,
-  // you might consider removing useTranslation, but for now, keep it
-  // as it's typically used throughout the app.
-  const { t } = useTranslation('common');
+  const { t } = useTranslation('common'); // Keeping this if 't' is used elsewhere, or for future re-enablement
 
   return (
     <>
       <Head>
-        <title>Politique de Confidentialité</title> {/* Hardcoded */}
+        <title>Politique de Confidentialité - NocaFLOW</title> {/* Hardcoded */}
       </Head>
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-color-bg-primary text-color-text-primary">
         <div className="max-w-prose glass-card p-8 rounded-2xl shadow-lg">

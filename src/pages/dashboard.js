@@ -39,9 +39,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const { isDarkMode, toggleTheme } = useTheme();
     const { t } = useTranslation('common');
 
+    console.log('DashboardPage: Start render'); // Debug Log
+
     const isGuestMode = !user || user.uid === 'guest_noca_flow';
     // Le nom initial de l'invité sera toujours une chaîne, pour SSR safety
-    // MODIFICATION: Hardcoding initialGuestNameSSR to avoid hydration issues
+    // MODIFICATION: Hardcoded initialGuestNameSSR to avoid hydration issues
     const initialGuestNameSSR = 'Visiteur Curieux'; // Removed t() call
     const userUid = user?.uid;
 
@@ -49,6 +51,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     // Initialisation robuste de localData
     const [localData, setLocalData] = useState(() => {
+        console.log('DashboardPage: Initializing localData state'); // Debug Log
         let initialValue = initialMockData; // Valeur par défaut pour SSR
 
         // Ce bloc s'exécute uniquement côté client pour l'initialisation après hydratation
@@ -77,6 +80,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : initialMockData.notes || '';
         initialValue.user = initialValue.user || {}; // S'assurer que user est un objet
 
+        console.log('DashboardPage: Initial localData state value:', initialValue); // Debug Log
         return initialValue;
     });
 
@@ -91,19 +95,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, [localData, isGuestMode, guestName, initialGuestNameSSR]);
 
-    // Gérer la mise à jour du nom de l'invité
-    const onUpdateGuestName = useCallback((newName) => {
-        setGuestName(newName);
-        onUpdateGuestData(prev => ({
-            ...prev,
-            user: {
-                ...prev.user,
-                displayName: newName
-            }
-        }));
-    }, [onUpdateGuestData]);
-
     // Gérer la mise à jour des données de l'invité
+    // MODIFICATION: Moved this definition BEFORE onUpdateGuestName
     const onUpdateGuestData = useCallback((updater) => {
         setLocalData(prevLocalData => {
             const newData = typeof updater === 'function' ? updater(prevLocalData) : updater;
@@ -130,6 +123,19 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         });
     }, [initialGuestNameSSR]);
 
+    // Gérer la mise à jour du nom de l'invité
+    // MODIFICATION: This now uses the already defined onUpdateGuestData
+    const onUpdateGuestName = useCallback((newName) => {
+        setGuestName(newName);
+        onUpdateGuestData(prev => ({
+            ...prev,
+            user: {
+                ...prev.user,
+                displayName: newName
+            }
+        }));
+    }, [onUpdateGuestData]);
+
 
     const stableGuestInitialTasks = useMemo(() => {
         return isGuestMode ? (localData.tasks || []) : [];
@@ -138,8 +144,17 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     // useUserTodos utilise initialGuestTasks, assurez-vous que c'est stable
     const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
         useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
+    console.log('DashboardPage: todos from useUserTodos:', todos); // Debug Log
+
+    console.log('DashboardPage: Before data useMemo - localData:', localData); // Debug Log
+    console.log('DashboardPage: Before data useMemo - todos:', todos); // Debug Log
+    console.log('DashboardPage: Before data useMemo - user:', user); // Debug Log
 
     const data = useMemo(() => {
+        console.log('DashboardPage: Inside data useMemo - user:', user); // Debug Log
+        console.log('DashboardPage: Inside data useMemo - localData:', localData); // Debug Log
+        console.log('DashboardPage: Inside data useMemo - todos:', todos); // Debug Log
+
         let currentData = { ...localData };
 
         if (!isGuestMode) {
@@ -170,6 +185,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
 
 
+        console.log('DashboardPage: Data object constructed:', currentData); // Debug Log
         return currentData;
     }, [isGuestMode, localData, todos, guestName, user]);
 
@@ -230,13 +246,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, []);
 
     // Calcul des statistiques, assurez-vous qu'il est SSR-safe
+    console.log('DashboardPage: Before stats useMemo - data for stats:', data); // Debug Log
     const stats = useMemo(() => {
-        // IMPORTANT: Ensure 'data' object is stable and accessible.
-        // It's safer to depend on the whole 'data' object and access properties inside.
-        // Also, `now` should be consistently generated or passed.
-        const now = new Date(); 
+        console.log('DashboardPage: Inside stats useMemo - data being used:', data); // Debug Log
+        const now = new Date();
 
-        // Add defensive checks for 'data' object's existence before accessing properties
+        // Explicitly ensure 'data' is not null/undefined before accessing properties
         const messages = data?.messages || [];
         const tasks = data?.tasks || [];
         const meetings = data?.meetings || [];
@@ -246,7 +261,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             tasks: tasks.filter(task => !task.completed).length,
             meetings: meetings.filter(m => new Date(m.dateTime) > now).length,
         };
-    }, [data]); // Changed dependency to 'data'
+    }, [data]); // Changed dependency to 'data' for robustness
+    console.log('DashboardPage: Stats calculated:', stats); // Debug Log
 
     const handleOpenAddTaskFromChat = useCallback((chatData) => {
         openModal('assignTaskProjectDeadline', {

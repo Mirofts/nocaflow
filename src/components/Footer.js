@@ -1,26 +1,26 @@
 import React from 'react';
 import Link from 'next/link';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'; // Still imported, but its usage is removed for problematic parts
 
 const Footer = () => {
-  const { t } = useTranslation('common'); // ✅ Appelé dans le composant et avec namespace
+  const { t } = useTranslation('common'); // Keeping this for consistency or future re-enablement
 
   return (
     <footer className="bg-color-bg-secondary border-t border-color-border-primary py-10 px-4 mt-auto">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-color-text-secondary text-sm space-y-6 md:space-y-0">
         <div className="text-center md:text-left">
           {/* Removed t('footer_copyright') to address hydration issue */}
-          <p>© 2025 NocaFLOW. Le travail, unifié.</p>
+          <p>© 2025 NocaFLOW. Le travail, unifié.</p> {/* Hardcoded */}
         </div>
         <div className="flex items-center space-x-6">
           <Link href="/privacy" className="hover:text-color-text-primary transition-colors">
-            {t('privacy') || 'Confidentialité'}
+            Confidentialité {/* Hardcoded */}
           </Link>
           <Link href="/terms" className="hover:text-color-text-primary transition-colors">
-            {t('terms') || 'Conditions'}
+            Conditions {/* Hardcoded */}
           </Link>
           <Link href="/contact" className="hover:text-color-text-primary transition-colors">
-            {t('contact_us') || 'Nous contacter'}
+            Nous contacter {/* Hardcoded */}
           </Link>
         </div>
         <div className="flex items-center space-x-4">

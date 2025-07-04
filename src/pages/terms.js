@@ -1,10 +1,9 @@
 import Head from 'next/head';
-import { useTranslation } from 'react-i18next'; // Still needed
+import { useTranslation } from 'react-i18next'; // Still imported
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 export default function TermsPage() {
-  const { t } = useTranslation('common'); // Still needed
-  // Original: const pageTitle = t('terms', 'Conditions d\'Utilisation');
+  const { t } = useTranslation('common'); // Keeping this for consistency or future re-enablement
   const pageTitle = 'Conditions d\'Utilisation'; // Hardcoded
 
   return (
