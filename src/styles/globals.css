@@ -1,16 +1,30 @@
+/* src/styles/globals.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  /* Reset for HTML and Body to remove default margins/paddings */
+  html,
+  body {
+    padding: 0;
+    margin: 0;
+    /* Important: Prevent horizontal scroll if w-screen creates a tiny overflow */
+    overflow-x: hidden; 
+  }
+
+  /* Ensure root element for Next.js also fills screen */
+  #__next {
+    width: 100vw; /* Ensures it takes full viewport width */
+    min-height: 100vh; /* Ensures it takes full viewport height */
+    overflow-x: hidden; /* Critical for preventing scroll caused by w-screen */
+  }
+
   [data-theme='light'] body {
     /* Un dégradé de fond subtil pour le mode clair si vous voulez un effet futuriste */
     background: linear-gradient(135deg, #e0e7f1 0%, #c3cfe2 100%);
     /* Ou un fond plat avec une légère texture si désiré */
-  }
-
-  html {
-    /* Intentionally left empty */
   }
 
   body {
@@ -349,4 +363,5 @@
     outline: none;
     border-color: var(--color-border-active);
     box-shadow: 0 0 0 3px var(--color-border-active-shadow), inset 0 0 8px rgba(0,0,0,0.1);
+}
 }

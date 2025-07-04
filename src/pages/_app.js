@@ -9,6 +9,7 @@ import i18nextConfig from '../../next-i18next.config';
 import { AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router'; // Import useRouter here
 
 // IMPORTS DES COMPOSANTS DE LAYOUT
 import Navbar from '../components/Navbar';
@@ -16,12 +17,13 @@ import Footer from '../components/Footer';
 
 // IMPORTEZ VOS VRAIS COMPOSANTS DE MODALES ICI
 import LoginModal from '../components/LoginModal';
-import RegisterModal from '../components/RegisterModal'; // Chemin corrigé si RegisterModal est dans components/components
+import RegisterModal from '../components/RegisterModal';
 
 function MyApp({ Component, pageProps }) {
   const { t } = useTranslation('common');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const router = useRouter(); // Initialize useRouter here
 
   const handleLoginClick = () => setShowLoginModal(true);
   const handleRegisterClick = () => setShowRegisterModal(true);
@@ -42,12 +44,18 @@ function MyApp({ Component, pageProps }) {
     console.log("Ouvrir la calculatrice");
   };
 
+  // Déterminez si la page actuelle est la page d'accueil pour ajuster le layout
+  // Utilisez router.pathname pour une détection fiable côté client
+  const isHomePage = router.pathname === '/';
+
   return (
-    // Les Context Providers doivent englober toute l'application pour être disponibles en SSR.
-    // L'ordre est important: AuthContext peut dépendre de ThemeContext, ou l'inverse, mais ils doivent être au-dessus des composants qui les utilisent.
     <AuthContextProvider>
       <ThemeProvider>
-        <div className="flex flex-col min-h-screen bg-color-bg-primary text-color-text-primary">
+        {/* Le conteneur principal de l'application.
+            Ajout de `overflow-x-hidden` pour éviter les barres de défilement horizontales.
+            `!p-0 !m-0 !max-w-none` pour annuler tout padding/margin/max-width global sur le wrapper.
+        */}
+        <div className="flex flex-col min-h-screen bg-color-bg-primary text-color-text-primary !p-0 !m-0 !max-w-none overflow-x-hidden">
           <Head>
             <meta charSet="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -61,33 +69,34 @@ function MyApp({ Component, pageProps }) {
             onOpenCalculator={handleOpenCalculator}
           />
 
-          <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8 pt-16">
-            {/* Composant principal de la page, reçoit toutes les props */}
+          {/* Conditionnement de la classe `main` pour la page d'accueil */}
+          {/* Si c'est la page d'accueil, pas de padding horizontal pour laisser la vidéo en full-bleed */}
+          {/* Sinon, appliquer les padding normaux pour le contenu des autres pages */}
+          <main className={`flex-1 ${isHomePage ? '' : 'px-4 py-8 sm:px-6 lg:px-8'} pt-16`}>
             <Component
               {...pageProps}
               onLoginClick={handleLoginClick}
               onRegisterClick={handleRegisterClick}
-              t={t} // Passe la fonction de traduction 't' à toutes les pages/composants
+              t={t}
             />
           </main>
 
           <Footer />
         </div>
 
-        {/* AnimatePresence pour les animations d'entrée/sortie des modales */}
         <AnimatePresence>
             {showLoginModal && (
                 <LoginModal
                     onClose={closeLoginModal}
                     onSwitchToRegister={switchToRegisterFromLogin}
-                    t={t} // Passe la fonction de traduction
+                    t={t}
                 />
             )}
             {showRegisterModal && (
                 <RegisterModal
                     onClose={closeRegisterModal}
                     onSwitchToLogin={switchToLoginFromRegister}
-                    t={t} // Passe la fonction de traduction
+                    t={t}
                 />
             )}
         </AnimatePresence>
@@ -96,5 +105,10 @@ function MyApp({ Component, pageProps }) {
     </AuthContextProvider>
   );
 }
+
+// Retiré getInitialProps car router.pathname est directement disponible avec useRouter dans le composant
+// et pageProps.router n'est plus nécessaire pour cette logique.
+// La détection de `isHomePage` est maintenant purement côté client avec `useRouter`.
+
 
 export default appWithTranslation(MyApp, i18nextConfig);

@@ -60,10 +60,12 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
     );
   }
 
-  // Handle guest login redirection
-  const handleGuestLogin = async () => { // Made async
-    await loginAsGuest(); // Await the guest login
-    router.push('/dashboard'); // Then redirect
+  // Handle guest login and direct redirection
+  const handleGuestLogin = () => {
+    // Appelle loginAsGuest, puis redirige immédiatement.
+    // Le tableau de bord sera responsable de l'initialisation de l'état "invité".
+    loginAsGuest();
+    router.push('/dashboard');
   };
 
   return (
@@ -83,12 +85,10 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
         initial="hidden"
         animate="visible"
         variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-        // FIX: Added !w-screen and !max-w-none to override potential parent container styles
-        // min-h-screen to ensure it takes full viewport height
-        className="relative min-h-screen !w-screen !max-w-none flex flex-col items-center justify-center text-center pt-32 pb-20 overflow-hidden bg-purple-900"
+        // La section elle-même est full-screen. Les padding sont sur le div de contenu interne.
+        className="relative min-h-screen !w-screen !max-w-none flex flex-col items-center justify-center text-center overflow-hidden bg-purple-900"
       >
         {/* Fullscreen Video Background */}
-        {/* The video div itself also needs to ensure full coverage */}
         <div className="absolute inset-0 z-0 w-full h-full">
           <video
             autoPlay
@@ -105,10 +105,9 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
           <div className="absolute inset-0 bg-black opacity-50"></div>
         </div>
 
-        {/* Content over the video, now correctly centered within the full-width section */}
-        <div className="relative z-10 flex flex-col items-center max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"> {/* Keep px for content */}
+        {/* Content over the video - now it gets its own padding */}
+        <div className="relative z-10 flex flex-col items-center max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32"> {/* Added py-20 md:py-32 for vertical spacing */}
           <motion.div variants={FADE_UP_VARIANTS} className="text-center">
-            {/* New Headline Structure */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter text-slate-600 mb-2">
               La fin du chaos.
             </h1>
@@ -121,7 +120,6 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
             variants={FADE_UP_VARIANTS}
             className="mt-6 text-xl md:text-2xl text-slate-300 max-w-4xl leading-relaxed"
           >
-            {/* New Sub-headline with bold, white text */}
             Découvrez NocaFLOW, la solution tout-en-un où <strong className="text-white">l'innovation rencontre la fluidité</strong>. Unifiez <strong className="text-white">projets</strong>, <strong className="text-white">tchats</strong>, <strong className="text-white">fichiers</strong>, <strong className="text-white">factures</strong>, <strong className="text-white">calendrier</strong>, <strong className="text-white">notes</strong>, <strong className="text-white">meetings</strong>, et <strong className="text-white">listes de tâches</strong> dans un seul espace de travail conçu pour un <strong className="text-white">Flow ininterrompu</strong>. Accélérez votre productivité et transformez la complexité en simplicité.
           </motion.p>
 
@@ -134,7 +132,7 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
             </button>
 
             <button
-              onClick={handleGuestLogin} // Now an async function call
+              onClick={handleGuestLogin}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-slate-300 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-800 transition-colors shadow-md"
             >
               <Eye size={20} /> {t('try_as_guest', 'Essayer en mode invité')}
