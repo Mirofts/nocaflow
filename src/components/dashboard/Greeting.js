@@ -1,5 +1,6 @@
 // components/dashboard/Greeting.js
 import React from 'react';
+import Image from 'next/image';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext'; // Import useTheme
 
@@ -8,6 +9,7 @@ const Greeting = ({ t }) => {
     const { isDarkMode } = useTheme(); // Get isDarkMode from context
     const isGuestMode = !user || user.uid === 'guest';
     const userName = user?.displayName;
+    const photoURL = user?.photoURL;
 
     let displayUserName;
     if (isGuestMode) {
@@ -17,9 +19,25 @@ const Greeting = ({ t }) => {
     }
 
     return (
-        // Use text-color-text-primary for "Ave," part for dark text in light mode
-        <div className={`text-color-text-primary text-3xl font-light inline-flex items-center`}>
-            {t('greeting_ave', 'Ave,')} <span className="font-bold animated-gradient-text pink-violet-gradient-text ml-2">{displayUserName}</span>
+        <div className="flex items-center gap-4">
+            {/* Avatar image */}
+            {photoURL && (
+                <Image
+                    src={photoURL}
+                    alt="Avatar"
+                    width={48}
+                    height={48}
+                    className="rounded-full border border-slate-500 object-cover"
+                />
+            )}
+
+            {/* Greeting with name */}
+            <div className={`text-color-text-primary text-3xl font-light inline-flex items-center`}>
+                {t('greeting_ave', 'Ave,')}
+                <span className="font-bold animated-gradient-text pink-violet-gradient-text ml-2">
+                    {displayUserName}
+                </span>
+            </div>
         </div>
     );
 };

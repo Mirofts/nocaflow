@@ -1,4 +1,5 @@
 // src/components/dashboard/modals/AvatarEditModal.js
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -8,7 +9,7 @@ import { db, storage } from '../../../lib/firebase';
 import { useAuth } from '../../../context/AuthContext';
 import { ModalWrapper } from './ModalWrapper';
 
-// Avatars NocaFlow prédéfinis — assurez-vous que les fichiers existent dans /public/images/avatars
+// Avatars existants (ajustés avec noms corrects)
 const nocaflowAvatars = [
   '/images/avatars/chloe.jpg',
   '/images/avatars/david.jpg',
@@ -53,6 +54,7 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
         setError(t('file_size_error', "Le fichier est trop volumineux (max 5MB)."));
         return;
       }
+
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
@@ -67,7 +69,9 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
       } else {
         const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { photoURL: url });
-        if (refreshUser) await refreshUser();
+        if (refreshUser) {
+          await refreshUser();
+        }
       }
       setSuccess(true);
       setTimeout(() => {
@@ -87,13 +91,16 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
       setError(t('no_file_selected', "Aucun fichier sélectionné."));
       return;
     }
+
     if (isGuestMode) {
       uploadAndSaveAvatar(previewUrl);
     } else {
-      if (!user?.uid) {
+      if (!user || !user.uid) {
         setError(t('user_not_connected', "Utilisateur non connecté."));
         return;
       }
+
+      setLoading(true);
       try {
         const avatarRef = ref(storage, `avatars/${user.uid}/${selectedFile.name}`);
         const uploadResult = await uploadBytes(avatarRef, selectedFile);
@@ -121,30 +128,40 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
 
       {!success ? (
         <div className="space-y-6">
+          {/* Tabs */}
           <div className="flex justify-center mb-4">
             <button
               className={`px-4 py-2 rounded-l-lg text-sm font-semibold transition-colors ${activeTab === 'upload' ? 'bg-pink-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
               onClick={() => setActiveTab('upload')}
             >
               {/* Upload Icon */}
-              📤 {t('upload_tab', 'Télécharger')}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
+              {t('upload_tab', 'Télécharger')}
             </button>
             <button
               className={`px-4 py-2 rounded-r-lg text-sm font-semibold transition-colors ${activeTab === 'choose' ? 'bg-pink-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
               onClick={() => setActiveTab('choose')}
             >
-              🖼️ {t('choose_tab', 'Choisir')}
+              {/* Gallery Icon */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              {t('choose_tab', 'Choisir')}
             </button>
           </div>
 
+          {/* Upload Tab */}
           {activeTab === 'upload' && (
             <div className="space-y-4 text-center">
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
+                className="block w-full text-sm text-slate-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-violet-50 file:text-violet-700
+                  hover:file:bg-violet-100"
                 disabled={loading}
-                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
               />
 
               {previewUrl && (
@@ -159,19 +176,20 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
               <button
                 onClick={handleUpload}
                 disabled={!selectedFile || loading}
-                className="w-full pulse-button bg-gradient-to-r from-pink-500 to-violet-500 text-white font-bold py-3 rounded-md text-lg disabled:opacity-50"
+                className="w-full pulse-button bg-gradient-to-r from-pink-500 to-violet-500 text-white font-bold py-3 rounded-md text-lg disabled:opacity-50 disabled:animate-none main-action-button"
               >
-                {loading ? t('uploading', 'Téléchargement...') : t('upload_and_validate', 'Télécharger et Valider')}
+                {loading ? (t('uploading') || 'Téléchargement...') : (t('upload_and_validate', 'Télécharger et Valider'))}
               </button>
             </div>
           )}
 
+          {/* Choose Avatar Tab */}
           {activeTab === 'choose' && (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-80 overflow-y-auto custom-scrollbar p-2">
               {nocaflowAvatars.map((avatar, index) => (
                 <motion.div
                   key={index}
-                  whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(236, 72, 153, 0.6)' }}
+                  whileHover={{ scale: 1.05 }}
                   onClick={() => handleChooseAvatar(avatar)}
                   className="rounded-full overflow-hidden cursor-pointer aspect-square border-4 transition-all duration-200"
                   style={{ borderColor: previewUrl === avatar ? '#ec4899' : 'transparent' }}
@@ -184,7 +202,8 @@ const AvatarEditModal = ({ onClose, t, isGuestMode, onUpdateGuestAvatar }) => {
         </div>
       ) : (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
-          ✅ <p className="text-xl font-semibold text-white">{t('avatar_updated_success', 'Avatar mis à jour !')}</p>
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <p className="text-xl font-semibold text-white">{t('avatar_updated_success', 'Avatar mis à jour !')}</p>
         </motion.div>
       )}
     </ModalWrapper>
