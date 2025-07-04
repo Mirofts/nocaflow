@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos';
-import { initialMockData } from '../lib/mockData'; // Assurez-vous que mockData est bien exporté et importé
+import { initialMockData } from '../lib/mockData';
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
-// IMPORTS CORRIGÉS DES COMPOSANTS DU DASHBOARD :
+// IMPORTS DES COMPOSANTS DU DASHBOARD :
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import TimeAlerts from '../components/dashboard/TimeAlerts';
 import TodoList from '../components/dashboard/TodoList';
@@ -25,7 +25,7 @@ import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 
 
-// IMPORTS CORRIGÉS DES MODALES (depuis src/components/dashboard/modals/modals.js) :
+// IMPORTS DES MODALES :
 import {
     TaskEditModal, DayDetailsModal, QuickAddTaskModal, GuestNameEditModal, AvatarEditModal,
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
@@ -40,179 +40,139 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const { t } = useTranslation('common');
 
     const isGuestMode = !user || user.uid === 'guest_noca_flow';
-    // S'assurer que le nom de l'invité est toujours une chaîne de caractères
-    const initialGuestName = (typeof window !== 'undefined' && localStorage.getItem('nocaflow_guest_name')) || t('guest_user_default', 'Visiteur Curieux');
+    // Le nom initial de l'invité sera toujours une chaîne, pour SSR safety
+    const initialGuestNameSSR = t('guest_user_default', 'Visiteur Curieux');
     const userUid = user?.uid;
 
+    const [guestName, setGuestName] = useState(initialGuestNameSSR);
+
+    // Initialisation robuste de localData
     const [localData, setLocalData] = useState(() => {
-        // Cette fonction ne doit s'exécuter qu'une seule fois à l'initialisation du composant
-        if (typeof window === 'undefined') {
-            // Côté serveur, retourne une structure de données par défaut, sans localStorage
-            return {
-                tasks: initialMockData.tasks || [],
-                messages: initialMockData.messages || [],
-                meetings: initialMockData.meetings || [],
-                projects: initialMockData.projects || [],
-                staffMembers: initialMockData.staffMembers || [],
-                clients: initialMockData.clients || [],
-                ganttTasks: initialMockData.planningTasks || [], // Utilisez planningTasks de mockData
-                invoices: initialMockData.invoices || [],
-                notes: initialMockData.notes || '', // Assurez-vous que les notes sont initialisées
-                user: {
-                    displayName: initialGuestName,
-                    photoURL: initialMockData.user?.photoURL || '/images/avatarguest.jpg',
-                }
+        let initialValue = initialMockData; // Valeur par défaut pour SSR
+
+        // Ce bloc s'exécute uniquement côté client pour l'initialisation après hydratation
+        if (typeof window !== 'undefined') {
+            const savedData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
+            initialValue = {
+                ...initialMockData, // Commence avec les données mockées
+                ...savedData // Surcharge avec les données sauvegardées
             };
-        }
-
-        // Côté client
-        const savedData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
-        const defaultDataStructure = {
-            tasks: initialMockData.tasks || [],
-            messages: initialMockData.messages || [],
-            meetings: initialMockData.meetings || [],
-            projects: initialMockData.projects || [],
-            staffMembers: initialMockData.staffMembers || [],
-            clients: initialMockData.clients || [],
-            ganttTasks: initialMockData.planningTasks || [], // Utilisez planningTasks de mockData
-            invoices: initialMockData.invoices || [],
-            notes: initialMockData.notes || '', // Assurez-vous que les notes sont initialisées
-            user: {
-                displayName: initialGuestName,
-                photoURL: initialMockData.user?.photoURL || '/images/avatarguest.jpg',
+            // Met à jour le nom de l'invité depuis localStorage si disponible
+            const savedGuestName = localStorage.getItem('nocaflow_guest_name');
+            if (savedGuestName) {
+                initialValue.user.displayName = savedGuestName;
             }
-        };
-
-        // Fusionner les données sauvegardées avec la structure par défaut et les mockData initiales
-        // La priorité est: savedData > initialMockData (si savedData est vide) > defaultDataStructure
-        const mergedData = {
-            ...defaultDataStructure, // Base par défaut
-            ...(Object.keys(savedData).length === 0 ? initialMockData : {}), // Si pas de savedData, utiliser mockData
-            ...savedData // Appliquer savedData par-dessus (prioritaire)
-        };
-
-        // Assurer que les champs sont bien des tableaux ou des chaînes
-        for (const key of ['tasks', 'messages', 'meetings', 'projects', 'staffMembers', 'clients', 'ganttTasks', 'invoices']) {
-            mergedData[key] = Array.isArray(mergedData[key]) ? mergedData[key] : [];
         }
-        mergedData.notes = typeof mergedData.notes === 'string' ? mergedData.notes : initialMockData.notes;
 
-        // Gérer spécifiquement les informations de l'utilisateur invité
-        mergedData.user = {
-            ...(defaultDataStructure.user || {}),
-            ...(initialMockData?.user || {}), // Les infos de l'utilisateur mock
-            ...(savedData.user || {}), // Les infos de l'utilisateur sauvegardées
-            displayName: savedData.user?.displayName || initialGuestName, // Nom de l'invité
-            photoURL: savedData.user?.photoURL || (initialMockData?.user?.photoURL || '/images/avatarguest.jpg'), // Photo de l'invité
-        };
+        // Assurez la robustesse des types de données pour toutes les propriétés
+        initialValue.tasks = Array.isArray(initialValue.tasks) ? initialValue.tasks : [];
+        initialValue.messages = Array.isArray(initialValue.messages) ? initialValue.messages : [];
+        initialValue.meetings = Array.isArray(initialValue.meetings) ? initialValue.meetings : [];
+        initialValue.projects = Array.isArray(initialValue.projects) ? initialValue.projects : [];
+        initialValue.staffMembers = Array.isArray(initialValue.staffMembers) ? initialValue.staffMembers : [];
+        initialValue.clients = Array.isArray(initialValue.clients) ? initialValue.clients : [];
+        initialValue.ganttTasks = Array.isArray(initialValue.planningTasks) ? initialValue.planningTasks : []; // Correction: utilisez initialValue.planningTasks
+        initialValue.invoices = Array.isArray(initialValue.invoices) ? initialValue.invoices : [];
+        initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : initialMockData.notes || '';
+        initialValue.user = initialValue.user || {}; // S'assurer que user est un objet
 
-        return mergedData;
+        return initialValue;
     });
 
-    // Gardez guestName séparé si c'est la seule chose qui peut être modifiée par le GuestNameEditModal
-    const [guestName, setGuestName] = useState(initialGuestName);
-
-    // Mettez à jour localData.user.displayName et localStorage lorsque guestName change
+    // Mettez à jour le localStorage chaque fois que localData change (côté client uniquement)
     useEffect(() => {
-        if (isGuestMode) {
-            onUpdateGuestData(prev => ({
-                ...prev,
-                user: {
-                    ...prev.user,
-                    displayName: guestName,
-                    photoURL: prev.user?.photoURL || '/images/avatarguest.jpg' // S'assurer que photoURL persiste
-                },
-                // Assurez-vous que le reste des données persiste correctement
-                tasks: prev.tasks || [],
-                messages: prev.messages || [],
-                meetings: prev.meetings || [],
-                projects: prev.projects || [],
-                staffMembers: prev.staffMembers || [],
-                clients: prev.clients || [],
-                ganttTasks: prev.ganttTasks || [],
-                invoices: prev.invoices || [],
-                notes: prev.notes || ''
-            }));
+        if (typeof window !== 'undefined' && isGuestMode) {
+            localStorage.setItem('nocaflow_guest_data', JSON.stringify(localData));
+            // S'assurer que guestName est synchronisé avec localData.user.displayName pour l'affichage
+            if (localData.user?.displayName !== guestName) {
+                setGuestName(localData.user?.displayName || initialGuestNameSSR);
+            }
         }
-    }, [guestName, isGuestMode]); // Dépendance ajoutée pour réagir au changement de guestName
+    }, [localData, isGuestMode, guestName, initialGuestNameSSR]);
 
+    // Gérer la mise à jour du nom de l'invité
+    const onUpdateGuestName = useCallback((newName) => {
+        setGuestName(newName);
+        onUpdateGuestData(prev => ({
+            ...prev,
+            user: {
+                ...prev.user,
+                displayName: newName
+            }
+        }));
+    }, [onUpdateGuestData]);
 
+    // Gérer la mise à jour des données de l'invité
     const onUpdateGuestData = useCallback((updater) => {
         setLocalData(prevLocalData => {
             const newData = typeof updater === 'function' ? updater(prevLocalData) : updater;
             const sanitizedData = { ...newData };
 
-            // Assurer que toutes les listes sont des tableaux
-            for (const key of ['tasks', 'messages', 'meetings', 'projects', 'staffMembers', 'clients', 'ganttTasks', 'invoices']) {
-                sanitizedData[key] = Array.isArray(sanitizedData[key]) ? sanitizedData[key] : [];
-            }
-            // Assurer que 'notes' est une chaîne de caractères
+            sanitizedData.tasks = Array.isArray(sanitizedData.tasks) ? sanitizedData.tasks : [];
+            sanitizedData.messages = Array.isArray(sanitizedData.messages) ? sanitizedData.messages : [];
+            sanitizedData.meetings = Array.isArray(sanitizedData.meetings) ? sanitizedData.meetings : [];
+            sanitizedData.projects = Array.isArray(sanitizedData.projects) ? sanitizedData.projects : [];
+            sanitizedData.staffMembers = Array.isArray(sanitizedData.staffMembers) ? sanitizedData.staffMembers : [];
+            sanitizedData.clients = Array.isArray(sanitizedData.clients) ? sanitizedData.clients : [];
+            sanitizedData.ganttTasks = Array.isArray(sanitizedData.ganttTasks) ? sanitizedData.ganttTasks : [];
+            sanitizedData.invoices = Array.isArray(sanitizedData.invoices) ? sanitizedData.invoices : [];
             sanitizedData.notes = typeof sanitizedData.notes === 'string' ? sanitizedData.notes : (prevLocalData.notes || initialMockData.notes || '');
 
-
-            // Conserver les propriétés user.displayName et user.photoURL si elles ne sont pas fournies par l'updater
             sanitizedData.user = {
-                ...(prevLocalData.user || {}), // Conserver les anciennes propriétés user
-                ...(newData.user || {}), // Appliquer les nouvelles propriétés user
-                displayName: (newData.user && newData.user.displayName !== undefined) ? newData.user.displayName : prevLocalData.user?.displayName || initialGuestName,
+                ...(prevLocalData.user || {}),
+                ...(newData.user || {}),
+                displayName: (newData.user && newData.user.displayName !== undefined) ? newData.user.displayName : prevLocalData.user?.displayName || initialGuestNameSSR,
                 photoURL: (newData.user && newData.user.photoURL !== undefined) ? newData.user.photoURL : prevLocalData.user?.photoURL || (initialMockData.user?.photoURL || '/images/avatarguest.jpg'),
             };
 
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('nocaflow_guest_data', JSON.stringify(sanitizedData));
-            }
             return sanitizedData;
         });
-    }, [initialGuestName]); // Ajout de initialGuestName comme dépendance de useCallback
+    }, [initialGuestNameSSR]);
+
 
     const stableGuestInitialTasks = useMemo(() => {
         return isGuestMode ? (localData.tasks || []) : [];
     }, [isGuestMode, localData.tasks]);
 
+    // useUserTodos utilise initialGuestTasks, assurez-vous que c'est stable
     const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
         useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
 
     const data = useMemo(() => {
-        const baseData = {
-            tasks: [], messages: [], meetings: [], projects: [],
-            staffMembers: [], clients: [], ganttTasks: [], invoices: [],
-            notes: initialMockData.notes, // Initialize notes with mockData
-            user: { displayName: '', photoURL: '/images/avatarguest.jpg' }
-        };
+        let currentData = { ...localData };
 
-        let mergedData;
-        if (isGuestMode) {
-            mergedData = { ...baseData, ...localData };
-            // L'objet user est déjà mis à jour via le useState guestName et l'useEffect associé
-            // On s'assure que photoURL est pris en compte
-            mergedData.user = {
-                ...mergedData.user, // Garde les infos de localData.user
-                displayName: guestName, // Priorise guestName pour l'affichage
-                photoURL: localData.user?.photoURL || '/images/avatarguest.jpg' // Assure une photo URL
-            };
-            mergedData.tasks = localData.tasks;
+        if (!isGuestMode) {
+            currentData.user = user;
+            currentData.tasks = todos;
+            // IMPORTANT : Si vous chargez des données Firebase (messages, projects, staffMembers, clients, ganttTasks, invoices)
+            // pour l'utilisateur connecté, c'est ici que vous devriez les assigner :
+            // currentData.messages = fetchedFirebaseMessages;
+            // currentData.projects = fetchedFirebaseProjects;
+            // ... etc.
+            // Pour l'instant, s'ils ne sont pas chargés de Firebase, ils restent ceux des mockData/localData.
         } else {
-            mergedData = { ...baseData, ...(initialMockData || {}) };
-            mergedData.user = user;
-            mergedData.tasks = todos;
+            // En mode invité, s'assurer que le displayName de l'utilisateur dans data reflète guestName
+            currentData.user = {
+                ...currentData.user,
+                displayName: guestName,
+            };
         }
 
-        // Assurer la robustesse des types de données
-        mergedData.messages = Array.isArray(mergedData.messages) ? mergedData.messages : [];
-        mergedData.meetings = Array.isArray(mergedData.meetings) ? mergedData.meetings : [];
-        mergedData.projects = Array.isArray(mergedData.projects) ? mergedData.projects : [];
-        mergedData.staffMembers = Array.isArray(mergedData.staffMembers) ? mergedData.staffMembers : [];
-        mergedData.clients = Array.isArray(mergedData.clients) ? mergedData.clients : [];
-        mergedData.ganttTasks = Array.isArray(mergedData.ganttTasks) ? mergedData.ganttTasks : [];
-        mergedData.invoices = Array.isArray(mergedData.invoices) ? mergedData.invoices : [];
-        mergedData.notes = typeof mergedData.notes === 'string' ? mergedData.notes : (initialMockData.notes || '');
+        // Assurer la robustesse des types de données (vérifications finales)
+        currentData.messages = Array.isArray(currentData.messages) ? currentData.messages : [];
+        currentData.meetings = Array.isArray(currentData.meetings) ? currentData.meetings : [];
+        currentData.projects = Array.isArray(currentData.projects) ? currentData.projects : [];
+        currentData.staffMembers = Array.isArray(currentData.staffMembers) ? currentData.staffMembers : [];
+        currentData.clients = Array.isArray(currentData.clients) ? currentData.clients : [];
+        currentData.ganttTasks = Array.isArray(currentData.ganttTasks) ? currentData.ganttTasks : [];
+        currentData.invoices = Array.isArray(currentData.invoices) ? currentData.invoices : [];
+        currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
 
 
-        return mergedData;
+        return currentData;
     }, [isGuestMode, localData, todos, guestName, user]);
 
 
-    // Les modales et leurs gestionnaires
     const [modals, setModals] = useState({
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
@@ -233,6 +193,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }), []);
 
     // Gestionnaires de données pour le mode invité (localData)
+    // S'assurer que chaque `onUpdateGuestData` est bien encapsulé dans useCallback avec les bonnes dépendances
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
     const deleteProject = useCallback((projectId) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).filter(p => p.id !== projectId) })); }, [onUpdateGuestData]);
@@ -267,11 +228,20 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, []);
 
-    const stats = useMemo(() => ({
-        messages: (data.messages || []).length,
-        tasks: (data.tasks || []).length,
-        meetings: (data.meetings || []).length,
-    }), [data.messages, data.tasks, data.meetings]);
+    // Calcul des statistiques, assurez-vous qu'il est SSR-safe
+    const stats = useMemo(() => {
+        // Ces calculs ne doivent pas utiliser `new Date()` directement dans useMemo sans une gestion stricte
+        // pour que la "date d'aujourd'hui" soit la même en SSR et CSR.
+        // Pour les mockData, c'est généralement moins problématique car les dates sont fixes.
+        // Si vous utilisez des dates réelles, il faut les passer comme prop ou les calculer dans useEffect.
+        const now = new Date(); // Déplacez ceci si vous rencontrez des problèmes d'hydratation spécifiques ici
+
+        return {
+            messages: (data.messages || []).length, // Ne pas filtrer si messages n'ont pas de readBy en mock
+            tasks: (data.tasks || []).filter(task => !task.completed).length,
+            meetings: (data.meetings || []).filter(m => new Date(m.dateTime) > now).length, // Compare avec 'now'
+        };
+    }, [data.messages, data.tasks, data.meetings]);
 
     const handleOpenAddTaskFromChat = useCallback((chatData) => {
         openModal('assignTaskProjectDeadline', {
@@ -333,6 +303,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onRegisterClick={onRegisterClick}
                                     onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
                                     availableTeamMembers={data.staffMembers}
+                                    messages={data.messages} // Passer les messages ici
+                                    user={user} // Passer l'objet user
+                                    initialMockData={initialMockData}
                                 />
                             </DashboardCard>
 
@@ -358,8 +331,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             <Projects
                                 projects={data.projects}
                                 t={t}
-                                onAddProject={addProject}
-                                onEditProject={editProject}
+                                onAddProject={addProject} // Ne pas englober dans openModal ici
+                                onEditProject={editProject} // Ne pas englober dans openModal ici
                                 onDeleteProject={deleteProject}
                                 onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)}
                                 className="flex-1 min-h-[598px]"
@@ -444,7 +417,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {modals.project && modals.project.mode === 'edit' ? (
                     <ProjectFormModal t={t} initialData={modals.project.project} onSave={editProject} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />
                 ) : (
-                    modals.project && <ProjectFormModal t={t} onAdd={addProject} isGuest={isGuestMode} onClose={closeModal} />
+                    modals.project && <ProjectFormModal t={t} onSave={addProject} isGuest={isGuestMode} onClose={closeModal} />
                 )}
 
                 {modals.invoiceForm && <InvoiceFormModal t={t} isGuest={isGuestMode} client={modals.invoiceForm.client} onAdd={handleAddInvoice} onClose={closeModal} />}
@@ -455,7 +428,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {modals.assignTaskProjectDeadline && (
                     <AssignTaskProjectDeadlineModal
                         t={t}
-                        chatData={modals.assignTaskProjectDeadline}
+                        member={modals.assignTaskProjectDeadline} // Passer `member` pour la cohérence
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers}
                         userUid={userUid}

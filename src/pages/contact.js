@@ -3,7 +3,6 @@ import Head from 'next/head';
 import { Mail, MapPin } from 'lucide-react';
 import { motion } from "framer-motion";
 
-// Imports for i18n
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
@@ -17,11 +16,11 @@ export default function ContactPage() {
       <Head>
         <title>{pageTitle} - NocaFLOW</title>
       </Head>
-      <div className="flex items-center justify-center min-h-[calc(100vh-128px)]">
-        <div className="text-center p-8">
+      <div className="flex items-center justify-center min-h-[calc(100vh-128px)] bg-color-bg-primary text-color-text-primary">
+        <div className="text-center p-8 glass-card rounded-2xl shadow-lg"> {/* Appliquer glass-card */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <h1 className="text-5xl font-bold tracking-tighter animated-gradient-text pink-gradient-text mb-4">{pageTitle}</h1>
-              <p className="text-xl text-slate-400 mt-4 max-w-2xl mx-auto">
+              <h1 className="text-5xl font-bold tracking-tighter animated-gradient-text pink-violet-gradient-text mb-4">{pageTitle}</h1>
+              <p className="text-xl text-color-text-secondary mt-4 max-w-2xl mx-auto">
                 {t('contact_page_desc', 'Une question, une suggestion ou un problème ? N\'hésitez pas à nous contacter.')}
               </p>
 
@@ -42,7 +41,6 @@ export default function ContactPage() {
   );
 }
 
-// Add getStaticProps to load translations for this page
 export async function getStaticProps({ locale }) {
   return {
     props: {

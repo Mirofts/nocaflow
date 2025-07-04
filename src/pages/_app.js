@@ -8,19 +8,18 @@ import { ThemeProvider } from '../context/ThemeContext';
 import i18nextConfig from '../../next-i18next.config';
 import { AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { useTranslation } from 'next-i18next'; // Importez useTranslation
+import { useTranslation } from 'next-i18next';
 
-// *** IMPORTS DES COMPOSANTS DE LAYOUT ***
+// IMPORTS DES COMPOSANTS DE LAYOUT
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
-// *** IMPORTEZ VOS VRAIS COMPOSANTS DE MODALES ICI ***
-// Assurez-vous que les chemins sont corrects par rapport à votre structure de dossiers
+// IMPORTEZ VOS VRAIS COMPOSANTS DE MODALES ICI
 import LoginModal from '../components/LoginModal';
-import RegisterModal from '../components/RegisterModal'; // Utilisez le composant RegisterModal du dossier components, qui est maintenant mis à jour
+import RegisterModal from '../components/components/RegisterModal'; // Chemin corrigé si RegisterModal est dans components/components
 
 function MyApp({ Component, pageProps }) {
-  const { t } = useTranslation('common'); // Obtenez l'instance t ici
+  const { t } = useTranslation('common');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
@@ -29,23 +28,23 @@ function MyApp({ Component, pageProps }) {
   const closeLoginModal = () => setShowLoginModal(false);
   const closeRegisterModal = () => setShowRegisterModal(false);
 
-  // Fonctions pour basculer entre les modales
   const switchToRegisterFromLogin = () => {
     closeLoginModal();
-    handleRegisterClick();
+    setShowRegisterModal(true);
   };
 
   const switchToLoginFromRegister = () => {
     closeRegisterModal();
-    handleLoginClick();
+    setShowLoginModal(true);
   };
 
   const handleOpenCalculator = () => {
     console.log("Ouvrir la calculatrice");
-    // Implémentez la logique pour ouvrir votre calculatrice ici
   };
 
   return (
+    // Les Context Providers doivent englober toute l'application pour être disponibles en SSR.
+    // L'ordre est important: AuthContext peut dépendre de ThemeContext, ou l'inverse, mais ils doivent être au-dessus des composants qui les utilisent.
     <AuthContextProvider>
       <ThemeProvider>
         <div className="flex flex-col min-h-screen bg-color-bg-primary text-color-text-primary">
@@ -56,7 +55,6 @@ function MyApp({ Component, pageProps }) {
             <title>NocaFLOW</title>
           </Head>
 
-          {/* *** NAVBAR EST MAINTENANT RENDUE ICI *** */}
           <Navbar
             onLoginClick={handleLoginClick}
             onRegisterClick={handleRegisterClick}
@@ -64,31 +62,32 @@ function MyApp({ Component, pageProps }) {
           />
 
           <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8 pt-16">
+            {/* Composant principal de la page, reçoit toutes les props */}
             <Component
               {...pageProps}
               onLoginClick={handleLoginClick}
               onRegisterClick={handleRegisterClick}
-              t={t} // Passez t à Component si nécessaire (pour les pages qui en ont besoin, comme le dashboard si t n'est pas utilisé directement là-bas)
+              t={t} // Passe la fonction de traduction 't' à toutes les pages/composants
             />
           </main>
 
-          {/* *** FOOTER EST MAINTENANT RENDU ICI *** */}
           <Footer />
         </div>
 
+        {/* AnimatePresence pour les animations d'entrée/sortie des modales */}
         <AnimatePresence>
             {showLoginModal && (
                 <LoginModal
                     onClose={closeLoginModal}
                     onSwitchToRegister={switchToRegisterFromLogin}
-                    t={t} // Passez t à la modale de connexion
+                    t={t} // Passe la fonction de traduction
                 />
             )}
             {showRegisterModal && (
                 <RegisterModal
                     onClose={closeRegisterModal}
                     onSwitchToLogin={switchToLoginFromRegister}
-                    t={t} // Passez t à la modale d'inscription
+                    t={t} // Passe la fonction de traduction
                 />
             )}
         </AnimatePresence>

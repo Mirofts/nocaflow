@@ -1,226 +1,258 @@
-// src/lib/mockData.js
+// src/components/Navbar.js
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Fonction utilitaire pour générer des dates réalistes (pour les démos)
-// Retourne une chaîne de caractères ISO pour éviter les problèmes d'hydratation avec les objets Date
-const getDate = (daysAhead = 0, hoursAhead = 0) => {
-  const date = new Date();
-  date.setDate(date.getDate() + daysAhead);
-  date.setHours(date.getHours() + hoursAhead);
-  date.setMinutes(Math.floor(date.getMinutes() / 5) * 5); // Arrondi à la 5min près
-  date.setSeconds(0);
-  date.setMilliseconds(0);
-  return date.toISOString(); // Retourne la date au format ISO string
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'next-i18next';
+
+// Composant NavLink pour les liens de navigation avec animation au survol
+const NavLink = ({ href, children, t, currentPath }) => {
+  const isActive = currentPath === href || (href === '/' && currentPath === '/');
+  return (
+    <Link href={href} className={`relative px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'text-pink-400' : 'text-color-text-secondary hover:text-color-text-primary'}`}>
+      {children}
+      {isActive && (
+        <motion.div
+          layoutId="underline"
+          className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-pink-500 to-violet-500 rounded-full"
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        />
+      )}
+    </Link>
+  );
 };
 
-export const initialMockData = {
-    user: {
-        uid: 'guest_noca_flow',
-        displayName: 'Visiteur Curieux',
-        photoURL: '/images/avatars/avatarguest.jpg', // Utilise avatarguest.jpg qui est présent
-    },
-    tasks: [
-        { id: '1', title: 'Préparer la démo NocaFLOW pour le client Alpha', completed: false, priority: 'urgent', deadline: getDate(2, 10), assignedTo: 'Alice Dubois', ownerUid: 'guest_noca_flow' },
-        { id: '2', title: 'Finaliser le rapport de performance Q2', completed: false, priority: 'normal', deadline: getDate(5, 14), assignedTo: 'Bob Martin', ownerUid: 'guest_noca_flow' },
-        { id: '3', title: 'Envoyer les relances factures impayées (Projet Z)', completed: true, priority: 'urgent', deadline: getDate(-10, 9), assignedTo: 'Diana Prince', ownerUid: 'guest_noca_flow' },
-        { id: '4', title: "Organiser l'atelier de brainstorming", completed: false, priority: 'cold', deadline: getDate(7, 11), assignedTo: 'Charlie Dupont', ownerUid: 'guest_noca_flow' },
-        { id: '5', title: 'Mettre à jour la documentation API V2', completed: false, priority: 'urgent', deadline: getDate(3, 16), assignedTo: 'Ethan Hunt', ownerUid: 'guest_noca_flow' },
-        { id: '6', title: 'Rechercher de nouvelles tendances UX pour 2026', completed: false, priority: 'normal', deadline: getDate(15, 10), assignedTo: 'Carla Lopez', ownerUid: 'guest_noca_flow' },
-        { id: '7', title: 'Acheter du café et des snacks pour le bureau', completed: false, priority: 'cold', deadline: getDate(1, 12), assignedTo: 'Visiteur Curieux', ownerUid: 'guest_noca_flow' },
-        { id: '8', title: 'Répondre aux 15 emails non lus de la veille', completed: false, priority: 'urgent', deadline: getDate(0, 3), assignedTo: 'Alice Dubois', ownerUid: 'guest_noca_flow' },
-        { id: '9', title: 'Créer un GIF rigolo pour l\'annonce interne', completed: false, priority: 'normal', deadline: getDate(8, 15), assignedTo: 'David Chen', ownerUid: 'guest_noca_flow' },
-    ],
-    notes: `## Bienvenue sur votre bloc-notes NocaFLOW ! 🚀\n\nIci, vous pouvez noter toutes vos idées, vos rappels rapides, ou même un journal de bord. C'est votre espace personnel pour ne rien oublier.\n\n**Quelques idées de choses à noter :**\n* Idées pour le prochain brainstorm client.\n* Codes d'accès temporaires (à supprimer après usage !)\n* Liste de courses pour la pause déjeuner.\n* Le nom de ce collègue qui raconte de super blagues.\n\nCommencez à taper pour sauvegarder automatiquement vos pensées.\n\nBonne productivité et amusez-vous bien ! ✨`,
-    meetings: [
-        { id: 'm1', title: 'Réunion de Sprint - Projet Alpha', dateTime: getDate(0, 2), attendees: ['Alice Dubois', 'Bob Martin', 'Visiteur Curieux'], type: 'staff', createdAt: getDate(-1) },
-        { id: 'm2', title: 'Point quotidien Design UX/UI', dateTime: getDate(0, -1), attendees: ['Carla Lopez', 'Visiteur Curieux'], type: 'staff', createdAt: getDate(-2) },
-        { id: 'm3', title: 'Appel client - Négociation Contrat Beta', dateTime: getDate(1, 10), attendees: ['Diana Prince', 'Visiteur Curieux', 'Client B'], type: 'client', createdAt: getDate(-1) },
-        { id: 'm4', title: 'Brainstorming - Campagne Marketing Hiver', dateTime: getDate(3, 14), attendees: ['David Chen', 'Ethan Hunt', 'Alice Dubois', 'Visiteur Curieux'], type: 'staff', createdAt: getDate(-2) },
-        { id: 'm5', title: 'Déjeuner d\'équipe virtuel', dateTime: getDate(5, 12), attendees: ['Alice Dubois', 'Bob Martin', 'Carla Lopez', 'David Chen', 'Ethan Hunt', 'Visiteur Curieux'], type: 'staff', createdAt: getDate(-3) },
-        { id: 'm6', title: 'Présentation des résultats Q1 - Interne', dateTime: getDate(-7, 10), attendees: ['Alice Dubois', 'Bob Martin', 'Visiteur Curieux'], type: 'staff', createdAt: getDate(-8) },
-        { id: 'm7', title: 'Mini-brief rapide NocaFLOW', dateTime: getDate(0, 0.1), attendees: ['Visiteur Curieux'], type: 'staff', createdAt: getDate(-0.5) }
-    ],
-    projects: [
-        {
-            id: 'p1',
-            name: 'Refonte Site NocaFLOW V3',
-            client: 'Interne',
-            progress: 85,
-            deadline: getDate(3, 17),
-            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
-            staff: ['/images/avatars/chloe.jpg', '/images/avatars/david.jpg', '/images/avatars/yves.jpg', '/images/avatars/elena.jpg'],
-            paidAmount: '25 000 €',
-            nextPayment: '5 000 € (01/07)',
-            totalAmount: '30 000 €',
-            createdAt: getDate(-30),
-            googleDriveLink: 'https://drive.google.com/drive/folders/1aBcDeFgHiJkLmNoPqrStUvWxyz012345',
-            description: "Refonte complète du site marketing pour améliorer le taux de conversion et l'expérience utilisateur. Inclut une nouvelle charte graphique et une optimisation SEO avancée."
-        },
-        {
-            id: 'p_alert',
-            name: 'Audit Sécurité Priorité',
-            client: 'CyberGuard Inc.',
-            progress: 20,
-            deadline: getDate(1, 4),
-            staff: ['/images/avatars/marcus.jpg'], // Utilise marcus.jpg
-            paidAmount: '0 €',
-            nextPayment: 'N/A',
-            totalAmount: '10 000 €',
-            createdAt: getDate(-7),
-            googleDriveLink: null,
-            description: "Audit de sécurité urgent pour le système critique."
-        },
-        {
-            id: 'p2',
-            name: 'Application Mobile X - MVP',
-            client: 'Tech Solutions Inc.',
-            progress: 40,
-            deadline: getDate(25, 18),
-            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
-            staff: ['/images/avatars/sophia.jpg', '/images/avatars/leo.jpg', '/images/avatars/elena.jpg'],
-            paidAmount: '15 000 €',
-            nextPayment: '10 000 € (15/07)',
-            totalAmount: '40 000 €',
-            createdAt: getDate(-60),
-            googleDriveLink: null,
-            description: "Développement du produit minimum viable (MVP) d'une application mobile innovante pour la gestion des stocks de produits technologiques."
-        },
-        {
-            id: 'p3',
-            name: 'Campagne Marketing "Été Éclatant"',
-            client: 'Summer Wear Co.',
-            progress: 98,
-            deadline: getDate(-2, 17),
-            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
-            staff: ['/images/avatars/elena.jpg', '/images/avatars/marcus.jpg', '/images/avatars/chloe.jpg'],
-            paidAmount: '12 000 €',
-            nextPayment: '0 € (Terminé)',
-            totalAmount: '12 000 €',
-            createdAt: getDate(-45),
-            googleDriveLink: 'https://drive.google.com/drive/folders/987654321zyxwvuTsrQponMLKjIhGfedcba',
-            description: "Conception et déploiement d'une campagne marketing estivale multi-canal (réseaux sociaux, email, display) pour augmenter les ventes de vêtements d'été."
-        },
-        {
-            id: 'p4',
-            name: 'Audit Sécurité Systèmes',
-            client: 'Global CyberSafe',
-            progress: 10,
-            deadline: getDate(40, 10),
-            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
-            staff: ['/images/avatars/marcus.jpg', '/images/avatars/david.jpg'],
-            paidAmount: '0 €',
-            nextPayment: '7 500 € (À l\'acceptation)',
-            totalAmount: '15 000 €',
-            createdAt: getDate(-5),
-            googleDriveLink: null,
-            description: "Audit complet de la sécurité des infrastructures systèmes et recommandations pour renforcer la protection contre les cybermenaces."
-        },
-         {
-            id: 'p5',
-            name: 'Optimisation SEO Blog Cuisine',
-            client: 'Gourmet Guides',
-            progress: 60,
-            deadline: getDate(15, 12),
-            // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
-            staff: ['/images/avatars/chloe.jpg', '/images/avatars/sophia.jpg'],
-            paidAmount: '2 000 €',
-            nextPayment: '2 000 € (Fin de mois)',
-            totalAmount: '5 000 €',
-            createdAt: getDate(-20),
-            googleDriveLink: 'https://drive.google.com/drive/folders/abcdefg123456789',
-            description: "Amélioration du référencement naturel pour le blog de recettes. Analyse de mots-clés, optimisation du contenu et link-building."
-        },
-    ],
-    invoices: [
-        { id: 'inv1', title: 'Facture Projet Alpha - Phase 1', client: 'Tech Solutions Inc.', amount: '5 000.00 €', date: '15/05/2025', status: 'Paid' },
-        { id: 'inv2', title: 'Facture Site NocaFLOW - Acompte', client: 'Interne', amount: '10 000.00 €', date: '01/06/2025', status: 'Paid' },
-        { id: 'inv3', title: 'Facture Campagne Hiver - Création', client: 'Winter Gear Co.', amount: '7 000.00 €', date: '05/06/2025', status: 'Paid' },
-        { id: 'inv4', title: 'Facture Projet Alpha - Phase 2', client: 'Tech Solutions Inc.', amount: '5 000.00 €', date: '20/06/2025', status: 'Pending' },
-        { id: 'inv5', title: 'Facture Audit Sécurité - Acompte', client: 'Global CyberSafe', amount: '7 500.00 €', date: '01/07/2025', status: 'Pending' },
-        { id: 'inv6', title: 'Facture Optimisation SEO - Phase Initiale', client: 'Gourmet Guides', amount: '2 000.00 €', date: '25/06/2025', status: 'Paid' },
-        { id: 'inv7', title: 'Facture Maintenance Annuelle', client: 'Old Client Corp.', amount: '1 200.00 €', date: '10/07/2025', status: 'Pending' },
-    ],
-    messages: [
-        // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
-        { id: 'msg1', sender: 'Alice Dubois', avatar: '/images/avatars/chloe.jpg', text: 'Salut l\'équipe ! Des nouvelles sur la refonte du site NocaFLOW ?', timestamp: '10:00', unread: false },
-        { id: 'msg2', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Oui, on a terminé la phase de conception UX hier soir. Prêt pour la revue !', timestamp: '10:05', unread: false, recipient: 'Alice Dubois' },
-        { id: 'msg3', sender: 'Alice Dubois', avatar: '/images/avatars/chloe.jpg', text: 'Super nouvelle ! On se voit à 11h pour discuter des prochaines étapes. N\'oublie pas les maquettes 😉', timestamp: '10:15', unread: true },
-        { id: 'msg4', sender: 'Bob Martin', avatar: '/images/avatars/david.jpg', text: 'Besoin d’aide sur le rapport de performance. Tu es dispo ?', timestamp: 'Hier 14:30', unread: false },
-        { id: 'msg5', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Je suis un peu pris, mais je peux regarder ça en fin de journée.', timestamp: 'Hier 14:45', unread: false, recipient: 'Bob Martin' },
-        { id: 'msg6', sender: 'Bob Martin', avatar: '/images/avatars/david.jpg', text: 'Pas de problème, merci !', timestamp: 'Hier 14:50', unread: false },
-        { id: 'msg7', sender: 'Charlie Dupont', avatar: '/images/avatars/elena.jpg', text: 'Le rapport annuel est prêt pour relecture.', timestamp: 'Lun. 09:00', unread: false },
-        { id: 'msg8', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Parfait, je vais le relire dans la matinée.', timestamp: 'Lun. 09:10', unread: false, recipient: 'Charlie Dupont' },
-        { id: 'msg9', sender: 'Diana Prince', avatar: '/images/avatars/leo.jpg', text: 'Peux-tu m’envoyer les dernières versions des maquettes finales s’il te plaît ?', timestamp: 'Aujourd’hui 09:30', unread: true },
-        { id: 'msg10', sender: 'Ethan Hunt', avatar: '/images/avatars/marcus.jpg', text: 'N’oublie pas les statistiques de la semaine dernière pour le meeting de 15h ! 📈', timestamp: 'Aujourd’hui 10:01', unread: true },
-        { id: 'msg11', sender: 'Carla Lopez', avatar: '/images/avatars/sophia.jpg', text: 'J\'ai quelques idées géniales pour l\'UI de la nouvelle app, hâte de vous montrer !', timestamp: 'Aujourd’hui 11:00', unread: false },
-        { id: 'msg12', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Super ! Envoie ça quand tu peux. 👍', timestamp: 'Aujourd’hui 11:05', unread: false, recipient: 'Carla Lopez' },
-        { id: 'msg13', sender: 'David Chen', avatar: '/images/avatars/david.jpg', text: 'Voici les premières ébauches de la campagne "Été Éclatant". Qu\'en penses-tu ?', timestamp: 'Aujourd’hui 12:00', unread: true, type: 'image', fileURL: 'https://picsum.photos/id/237/200/300' },
-        { id: 'msg14', sender: 'Visiteur Curieux', avatar: '/images/avatars/avatarguest.jpg', text: 'Wow, ça a l\'air génial ! J\'adore le concept. 🎉', timestamp: 'Aujourd’hui 12:05', unread: false, recipient: 'David Chen' },
-    ],
-    planningTasks: [
-        { id: 'pt1', person: 'Alice Dubois', title: 'Préparer la démo UX', startDate: getDate(0).split('T')[0], endDate: getDate(5).split('T')[0], completed: false, priority: 'normal', color: 'pink' },
-        { id: 'pt2', person: 'Bob Martin', title: 'Développement Backend V1', startDate: getDate(3).split('T')[0], endDate: getDate(10).split('T')[0], completed: false, priority: 'urgent', color: 'red' },
-        { id: 'pt3', person: 'Carla Lopez', title: 'Wireframes Mobiles', startDate: getDate(-2).split('T')[0], endDate: getDate(2).split('T')[0], completed: true, priority: 'normal', color: 'green' },
-        { id: 'pt4', person: 'David Chen', title: "Planification Campagne A", startDate: getDate(1).split('T')[0], endDate: getDate(7).split('T')[0], completed: false, priority: 'cold', color: 'blue' },
-        { id: 'pt5', person: 'Alice Dubois', title: 'Tests Qualité Alpha', startDate: getDate(6).split('T')[0], endDate: getDate(12).split('T')[0], completed: false, priority: 'normal', color: 'pink' },
-        { id: 'pt6', person: 'Bob Martin', title: 'Intégration API Tiers', startDate: getDate(11).split('T')[0], endDate: getDate(18).split('T')[0], completed: false, priority: 'urgent', color: 'red' },
-        { id: 'pt7', person: 'Sophie Laurent', title: 'Implémentation UI/UX', startDate: getDate(-1).split('T')[0], endDate: getDate(4).split('T')[0], completed: false, priority: 'normal', color: 'violet' },
-        { id: 'pt8', person: 'Marc Tremblay', title: 'Migration Serveur Cloud', startDate: getDate(8).split('T')[0], endDate: getDate(14).split('T')[0], completed: false, priority: 'urgent', color: 'cyan' },
-        { id: 'pt9', person: 'Ethan Hunt', title: 'Analyse des données client', startDate: getDate(0).split('T')[0], endDate: getDate(3).split('T')[0], completed: false, priority: 'normal', color: 'orange' },
-        { id: 'pt10', person: 'Diana Prince', title: 'Stratégie de Contenu Q3', startDate: getDate(5).split('T')[0], endDate: getDate(9).split('T')[0], completed: false, priority: 'cold', color: 'teal' },
-    ],
-    staffMembers: [
-        // Utilise les chemins d'images d'avatars que vous avez fournis dans vos captures
-        { id: 's1', name: 'Alice Dubois', role: 'Chef de Projet Senior', email: 'alice.d@example.com', avatar: '/images/avatars/chloe.jpg' },
-        { id: 's2', name: 'Bob Martin', role: 'Développeur Fullstack', email: 'bob.m@example.com', avatar: '/images/avatars/david.jpg' },
-        { id: 's3', name: 'Carla Lopez', role: 'Designer UX/UI', email: 'carla.l@example.com', avatar: '/images/avatars/elena.jpg' },
-        { id: 's4', name: 'David Chen', role: 'Spécialiste Marketing Digital', email: 'david.c@example.com', avatar: '/images/avatars/leo.jpg' },
-        { id: 's5', name: 'Ethan Hunt', role: 'Analyste Données', email: 'ethan.h@example.com', avatar: '/images/avatars/marcus.jpg' },
-        { id: 's6', name: 'Diana Prince', role: 'Consultante Stratégie', email: 'diana.p@example.com', avatar: '/images/avatars/sophia.jpg' },
-        { id: 's7', name: 'Charlie Dupont', role: 'Responsable Qualité', email: 'charlie.d@example.com', avatar: '/images/avatars/yves.jpg' },
-        // Ajout des membres restants s'ils ne sont pas déjà dans la liste
-        { id: 's8', name: 'Sophie Laurent', role: 'Développeur Frontend', email: 'sophie.l@example.com', avatar: '/images/avatars/sophia.jpg' }, // Supposons sophia.jpg pour Sophie
-        { id: 's9', name: 'Marc Tremblay', role: 'Architecte Cloud', email: 'marc.t@example.com', avatar: '/images/avatars/marcus.jpg' }, // Supposons marcus.jpg pour Marc
-    ],
-    clients: [
-        { id: 'cl1', name: 'Tech Solutions Inc.', contactEmail: 'contact@techsol.com', phone: '0123456789', lastContact: getDate(-5), projects: ['p2'] },
-        { id: 'cl2', name: 'Summer Wear Co.', contactEmail: 'info@summerwear.com', phone: '0987654321', lastContact: getDate(-2), projects: ['p3'] },
-        { id: 'cl3', name: 'Global CyberSafe', contactEmail: 'support@cybersafe.com', phone: '0654321098', lastContact: getDate(-1), projects: ['p4'] },
-        { id: 'cl4', name: 'Gourmet Guides', contactEmail: 'hello@gourmetguides.net', phone: '0711223344', lastContact: getDate(-10), projects: ['p5'] },
-        { id: 'cl5', name: 'EcoBuild Innovations', contactEmail: 'info@ecobuild.com', phone: '0566778899', lastContact: getDate(-15), projects: [] },
-    ],
-};
+// Composant principal Navbar
+export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator }) {
+  const { t } = useTranslation('common');
+  const router = useRouter();
+  const { locale: currentLocale, push, pathname, asPath, query } = router;
 
-export const mockPortalData = {
-    documentTitle: 'Stratégie de Lancement Produit V2',
-    author: {
-        name: 'Yves P. (Votre profil)',
-        avatarUrl: '/images/avatars/yves.jpg', // Confirmez que cette image existe et est nommée correctement
-    },
-    isFeatured: true,
-    viewCount: '2.5k',
-    avgEngagementSeconds: 185,
-    leadsCaptured: 42,
-    summary: `Ce document détaille la stratégie complète pour le lancement de la version 2 de notre produit phare. Il couvre l'analyse de marché, la proposition de valeur, les personas cibles, le plan marketing détaillé (SEO, SEM, social media, email marketing), et les prévisions de vente pour les six prochains mois.\n\nNous avons mis un accent particulier sur l'engagement utilisateur post-lancement et les boucles de feedback pour assurer une amélioration continue.`,
-    project: {
-        tasks: [
-            { id: 't1', title: 'Revue UX/UI complète', status: 'complété' },
-            { id: 't2', title: 'Développement Backend V2', status: 'en cours' },
-            { id: 't3', title: 'Création contenu marketing', status: 'en cours' },
-            { id: 't4', title: 'Préparation du support client', status: 'à faire' },
-        ],
-    },
-    invoices: [
-        { id: 'INV-2025-001', amount: '15,000 €', date: '10/05/2025', status: 'Payée' },
-        { id: 'INV-2025-002', amount: '5,000 €', date: '20/06/2025', status: 'En attente' },
-    ],
-    files: [
-        { id: 'f1', name: 'Plan Marketing V2.pdf', url: '#' },
-        { id: 'f2', name: 'Spécifications Techniques.docx', url: '#' },
-        { id: 'f3', name: 'Maquettes UX.zip', url: '#' },
-    ],
-    messages: [
-        { id: 'm1', author: 'Team Design', avatarChar: 'TD', text: 'Les dernières maquettes sont prêtes pour validation !', timestamp: 'Hier, 16:30' },
-        { id: 'm2', author: 'Yves P.', avatarUrl: '/images/avatars/yves.jpg', text: 'Excellent travail, je suis en train de les revoir.', timestamp: 'Hier, 16:45' },
-        { id: 'm3', author: 'Alice D.', avatarChar: 'AD', text: 'Quelqu\'un a des retours sur le script vidéo ?', timestamp: 'Aujourd’hui, 09:00' },
-    ],
-};
+  const [isOpen, setIsOpen] = useState(false);
+  const { currentUser: user, logout, loadingAuth } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
+
+  const currentPath = pathname;
+  const isGuestMode = user && user.uid === 'guest_noca_flow';
+
+  // MODIFICATION ICI : Utilise default-avatar.jpg pour les invités et comme fallback général
+  const avatarUrl = isGuestMode ? '/images/avatars/default-avatar.jpg' : (user?.photoURL || '/images/avatars/default-avatar.jpg');
+
+  const mainNavLinks = [
+    { href: '/', label: t('about', 'À Propos') },
+    { href: '/features', label: t('features', 'Fonctionnalités') },
+    { href: '/pricing', label: t('pricing', 'Tarifs') },
+  ];
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [asPath]);
+
+  const setLocale = (newLocale) => {
+    push({ pathname, query }, asPath, { locale: newLocale });
+  };
+
+  return (
+    <nav className={`fixed top-0 left-0 w-full z-50 ${isDarkMode ? 'bg-gradient-to-b from-slate-900/80 to-transparent backdrop-blur-md border-b border-slate-700/50' : 'glass-nav border-b border-color-border-primary'}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center">
+            <Link href="/" className="flex-shrink-0 text-color-text-primary font-bold text-2xl">
+              <span className="text-color-text-primary">Noca</span>
+              <span className="animated-gradient-text pink-violet-gradient-text">FLOW</span>
+            </Link>
+          </div>
+
+          <div className="hidden md:flex items-center space-x-4">
+            {mainNavLinks.map(link => (
+                <NavLink key={link.href} href={link.href} t={t} currentPath={currentPath}>{link.label}</NavLink>
+            ))}
+
+            {!loadingAuth && (
+              <NavLink href="/dashboard" t={t} currentPath={currentPath}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-1 text-color-text-primary"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
+                {t('dashboard', 'Dashboard')}
+              </NavLink>
+            )}
+
+            <div className="relative">
+              <select
+                value={currentLocale}
+                onChange={(e) => setLocale(e.target.value)}
+                className={`block pl-3 pr-8 py-2 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500
+                            ${isDarkMode
+                                ? 'bg-slate-800 border-slate-700 text-white'
+                                : 'bg-color-bg-tertiary border-color-border-primary text-color-text-primary'
+                            }`}
+                aria-label="Langue"
+              >
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+              </select>
+              <div className={`pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 ${isDarkMode ? 'text-white' : 'text-color-text-primary'}`}>
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              </div>
+            </div>
+
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors"
+              aria-label={isDarkMode ? t('toggle_light_mode', 'Activer le mode clair') : t('toggle_dark_mode', 'Activer le mode sombre')}
+              title={isDarkMode ? t('toggle_light_mode', 'Mode Clair') : t('toggle_dark_mode', 'Mode Sombre')}
+            >
+              {isDarkMode ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              )}
+            </button>
+
+            {user && !loadingAuth ? (
+              <div className="flex items-center space-x-2 ml-4">
+                <div className="relative group">
+                  <Link href="/dashboard" className="flex items-center space-x-2">
+                    <motion.img
+                      src={avatarUrl}
+                      alt={user.displayName || 'User Avatar'}
+                      className="w-10 h-10 rounded-full border-2 border-pink-500 cursor-pointer object-cover"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.2 }}
+                    />
+                  </Link>
+                  <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1 bg-color-bg-secondary text-color-text-primary text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                    {user.displayName || (isGuestMode ? t('guest_user', 'Invité') : t('user_profile', 'Mon profil'))}
+                  </span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors"
+                  aria-label={t('logout', 'Déconnexion')}
+                  title={t('logout', 'Déconnexion')}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 16 22 12 17 8"/><line x1="22" x2="10" y1="12" y2="12"/></svg>
+                  {t('logout', 'Déconnexion')}
+                </button>
+              </div>
+            ) : (
+              !loadingAuth && !user && (
+                <div className="flex space-x-2 ml-4">
+                  <button
+                    onClick={onLoginClick}
+                    className="px-4 py-2 rounded-full text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 transition-colors flex items-center gap-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+                    {t('login', 'Connexion')}
+                  </button>
+                  <button
+                    onClick={onRegisterClick}
+                    className="px-4 py-2 rounded-full text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                    {t('register', 'Inscription')}
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-color-border-active"
+              aria-expanded={isOpen}
+            >
+              <span className="sr-only">{t('open_main_menu', 'Ouvrir le menu principal')}</span>
+              {isOpen ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="block h-6 w-6" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="block h-6 w-6" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden fixed inset-x-0 top-16 z-40 glass-card mx-4 rounded-b-2xl p-4 border-t-0"
+          >
+            <div className="pt-2 pb-3 space-y-1 sm:px-3">
+              {mainNavLinks.map(link => (
+                <Link key={link.href} href={link.href} className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors">
+                  {link.label}
+                </Link>
+              ))}
+              {!loadingAuth && (
+                <Link href="/dashboard" className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
+                    {t('dashboard', 'Dashboard')}
+                </Link>
+              )}
+              <div className="px-3 py-2">
+                <select
+                  value={currentLocale}
+                  onChange={(e) => setLocale(e.target.value)}
+                  className={`block w-full pl-3 pr-8 py-2 text-base rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500
+                              ${isDarkMode
+                                  ? 'bg-slate-800 border-slate-700 text-white'
+                                  : 'bg-color-bg-tertiary border-color-border-primary text-color-text-primary'
+                              }`}
+                >
+                  <option value="fr">Français</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+              <button
+                onClick={toggleTheme}
+                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors"
+              >
+                {isDarkMode ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    )}
+                    {isDarkMode ? t('toggle_light_mode', 'Activer le mode clair') : t('toggle_dark_mode', 'Activer le mode sombre')}
+                  </button>
+                  {user && !loadingAuth ? (
+                    <button
+                      onClick={logout}
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 16 22 12 17 8"/><line x1="22" x2="10" y1="12" y2="12"/></svg>
+                      {t('logout', 'Déconnexion')}
+                    </button>
+                  ) : (
+                    !loadingAuth && !user && (
+                      <div className="flex flex-col space-y-2 pt-2">
+                        <button
+                          onClick={onLoginClick}
+                          className="w-full px-3 py-2 rounded-md text-base font-medium text-white bg-violet-600 hover:bg-violet-700 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+                          {t('login', 'Connexion')}
+                        </button>
+                        <button
+                          onClick={onRegisterClick}
+                          className="w-full px-3 py-2 rounded-md text-base font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                          {t('register', 'Inscription')}
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+    </nav>
+  );
+}
