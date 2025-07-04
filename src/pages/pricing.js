@@ -10,18 +10,18 @@ export default function PricingPage() {
 
   const pricingPlans = useMemo(() => [
     {
-      name: t('tier_solo_name', 'Solo'),
-      price: t('tier_solo_price', '49€'),
+      name: 'Solo', // Hardcoded new name
+      price: '9$', // Hardcoded new price
       period: t('per_month', '/month'),
-      features: t('tier_solo_features', 'For freelancers\nUp to 5 active projects\nUp to 25 clients\n1 GB storage').split('\n'), // Split string by newline
+      features: t('tier_solo_features', 'For freelancers\nUp to 5 active projects\nUp to 25 clients\n1 GB storage').split('\n'),
       buttonText: t('start', 'Get Started'),
       buttonLink: '/register',
-      isFree: false, // Updated based on 49€ price
+      isFree: false,
       isPopular: false,
     },
     {
-      name: t('tier_team_name', 'Team'),
-      price: t('tier_team_price', '99€'),
+      name: 'Team', // Hardcoded new name
+      price: '49$', // Hardcoded new price
       period: t('per_month', '/month'),
       features: t('tier_team_features', 'For small teams\nUnlimited projects\nUnlimited clients\nCustom branding\n10 GB storage').split('\n'),
       buttonText: t('start', 'Get Started'),
@@ -29,8 +29,8 @@ export default function PricingPage() {
       isPopular: true,
     },
     {
-      name: t('tier_business_name', 'Business'),
-      price: t('tier_business_price', '249€'),
+      name: 'Business', // Hardcoded new name
+      price: '249$', // Hardcoded new price
       period: t('per_month', '/month'),
       features: t('tier_business_features', 'For growing agencies\nCustom domain\nAPI & Integrations\nPriority support\nUnlimited storage').split('\n'),
       buttonText: t('start', 'Get Started'),
@@ -39,10 +39,10 @@ export default function PricingPage() {
       isPopular: false,
     },
     {
-      name: t('tier_enterprise_name', 'Enterprise'),
-      price: t('plan_price_contact', 'Contact Us'),
-      period: '',
-      features: t('tier_enterprise_features', 'Custom plan for large teams. SSO, advanced security, and dedicated support.').split('\n'),
+      name: 'Big group', // Hardcoded new name
+      price: '1999$', // Hardcoded new price
+      period: t('per_month', '/month'), // Changed to '/month' from empty string
+      features: t('tier_enterprise_features', 'Custom plan for large teams. SSO, advanced security, and dedicated support.').split('\n'), // Features remain from original enterprise
       buttonText: t('contact_us', 'Contact Us'),
       buttonLink: '/contact',
       isFree: false,
@@ -53,23 +53,21 @@ export default function PricingPage() {
   return (
     <>
       <Head>
-        <title>{t('pricing_page_title', 'Tarifs - NocaFLOW')}</title>
+        {/* Hardcoded titles and descriptions for consistency and to avoid hydration issues */}
+        <title>Tarifs - NocaFLOW</title>
         <meta
           name="description"
-          content={t(
-            'pricing_meta_description',
-            "Découvrez les plans tarifaires de NocaFLOW et choisissez celui qui correspond le mieux à vos besoins."
-          )}
+          content="Découvrez les plans tarifaires de NocaFLOW et choisissez celui qui correspond le mieux à vos besoins."
         />
       </Head>
 
       <div className="py-12 bg-color-bg-primary text-color-text-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            {t('pricing_title', 'Un tarif simple et transparent.')}
+            Un tarif simple et transparent.
           </h1>
           <p className="text-xl text-color-text-secondary max-w-3xl mx-auto">
-            {t('pricing_subtitle', 'Choisissez le plan qui s\'adapte à votre croissance. Sans frais cachés, sans surprise.')}
+            Choisissez le plan qui s'adapte à votre croissance. Sans frais cachés, sans surprise.
           </p>
 
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"> {/* Adjusted grid for 4 plans */}
@@ -106,7 +104,7 @@ const PricingCard = ({ plan, t }) => {
         ))}
       </ul>
       <Link href={plan.buttonLink} className={`mt-auto w-full px-6 py-3 rounded-full text-lg font-semibold transition-colors
-        ${plan.name === t('tier_solo_name', 'Solo')
+        ${plan.name === 'Solo' // Check against hardcoded name
           ? 'main-button-secondary' // Use a general secondary style for the lowest tier
           : plan.isPopular
           ? 'main-action-button bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 pulse-button' // Popular tier gets the main action style
