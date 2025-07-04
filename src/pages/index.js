@@ -61,9 +61,9 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
   }
 
   // Handle guest login redirection
-  const handleGuestLogin = () => {
-    loginAsGuest(); // Potentially sets up guest user
-    router.push('/dashboard'); // Redirect to dashboard immediately after initiating guest login
+  const handleGuestLogin = async () => { // Made async
+    await loginAsGuest(); // Await the guest login
+    router.push('/dashboard'); // Then redirect
   };
 
   return (
@@ -83,11 +83,12 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
         initial="hidden"
         animate="visible"
         variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-        // FIX: Removed `px-4` and used `w-screen` to ensure true fullscreen background
-        className="relative min-h-screen w-screen flex flex-col items-center justify-center text-center pt-32 pb-20 overflow-hidden bg-purple-900"
+        // FIX: Added !w-screen and !max-w-none to override potential parent container styles
+        // min-h-screen to ensure it takes full viewport height
+        className="relative min-h-screen !w-screen !max-w-none flex flex-col items-center justify-center text-center pt-32 pb-20 overflow-hidden bg-purple-900"
       >
         {/* Fullscreen Video Background */}
-        {/* FIX: Ensure video div also takes full width and height */}
+        {/* The video div itself also needs to ensure full coverage */}
         <div className="absolute inset-0 z-0 w-full h-full">
           <video
             autoPlay
@@ -104,8 +105,8 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
           <div className="absolute inset-0 bg-black opacity-50"></div>
         </div>
 
-        {/* Content over the video, still constrained by max-w and centered */}
-        <div className="relative z-10 flex flex-col items-center max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"> {/* Added back px for content padding */}
+        {/* Content over the video, now correctly centered within the full-width section */}
+        <div className="relative z-10 flex flex-col items-center max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"> {/* Keep px for content */}
           <motion.div variants={FADE_UP_VARIANTS} className="text-center">
             {/* New Headline Structure */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter text-slate-600 mb-2">
@@ -133,7 +134,7 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
             </button>
 
             <button
-              onClick={handleGuestLogin} // Updated to directly call handleGuestLogin
+              onClick={handleGuestLogin} // Now an async function call
               className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-slate-300 rounded-full bg-slate-800/50 border border-slate-700 hover:bg-slate-800 transition-colors shadow-md"
             >
               <Eye size={20} /> {t('try_as_guest', 'Essayer en mode invité')}
