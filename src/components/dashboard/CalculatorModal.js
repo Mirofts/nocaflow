@@ -1,5 +1,5 @@
 // src/components/CalculatorModal.js
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 export default function CalculatorModal({ t, onClose }) {
@@ -8,6 +8,20 @@ export default function CalculatorModal({ t, onClose }) {
   const [previousValue, setPreviousValue] = useState(null);
   const [waitingForNewNumber, setWaitingForNewNumber] = useState(true);
   const [history, setHistory] = useState([]); // To store calculation history
+
+  const calculatorRef = useRef(null); // Ref for the modal content to focus for keyboard input
+
+  // Function to format numbers for display
+  const formatScientific = useCallback((num) => {
+    if (isNaN(num) || !isFinite(num)) return String(num); // Handle NaN, Infinity
+    if (Math.abs(num) >= 1e12 || Math.abs(num) < 1e-6 && num !== 0) { // Large or very small numbers
+      return num.toExponential(6); // Scientific notation with 6 decimal places
+    }
+    if (num.toString().length > 12) { // Limit length for display
+        return parseFloat(num.toFixed(8)).toString(); // Fix to 8 decimal places and remove trailing zeros
+    }
+    return num.toString();
+  }, []);
 
   const handleDigitClick = useCallback((digit) => {
     if (waitingForNewNumber) {
@@ -56,7 +70,7 @@ export default function CalculatorModal({ t, onClose }) {
         }
         setPreviousValue(result);
         setInput(formatScientific(result));
-        historyEntry = `${previousValue} ${currentOperation} ${inputValue} = ${formatScientific(result)}`;
+        historyEntry = `${formatScientific(previousValue)} ${currentOperation} ${formatScientific(inputValue)} = ${formatScientific(result)}`;
       } catch (e) {
         setInput('Error');
         setPreviousValue(null);
@@ -75,31 +89,45 @@ export default function CalculatorModal({ t, onClose }) {
         setHistory(prev => [...prev, "---"]); // Separator for new calculation block
     } else {
         // If not '=', add current operation to history if it's the start of a new calculation block or just after result
+        // Or if previous value is already set, update the last history entry
         if (history.length === 0 || history[history.length - 1].includes('=')) {
-            setHistory(prev => [...prev.slice(0, -1), `${inputValue} ${nextOperation}`]); // Replace last entry with operation
+             // If starting a new calculation or after an equals, add the current input and operation
+            setHistory(prev => [...prev, `${formatScientific(inputValue)} ${nextOperation}`]);
         } else {
-            setHistory(prev => [...prev.slice(0, -1), `${previousValue !== null ? previousValue : inputValue} ${nextOperation}`]);
+            // Otherwise, update the last history entry to reflect the new operation
+            setHistory(prev => {
+                const lastEntry = prev[prev.length - 1];
+                if (lastEntry) {
+                    const parts = lastEntry.split(' ');
+                    // Replace the old operation with the new one
+                    parts[parts.length - 1] = nextOperation;
+                    return [...prev.slice(0, -1), parts.join(' ')];
+                }
+                return prev;
+            });
         }
     }
-  }, [input, currentOperation, previousValue, history]);
+  }, [input, currentOperation, previousValue, formatScientific, history]); // Added formatScientific to dependencies
 
   const handlePercentageClick = useCallback(() => {
-    const inputValue = parseFloat(input);
+    let inputValue = parseFloat(input);
+    let result;
+
     if (currentOperation === '+' || currentOperation === '-') {
       // For addition/subtraction, % means (previousValue * inputValue / 100)
-      const percentageValue = previousValue * (inputValue / 100);
-      setInput(formatScientific(percentageValue));
-      // You might want to automatically apply this percentage value to previousValue
-      // For simplicity, here we just show the percentage value and keep the operation for next number
-    } else if (currentOperation === '*' || currentOperation === '/') {
-      // For multiplication/division, % means (inputValue / 100)
-      setInput(formatScientific(inputValue / 100));
+      if (previousValue !== null) {
+        result = previousValue * (inputValue / 100);
+      } else {
+        // If no previous value, it's just input / 100
+        result = inputValue / 100;
+      }
     } else {
-      // If no operation, treat it as inputValue / 100
-      setInput(formatScientific(inputValue / 100));
+      // For multiplication/division, or no operation, % means (inputValue / 100)
+      result = inputValue / 100;
     }
-    // Don't change waitingForNewNumber immediately, let user decide next action
-  }, [input, previousValue, currentOperation]);
+    setInput(formatScientific(result));
+    setWaitingForNewNumber(false); // After percentage, allow appending digits
+  }, [input, previousValue, currentOperation, formatScientific]);
 
   const handleClear = useCallback(() => {
     setInput('0');
@@ -110,19 +138,69 @@ export default function CalculatorModal({ t, onClose }) {
   }, []);
 
   const handleToggleSign = useCallback(() => {
-    setInput(prev => String(parseFloat(prev) * -1));
-  }, []);
+    setInput(prev => formatScientific(parseFloat(prev) * -1));
+  }, [formatScientific]);
 
-  const formatScientific = (num) => {
-    if (isNaN(num) || !isFinite(num)) return String(num); // Handle NaN, Infinity
-    if (Math.abs(num) >= 1e12 || Math.abs(num) < 1e-6 && num !== 0) { // Large or very small numbers
-      return num.toExponential(6); // Scientific notation with 6 decimal places
+  const handleBackspace = useCallback(() => {
+    if (waitingForNewNumber) return;
+    setInput(prev => {
+      if (prev.length === 1 || (prev.length === 2 && prev.startsWith('-'))) {
+        setWaitingForNewNumber(true);
+        return '0';
+      }
+      return prev.slice(0, -1);
+    });
+  }, [waitingForNewNumber]);
+
+
+  // Keyboard event handling
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+        // Allow common browser shortcuts
+        if (event.ctrlKey || event.metaKey || event.altKey) {
+            return;
+        }
+
+        const key = event.key;
+
+        if (/\d/.test(key)) { // Digits 0-9
+            event.preventDefault(); // Prevent typing in case a hidden input is focused
+            handleDigitClick(key);
+        } else if (key === '.') {
+            event.preventDefault();
+            handleDecimalClick();
+        } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+            event.preventDefault();
+            handleOperationClick(key);
+        } else if (key === 'Enter') {
+            event.preventDefault();
+            handleOperationClick('=');
+        } else if (key === 'Backspace') {
+            event.preventDefault();
+            handleBackspace();
+        } else if (key === '%') {
+            event.preventDefault();
+            handlePercentageClick();
+        } else if (key === 'Escape') {
+            onClose(); // Close modal on Escape
+        } else if (key === 'c' || key === 'C') { // 'c' for clear
+            event.preventDefault();
+            handleClear();
+        }
+    };
+
+    const modalElement = calculatorRef.current;
+    if (modalElement) {
+        modalElement.focus(); // Focus the modal content to capture keydowns
+        modalElement.addEventListener('keydown', handleKeyDown);
     }
-    if (num.toString().length > 12) { // Limit length for display
-        return parseFloat(num.toFixed(8)).toString(); // Fix to 8 decimal places and remove trailing zeros
-    }
-    return num.toString();
-  };
+
+    return () => {
+        if (modalElement) {
+            modalElement.removeEventListener('keydown', handleKeyDown);
+        }
+    };
+  }, [handleDigitClick, handleDecimalClick, handleOperationClick, handleBackspace, handlePercentageClick, handleClear, onClose]);
 
   const buttonStyle = "w-16 h-16 rounded-full text-xl font-bold flex items-center justify-center transition-colors duration-200 shadow-md";
   const digitStyle = "bg-slate-700 text-white hover:bg-slate-600";
@@ -139,11 +217,13 @@ export default function CalculatorModal({ t, onClose }) {
       onClick={onClose}
     >
       <motion.div
+        ref={calculatorRef} // Attach ref here
+        tabIndex={-1} // Make div focusable
         initial={{ y: "-100vh", opacity: 0 }}
         animate={{ y: "0", opacity: 1 }}
         exit={{ y: "100vh", opacity: 0 }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className="glass-card p-6 rounded-2xl max-w-sm w-full relative overflow-hidden"
+        className="glass-card p-6 rounded-2xl max-w-sm w-full relative overflow-hidden focus:outline-none" // Added focus:outline-none
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute top-3 right-3 p-2 rounded-full text-slate-400 hover:bg-white/10 hover:text-white transition-colors">
