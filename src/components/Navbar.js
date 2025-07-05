@@ -19,15 +19,14 @@ const STATIC_MAIN_NAV_LINKS = [
   { href: '/pricing', i18nKey: 'pricing' },   // Scroll vers la section #pricing de l'accueil
 ];
 
-// NavLink reste un composant séparé et réutilisable
 const NavLink = ({ href, children, currentPath, locale }) => {
-  const router = useRouter();
   const isActive = currentPath === href || (href === '/' && currentPath === '/');
 
-  return (
+ return (
     <Link
       href={href}
       locale={locale}
+      scroll={true}
       className={`text-sm font-medium px-3 py-2 rounded-md transition-colors ${
         isActive
           ? 'text-color-text-primary'
@@ -40,23 +39,6 @@ const NavLink = ({ href, children, currentPath, locale }) => {
 };
 
 export default NavLink;
-
-  return (
-    <Link
-      href={isAnchor ? href.split('#')[0] || '/' : href}
-      locale={locale}
-      onClick={handleClick}
-      className={`text-sm font-medium px-3 py-2 rounded-md transition-colors ${
-        isActive
-          ? 'text-color-text-primary'
-          : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'
-      }`}
-    >
-      {children}
-    </Link>
-  );
-};
-
 
 // StatPill reste un composant séparé et réutilisable (pour l'affichage des chiffres)
 const StatPill = React.memo(({ icon, count, isPulsing = false, pulseColorClass = 'bg-pink-500' }) => {
