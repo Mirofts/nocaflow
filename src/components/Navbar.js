@@ -141,7 +141,6 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
 
             {/* Dashboard Link (always visible) */}
             {!loadingAuth && (
-              // Correction: Suppression des commentaires JSX qui enveloppaient la balise NavLink
               <NavLink href="/dashboard" currentPath={currentPath} locale={currentLocale}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-1 text-color-text-primary"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
                 {t('dashboard')}
@@ -227,7 +226,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                     className="px-4 py-2 rounded-full text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y1="11"/></svg>
-                    {t('register')}
+                    {t('register')} {/* This will now correctly pull "inscription" from your i18n JSON */}
                   </button>
                 </div>
               )
@@ -270,7 +269,6 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                 </Link>
               ))}
               {!loadingAuth && (
-                // Correction: Suppression des commentaires JSX qui enveloppaient la balise Link du Dashboard pour mobile
                 <Link href="/dashboard" locale={currentLocale} className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
                     {t('dashboard')}
@@ -319,7 +317,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                           onClick={onLoginClick}
                           className="w-full px-3 py-2 rounded-md text-base font-medium text-white bg-violet-600 hover:bg-violet-700 transition-colors flex items-center justify-center gap-1"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="17 16 22 12 17 8"/><line x1="22" x2="10" y1="12" y2="12"/></svg>
                           {t('login')}
                         </button>
                         <button
@@ -327,7 +325,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                           className="w-full px-3 py-2 rounded-md text-base font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y1="11"/></svg>
-                          {t('register')}
+                          {t('register')} {/* This will now correctly pull "inscription" from your i18n JSON */}
                         </button>
                       </div>
                     )
