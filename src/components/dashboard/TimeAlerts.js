@@ -6,12 +6,16 @@ import { fr } from 'date-fns/locale';
 import { useTheme } from '../../context/ThemeContext';
 import { DashboardCard } from './DashboardCard'; // Make sure DashboardCard is imported
 
+// Define the maximum duration for a full gauge (48 hours in minutes)
+const FULL_GAUGE_DURATION_MINUTES = 48 * 60; // 48 hours * 60 minutes/hour
+
 const TimeAlert = ({ type, title, dateTime, icon, pulseColorClass, openModal, t }) => {
     const { isDarkMode } = useTheme();
     const targetDate = parseISO(dateTime);
     // Include seconds in timeLeft state for smoother gauge animation
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: false });
-    const [initialTotalMinutes, setInitialTotalMinutes] = useState(0);
+    // initialTotalMinutes will now always be 48 hours for gauge calculation, or the actual time if less
+    const [initialCalculationPointMinutes, setInitialCalculationPointMinutes] = useState(0);
 
     useEffect(() => {
         if (!isValid(targetDate)) {
@@ -20,12 +24,17 @@ const TimeAlert = ({ type, title, dateTime, icon, pulseColorClass, openModal, t 
         }
 
         const now = new Date();
-        // Cap initial calculation for max 30 days, so gauge has a reasonable 'full' length
-        const futureCapDate = addDays(now, 30);
-        let initialMinutesForGauge = differenceInMinutes(targetDate, now);
-        if (initialMinutesForGauge < 0) initialMinutesForGauge = 0; // If already past, set to 0
-        // Use the larger of the actual difference or the 30-day cap for initial gauge range
-        setInitialTotalMinutes(Math.max(initialMinutesForGauge, differenceInMinutes(futureCapDate, now)));
+        // The initial point from which time remaining is calculated for the gauge's "fullness"
+        // This should be the targetDate's position relative to the starting point of the 48-hour window,
+        // or 48 hours itself if the event is very far.
+        const timeRemainingUntilTarget = differenceInMinutes(targetDate, now);
+        
+        // If the event is within 48 hours from now, the initialCalculationPoint is 48 hours.
+        // If the event is beyond 48 hours, the initialCalculationPoint is the actual time remaining,
+        // but we'll cap it at 48 hours for the gauge display.
+        // This is a bit tricky, let's simplify: the total range the gauge represents is 48 hours.
+        // So, initialCalculationPointMinutes is always FULL_GAUGE_DURATION_MINUTES for the denominator.
+        setInitialCalculationPointMinutes(FULL_GAUGE_DURATION_MINUTES);
 
 
         const calculateTimeLeft = () => {
@@ -66,12 +75,16 @@ const TimeAlert = ({ type, title, dateTime, icon, pulseColorClass, openModal, t 
     // though the pulseColorClass is used for the icon background.
     const pulseEffect = isUrgent || timeLeft.overdue;
 
-    // Calculate progress for the gauge
+    // Calculate progress for the gauge based on 48 hours as the max
     let progressPercentage = 0;
-    if (initialTotalMinutes > 0) {
-        progressPercentage = (timeLeft.totalMinutes / initialTotalMinutes) * 100;
-        if (progressPercentage < 0) progressPercentage = 0;
-        if (progressPercentage > 100) progressPercentage = 100; // Cap at 100%
+    // We only show progress if the event is within the 48-hour window
+    if (timeLeft.totalMinutes > 0 && timeLeft.totalMinutes <= FULL_GAUGE_DURATION_MINUTES) {
+        progressPercentage = (timeLeft.totalMinutes / FULL_GAUGE_DURATION_MINUTES) * 100;
+    } else if (timeLeft.totalMinutes > FULL_GAUGE_DURATION_MINUTES) {
+        // If remaining time is more than 48 hours, gauge should appear full
+        progressPercentage = 100;
+    } else if (timeLeft.overdue) {
+        progressPercentage = 0; // If overdue, gauge is empty
     }
     
     // Determine gauge background color based on type and dark mode
@@ -92,7 +105,7 @@ const TimeAlert = ({ type, title, dateTime, icon, pulseColorClass, openModal, t 
                     className={`p-1.5 rounded-full ml-2 transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-slate-700/50 hover:text-white' : 'text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary'}`}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    title={type === 'deadline' ? t('add_deadline', 'Ajouter une échéance') : t('schedule_meeting', 'Planifier une réunion')}
+                    title={t('add_deadline', 'Ajouter une échéance') : t('schedule_meeting', 'Planifier une réunion')}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
                 </motion.button>
@@ -108,7 +121,7 @@ const TimeAlert = ({ type, title, dateTime, icon, pulseColorClass, openModal, t 
             <div className={`w-full h-1.5 rounded-full ${gaugeTrackColorClass} mt-2 overflow-hidden`}>
                 <motion.div
                     className={`h-full rounded-full ${gaugeColorClass}`}
-                    initial={{ width: '100%' }}
+                    initial={{ width: '100%' }} // Start full for initial animation
                     animate={{ width: `${progressPercentage}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
                 ></motion.div>
@@ -153,7 +166,6 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal }) => {
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center py-4 px-2 text-color-text-secondary">
-                             {/* Corrected SVG for empty state icon */}
                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400 mb-1"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                             <p className="text-base font-semibold text-color-text-primary text-center">{t('no_upcoming_deadlines', 'Aucune échéance à venir')}</p>
                             <p className="text-xs mt-1 text-center">{t('add_new_deadline_hint', 'Ajoutez de nouvelles échéances pour rester organisé.')}</p>
@@ -184,7 +196,6 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal }) => {
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center py-4 px-2 text-color-text-secondary">
-                             {/* Corrected SVG for empty state icon */}
                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400 mb-1"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>
                             <p className="text-base font-semibold text-color-text-primary text-center">{t('no_upcoming_meetings', 'Aucune réunion à venir')}</p>
                             <p className="text-xs mt-1 text-center">{t('add_new_meeting_hint', 'Planifiez de nouvelles réunions pour rester connecté.')}</p>
