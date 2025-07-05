@@ -23,7 +23,6 @@ export const TaskItem = ({ task, onToggle, onDelete, onEdit, t }) => {
         : 'text-color-text-secondary'; 
 
     return(
-        // Reduced vertical padding and adjusted gap
         <div className="futuristic-card flex items-center gap-2 p-2 rounded-lg transition-colors duration-200 hover:bg-color-bg-hover group">
             <input 
               type="checkbox" 
@@ -32,14 +31,11 @@ export const TaskItem = ({ task, onToggle, onDelete, onEdit, t }) => {
               className={`form-checkbox h-5 w-5 text-pink-500 rounded focus:ring-pink-500 cursor-pointer flex-shrink-0
                          ${isDarkMode ? 'border-slate-600 bg-slate-700' : 'border-color-border-input bg-color-bg-input-field'}`}
             />
-            {/* Reduced size of icon container */}
             <div className="flex-shrink-0 flex items-center justify-center w-5 h-5">{priorityMap[task.priority]?.icon || priorityMap.normal.icon}</div>
             <div className="flex-grow min-w-0">
-                {/* Adjusted font size for title */}
                 <p className={`truncate text-sm ${task.completed ? 'line-through text-color-text-tertiary' : 'text-color-text-primary'}`}>{task.title}</p>
                 {isDeadlineValid && <span className={`block text-xs mt-0.5 ${deadlineColor}`}>{t('deadline', 'Échéance')}: {format(deadline,'dd/MM/yy', {locale:fr})}</span>}
             </div>
-            {/* Reduced size of buttons */}
             <div className="flex-shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button 
                   onClick={() => onEdit(task)} 

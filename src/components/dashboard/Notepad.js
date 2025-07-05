@@ -84,7 +84,6 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
                     onChange={e => handleChange(e.target.value)}
                     onFocus={handleFocus}
                     placeholder={t('notepad_placeholder_initial', 'Vos idées, vos pensées, votre génie...')}
-                    // Ensured text-sm for smaller text
                     className={`w-full flex-grow bg-transparent resize-none p-1 custom-scrollbar border-none focus:ring-0 focus:outline-none focus:border-transparent 
                                font-normal text-sm leading-relaxed ${isDarkMode ? 'text-orange-300' : 'text-violet-700'}`}
                 />

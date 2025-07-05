@@ -1,5 +1,5 @@
 // components/dashboard/InvoicesSummary.js
-import React, { useState, useEffect, useCallback } from 'react'; // Re-verified: useCallback explicitly imported
+import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardCard } from './DashboardCard';
 import { motion } from 'framer-motion';
 import { format, parseISO, isPast, isSameYear } from 'date-fns';
@@ -9,11 +9,15 @@ import { useTheme } from '../../context/ThemeContext';
 // Déplacé parseDate en dehors du composant pour qu'il soit accessible
 const parseDate = (dateString) => {
     // Check if dateString is already an ISO string (from Firebase)
-    if (dateString.includes('T') && dateString.includes('Z')) {
+    if (dateString && dateString.includes('T') && dateString.includes('Z')) { // Added null/undefined check for dateString
         return parseISO(dateString);
     }
-    const [day, month, year] = dateString.split('/').map(Number);
-    return new Date(year, month - 1, day); // Month est 0-indexé
+    // Attempt to parse dd/MM/yyyy
+    if (dateString) { // Added null/undefined check for dateString
+        const [day, month, year] = dateString.split('/').map(Number);
+        return new Date(year, month - 1, day); // Month est 0-indexé
+    }
+    return null; // Return null for invalid date strings
 };
 
 const InvoiceItem = ({ invoice, t }) => {
@@ -51,17 +55,17 @@ const InvoicesSummary = ({ openInvoiceForm, openInvoiceList, t, className = '' }
 
         const paidThisYear = allInvoices
             .filter(inv => inv.status === 'Paid' && isSameYear(parseDate(inv.date), new Date()))
-            .reduce((sum, inv) => sum + parseFloat(inv.amount.replace(/[^0-9,-]+/g, "").replace(',', '.')), 0);
+            .reduce((sum, inv) => sum + parseFloat(String(inv.amount).replace(/[^0-9,-]+/g, "").replace(',', '.')), 0); // Ensured inv.amount is string
 
         const pendingInvoices = allInvoices
             .filter(inv => inv.status === 'Pending');
 
         const pendingTotal = pendingInvoices
-            .reduce((sum, inv) => sum + parseFloat(inv.amount.replace(/[^0-9,-]+/g, "").replace(',', '.')), 0);
+            .reduce((sum, inv) => sum + parseFloat(String(inv.amount).replace(/[^0-9,-]+/g, "").replace(',', '.')), 0); // Ensured inv.amount is string
 
         const now = new Date();
         const nextPendingInvoice = pendingInvoices
-            .filter(inv => parseDate(inv.date).getTime() >= now.getTime())
+            .filter(inv => parseDate(inv.date) && parseDate(inv.date).getTime() >= now.getTime()) // Check if parseDate returns valid date
             .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime())[0];
 
         setInvoices(allInvoices);
@@ -71,7 +75,6 @@ const InvoicesSummary = ({ openInvoiceForm, openInvoiceList, t, className = '' }
             nextPendingInvoice: nextPendingInvoice,
         });
     }, []);
-
 
     return (
         <DashboardCard icon={

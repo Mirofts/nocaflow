@@ -1,5 +1,5 @@
 // components/dashboard/Projects.js
-import React, { useState, useEffect, useCallback } from 'react'; // Re-verified: useCallback explicitly imported
+import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardCard } from './DashboardCard';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -25,7 +25,6 @@ const ProjectItem = ({ project, t, onEditProject, onDeleteProject, onAddGoogleDr
     } else if (isDeadlineValid && deadlineDate <= new Date()) {
         progressPercentage = 100;
     }
-
 
     return (
         <div className={`p-3 flex flex-col gap-3 ${isDarkMode ? 'bg-slate-700' : 'bg-color-bg-tertiary border border-color-border-primary'} rounded-lg shadow-sm`}>
