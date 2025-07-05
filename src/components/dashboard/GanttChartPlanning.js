@@ -1,8 +1,8 @@
 // src/components/dashboard/GanttChartPlanning.js
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { DashboardCard } from './DashboardCard';
-// Import all necessary date-fns functions
-import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, differenceInDays, isValid, parseISO, subMonths, addMonths } from 'date-fns';
+// Ensure all necessary date-fns functions are imported
+import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, differenceInDays, isValid, parseISO, subMonths, addMonths, startOfDay } from 'date-fns'; // Added startOfDay
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -80,36 +80,37 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
 
     // Function to calculate style for each task bar accurately
     const getTaskBarStyle = useCallback((task) => {
-        // IMPORTANT: Ensure dates from task are parsed consistently.
-        // If task.startDate and task.endDate are already 'yyyy-MM-dd' from input,
-        // parseISO will interpret them as UTC midnight.
-        // We need to ensure consistency when calculating differences based on viewStartDate.
-        const taskStart = parseISO(task.startDate);
-        const taskEnd = parseISO(task.endDate);
+        // IMPORTANT: Parse dates and convert to start of local day for consistent calculation.
+        // This mitigates timezone issues when input is 'yyyy-MM-dd' (which parseISO treats as UTC)
+        // but calculations need to be relative to local calendar days.
+        const taskStart = startOfDay(parseISO(task.startDate));
+        const taskEnd = startOfDay(parseISO(task.endDate));
+        const currentViewStart = startOfDay(viewStartDate);
+        const currentViewEnd = startOfDay(viewEndDate);
 
         if (!isValid(taskStart) || !isValid(taskEnd)) {
             return { display: 'none' }; // Hide invalid tasks
         }
 
         // Clip task duration to the current view boundaries
-        const effectiveStartDate = taskStart < viewStartDate ? viewStartDate : taskStart;
-        const effectiveEndDate = taskEnd > viewEndDate ? viewEndDate : taskEnd;
+        const effectiveStartDate = taskStart < currentViewStart ? currentViewStart : taskStart;
+        const effectiveEndDate = taskEnd > currentViewEnd ? currentViewEnd : taskEnd;
 
         // If the clipped task is entirely outside the view, hide it
-        if (effectiveStartDate > viewEndDate || effectiveEndDate < viewStartDate) {
+        // Or if it's an invalid interval after clipping
+        if (effectiveStartDate > effectiveEndDate || effectiveStartDate > currentViewEnd || effectiveEndDate < currentViewStart) {
             return { display: 'none' };
         }
         
-        // Calculate position relative to the view's start date
-        // Use `differenceInDays` but convert dates to start of day for accurate full day count
-        const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
+        // Calculate position relative to the current month's start date
+        const startOffsetDays = differenceInDays(effectiveStartDate, currentViewStart);
         // Calculate duration: count includes both start and end day.
-        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
+        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1; 
 
         const left = (startOffsetDays / totalDaysInMonth) * 100;
         const width = (durationDays / totalDaysInMonth) * 100;
 
-        // Clamp width to ensure it doesn't exceed 100% of the row if calculation is slightly off
+        // Clamp width to ensure it doesn't exceed the row and avoids overflow issues
         const clampedWidth = Math.min(width, 100 - left);
 
         return {
@@ -158,7 +159,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </motion.button>
                 <h3 className="text-lg font-bold text-color-text-primary flex-grow text-center">
-                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* Changed format to explicitly include year */}
+                    {format(currentDate, 'MMMMédiat', { locale: fr })} {/* Uses correct date format and locale */}
                 </h3>
                 <motion.button
                     onClick={handleNextMonth}
