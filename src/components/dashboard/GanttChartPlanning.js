@@ -67,20 +67,23 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         };
     }, []);
 
-    // Memoize the days in view for the current month
+    // Memoize the days in view for the current month - DECLARE THIS FIRST
     const daysInView = useMemo(() => {
         const start = startOfMonth(currentDate);
         const end = endOfMonth(currentDate);
         return eachDayOfInterval({ start, end });
     }, [currentDate]);
 
+    // Now, define viewStartDate and viewEndDate using daysInView
+    const viewStartDate = daysInView[0];
+    const viewEndDate = daysInView[daysInView.length - 1];
+
     // Normalize view start/end dates to start of local day for consistent comparison
+    // Use the already defined viewStartDate and viewEndDate directly in dependencies.
     const viewStartDateNormalized = useMemo(() => startOfDay(viewStartDate), [viewStartDate]);
     const viewEndDateNormalized = useMemo(() => startOfDay(viewEndDate), [viewEndDate]);
 
-    const viewStartDate = daysInView[0];
-    const viewEndDate = daysInView[daysInView.length - 1];
-    const totalDaysInMonth = daysInView.length;
+    const totalDaysInMonth = daysInView.length; // This remains correct
 
     // Function to calculate style for each task bar accurately
     const getTaskBarStyle = useCallback((task) => {
@@ -97,6 +100,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         const effectiveEndDate = taskEnd > viewEndDateNormalized ? viewEndDateNormalized : taskEnd;
 
         // If the clipped task is entirely outside the view, hide it
+        // Or if it's an invalid interval after clipping
         if (effectiveStartDate > effectiveEndDate || effectiveStartDate > viewEndDateNormalized || effectiveEndDate < viewStartDateNormalized) {
             return { display: 'none' };
         }
@@ -158,7 +162,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </motion.button>
                 <h3 className="text-lg font-bold text-color-text-primary flex-grow text-center">
-                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* CORRECTED: format for Month Year */}
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* CORRECTED: format to 'MMMM yyyy' */}
                 </h3>
                 <motion.button
                     onClick={handleNextMonth}
