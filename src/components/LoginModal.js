@@ -8,6 +8,10 @@ import { auth, db } from '../lib/firebase';
 import { AuthContext } from '../context/AuthContext';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'react-i18next'; // Importez useTranslation ici
+// Make sure to import Firebase auth functions and firestore functions
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+
 
 const GoogleIcon = () => (
     <svg className="w-5 h-5" viewBox="0 0 48 48">

@@ -14,7 +14,7 @@ import DashboardHeader from '../components/dashboard/DashboardHeader';
 import TimeAlerts from '../components/dashboard/TimeAlerts';
 import TodoList from '../components/dashboard/TodoList';
 import Notepad from '../components/dashboard/Notepad';
-import Calendar from '../components/dashboard/Calendar';
+import Calendar from '../components/dashboard/Calendar'; // Ensure this import is correct
 import Projects from '../components/dashboard/Projects';
 import GuestBanner from '../components/dashboard/GuestBanner';
 import InvoicesSummary from '../components/dashboard/InvoicesSummary';
@@ -200,6 +200,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const deleteClient = useCallback((clientId) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).filter(c => c.id !== clientId) })); }, [onUpdateGuestData]);
     const handleSaveGanttTask = useCallback((taskData) => { onUpdateGuestData(prev => ({ ...prev, ganttTasks: taskData.id ? (prev.ganttTasks || []).map(task => task.id === taskData.id ? taskData : task) : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}` }] })); }, [onUpdateGuestData]);
     const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { id: `meeting-${Date.now()}`, title: newMeeting.title, dateTime: newMeeting.dateTime, attendees: newMeeting.attendees, timezone: newMeeting.timezone, sendEmail: newMeeting.sendEmail, googleMeetLink: newMeeting.googleMeetLink || 'https://meet.google.com/new', createdAt: new Date().toISOString() }] })); }, [onUpdateGuestData]);
+    // NOTE: handleAddDeadline now creates a project with a deadline, as per your mock data structure logic.
     const handleAddDeadline = useCallback((newDeadline) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { id: `proj-${Date.now()}`, name: newDeadline.title, client: newDeadline.client || 'General', progress: 0, deadline: newDeadline.date, description: newDeadline.description, staff: [], paidAmount: '0 €', nextPayment: 'N/A', totalAmount: 'N/A', createdAt: new Date().toISOString(), googleDriveLink: null }] })); }, [onUpdateGuestData]);
     const handleAddInvoice = useCallback((newInvoice) => { onUpdateGuestData(prev => ({ ...prev, invoices: [...(prev.invoices || []), { ...newInvoice, id: `inv-${Date.now()}` }] })); }, [onUpdateGuestData]);
 
@@ -309,7 +310,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             </DashboardCard>
 
                             <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]" notes={data.notes}/>
-                            <Calendar tasks={data.tasks} meetings={data.meetings} projects={data.projects} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} className="flex-1 h-auto"/>
+                            <Calendar 
+                                tasks={data.tasks} // Pass tasks from data
+                                meetings={data.meetings} // Pass meetings from data
+                                projects={data.projects} // Pass projects from data
+                                onDayClick={(date, events) => openModal('dayDetails', { date, events })} 
+                                t={t} 
+                                className="flex-1 h-auto"
+                            />
                             <InvoicesSummary invoices={data.invoices} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="flex-1 min-h-[350px]"/>
                         </div>
 

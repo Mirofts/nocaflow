@@ -367,8 +367,9 @@
 }
 
 /* Classes pour un alignement cohérent du contenu principal sur toutes les pages */
+/* Utilisé par le div principal de `dashboard.js` et d'autres pages si elles veulent suivre le même alignement */
 .content-max-width-wrapper {
-    max-width: 1440px; /* Equivalent de max-w-screen-2xl si vous l'avez défini, sinon choisissez une valeur */
+    max-width: 1440px; /* Equivalent de max-w-screen-2xl */
     margin-left: auto;
     margin-right: auto;
     padding-left: 1rem; /* Padding pour mobile */
@@ -390,21 +391,21 @@
 }
 
 /* Spécifique à la page Dashboard */
-/* Le div principal de la page dashboard qui englobe tout le contenu (GuestBanner, DashboardHeader, cartes...) */
-.dashboard-page-content-padding {
-    padding-top: 1rem; /* Espace après la Navbar */
+/* Le div principal de la page dashboard qui englobe GuestBanner, DashboardHeader, cartes... */
+.dashboard-page-overall-wrapper {
+    padding-top: 1rem; /* Espace après la Navbar, réduit pour être plus compact */
     padding-bottom: 2rem;
-    /* Les paddings horizontaux sont maintenant gérés par .content-max-width-wrapper */
+    /* Les paddings horizontaux seront gérés par la classe .content-max-width-wrapper appliquée à l'enfant direct */
 }
 
 /* Ajustement pour la GuestBanner */
-/* Elle devrait hériter des paddings de .dashboard-page-content-padding et sa largeur du .max-w-screen-2xl mx-auto */
-.guest-banner-wrapper {
+/* Elle est maintenant directement enfant du .dashboard-page-overall-wrapper */
+.guest-banner-spacing {
     margin-bottom: 0.75rem; /* Réduit l'espace en dessous de la bannière */
 }
 
 /* Ajustement pour DashboardHeader */
-/* Réduit l'espace au-dessus du DashboardHeader */
+/* Réduit l'espace au-dessus du DashboardHeader pour le coller plus haut */
 .dashboard-header-spacing {
     margin-top: 0.5rem; /* Marge très petite au-dessus */
     margin-bottom: 1.5rem; /* Marge en bas pour séparer des TimeAlerts */

@@ -4,17 +4,18 @@ import { DashboardCard } from './DashboardCard';
 import { format, getDaysInMonth, startOfMonth, getDay, isSameDay, isToday as checkIsToday, parseISO, isValid, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion } from 'framer-motion';
-import { initialMockData } from '../../lib/mockData';
+// import { initialMockData } from '../../lib/mockData'; // No longer needed directly here as data comes from props
 import { useTheme } from '../../context/ThemeContext'; // Import useTheme
 
-const Calendar = ({ onDayClick, t, className = '' }) => {
+const Calendar = ({ onDayClick, t, className = '', tasks, meetings, projects }) => { // Add tasks, meetings, projects props
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const { isDarkMode } = useTheme(); // Use isDarkMode to conditionally style
 
-    const allTasks = initialMockData.tasks;
-    const allMeetings = initialMockData.meetings;
-    const allProjects = initialMockData.projects;
+    // Use props directly instead of initialMockData
+    const allTasks = tasks;
+    const allMeetings = meetings;
+    const allProjects = projects;
 
     const startDate = startOfMonth(currentMonth);
     const daysInMonth = getDaysInMonth(currentMonth);
@@ -22,15 +23,6 @@ const Calendar = ({ onDayClick, t, className = '' }) => {
 
     // Créez un tableau pour représenter les jours du mois, y compris les jours vides au début
     const calendarDays = Array(startDayOfWeek).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
-
-    const hasEvents = (day) => {
-        if (!day) return false;
-        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-        const tasksOnDay = (allTasks || []).some(t => t.deadline && isValid(parseISO(t.deadline)) && isSameDay(parseISO(t.deadline), date));
-        const meetingsOnDay = (allMeetings || []).some(m => m.dateTime && isValid(parseISO(m.dateTime)) && isSameDay(parseISO(m.dateTime), date));
-        const projectsOnDay = (allProjects || []).some(p => p.deadline && isValid(parseISO(p.deadline)) && isSameDay(parseISO(p.deadline), date));
-        return tasksOnDay || meetingsOnDay || projectsOnDay;
-    };
 
     const getEventsForDay = (day) => {
         if (!day) return [];
@@ -90,13 +82,14 @@ const Calendar = ({ onDayClick, t, className = '' }) => {
                         const date = day ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day) : null;
                         const isCurrentDay = day && checkIsToday(date);
                         const isSelected = selectedDate && day && isSameDay(selectedDate, date);
+                        const eventsCount = day ? getEventsForDay(day).length : 0;
 
                         return (
                             <motion.div
                                 key={`day-${i}`}
                                 // Utiliser min-h pour une taille minimale et laisser flex-grow gérer le reste
                                 // Supprimer aspect-square pour plus de flexibilité si l'on veut des cellules rectangulaires
-                                className={`relative flex items-center justify-center p-1 min-h-[40px] md:min-h-[60px] lg:min-h-[80px] rounded-lg cursor-pointer transition-all text-sm
+                                className={`relative flex flex-col items-center justify-center p-1 min-h-[40px] md:min-h-[50px] lg:min-h-[60px] rounded-lg cursor-pointer transition-all text-sm
                                 ${day ? '' : 'invisible pointer-events-none'}
                                 ${isCurrentDay ? (isDarkMode ? 'bg-pink-500/20 text-white font-bold' : 'bg-violet-200 text-violet-800 font-bold') : 'text-color-text-primary'}
                                 ${isSelected ? 'border-2 border-pink-400' : ''}`}
@@ -104,8 +97,12 @@ const Calendar = ({ onDayClick, t, className = '' }) => {
                                 onClick={() => handleDayClickWrapper(day)}
                             >
                                 {day}
-                                {hasEvents(day) && (
-                                    <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce-slow"></div>
+                                {eventsCount > 0 && (
+                                    <div className={`absolute bottom-1 right-1 w-4 h-4 flex items-center justify-center text-xs rounded-full 
+                                                     ${isDarkMode ? 'bg-violet-500 text-white' : 'bg-purple-600 text-white'} animate-bounce-slow`}
+                                         style={{ animationDuration: `${0.5 + eventsCount * 0.1}s` }}> {/* Faster bounce for more events */}
+                                        {eventsCount}
+                                    </div>
                                 )}
                             </motion.div>
                         );
