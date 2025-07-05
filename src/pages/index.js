@@ -225,12 +225,12 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
             className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {[
-              { name: 'Sarah L., CEO TechInnov', quote: 'NocaFLOW a révolutionné notre façon de travailler. Moins de chaos, plus de Flow. Indispensable !', avatar: '/images/avatars/avatar1.jpg' },
-              { name: 'Marc D., Chef de Projet', quote: 'La gestion des tâches et des projets n\'a jamais été aussi fluide. Les intégrations sont parfaites.', avatar: '/images/avatars/avatar2.jpg' },
-              { name: 'Émilie R., Consultante Freelance', quote: 'Un outil unique qui regroupe tout ce dont j\'ai besoin. Gain de temps énorme au quotidien.', avatar: '/images/avatars/avatar3.jpg' },
-              { name: 'David C., Responsable Marketing', quote: 'La messagerie intégrée et la conversion en tâches, c\'est un game-changer pour notre équipe.', avatar: '/images/avatars/avatar4.jpg' },
-              { name: 'Léa P., Gérante PME', quote: 'J\'apprécie la simplicité et la puissance. Notre facturation est enfin organisée.', avatar: '/images/avatars/avatar5.jpg' },
-              { name: 'Tom F., Développeur Lead', quote: 'Le Gantt Chart est visuellement impressionnant et extrêmement utile pour le suivi. Top !', avatar: '/images/avatars/avatar6.jpg' },
+              { name: 'Sarah L., CEO TechInnov', quote: 'NocaFLOW a révolutionné notre façon de travailler. Moins de chaos, plus de Flow. Indispensable !', avatar: '/images/avatars/default-avatar.jpg' },
+              { name: 'Marc D., Chef de Projet', quote: 'La gestion des tâches et des projets n\'a jamais été aussi fluide. Les intégrations sont parfaites.', avatar: '/images/avatars/default-avatar.jpg' },
+              { name: 'Émilie R., Consultante Freelance', quote: 'Un outil unique qui regroupe tout ce dont j\'ai besoin. Gain de temps énorme au quotidien.', avatar: '/images/avatars/default-avatar.jpg' },
+              { name: 'David C., Responsable Marketing', quote: 'La messagerie intégrée et la conversion en tâches, c\'est un game-changer pour notre équipe.', avatar: '/images/avatars/default-avatar.jpg' },
+              { name: 'Léa P., Gérante PME', quote: 'J\'apprécie la simplicité et la puissance. Notre facturation est enfin organisée.', avatar: '/images/avatars/default-avatar.jpg' },
+              { name: 'Tom F., Développeur Lead', quote: 'Le Gantt Chart est visuellement impressionnant et extrêmement utile pour le suivi. Top !', avatar: '/images/avatars/default-avatar.jpg' },
             ].map((testimonial, index) => (
               <motion.div key={index} variants={STAGGER_CHILD_VARIANTS} className="glass-card p-6 rounded-xl shadow-xl flex flex-col items-center transform hover:scale-[1.02] transition-transform duration-200 ease-out border border-gray-800 backdrop-blur-sm">
                 <img src={testimonial.avatar} alt={testimonial.name} className="w-20 h-20 rounded-full object-cover mb-4 border-2 border-violet-500" />
