@@ -2,10 +2,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ModalWrapper } from './ModalWrapper';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, startOfDay } from 'date-fns'; // Added startOfDay
 
 // Couleurs pour le Gantt Chart (doivent correspondre à celles définies dans GanttChartPlanning.js)
-// Re-defined here for the modal, assuming it's not imported directly from GanttChartPlanning
 const GanttColors = [
     { name: 'Pink', class: 'bg-pink-500', value: 'pink' },
     { name: 'Red', class: 'bg-red-500', value: 'red' },
@@ -18,23 +17,24 @@ const GanttColors = [
 ];
 
 const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers = [], allClients = [], t }) => {
-    // --- STANDARDIZED STATE FOR GANTT TASKS ---
-    // The data model GanttChartPlanning expects: { id, title, person, startDate, endDate, color, completed }
+    // Helper to robustly get a 'yyyy-MM-dd' string from various date formats
+    const getFormattedDate = (dateString) => {
+        if (!dateString) return format(new Date(), 'yyyy-MM-dd'); // Default to today
+        const date = parseISO(dateString);
+        if (isValid(date)) {
+            return format(date, 'yyyy-MM-dd');
+        }
+        return format(new Date(), 'yyyy-MM-dd'); // Fallback if initial date is invalid
+    };
+
     const [title, setTitle] = useState(initialData.title || '');
-    const [person, setPerson] = useState(initialData.person || ''); // 'person' combines staff and client
-    const [startDate, setStartDate] = useState(
-        initialData.startDate && isValid(parseISO(initialData.startDate))
-            ? format(parseISO(initialData.startDate), 'yyyy-MM-dd')
-            : format(new Date(), 'yyyy-MM-dd')
-    );
-    const [endDate, setEndDate] = useState(
-        initialData.endDate && isValid(parseISO(initialData.endDate))
-            ? format(parseISO(initialData.endDate), 'yyyy-MM-dd')
-            : format(new Date(), 'yyyy-MM-dd')
-    );
+    const [person, setPerson] = useState(initialData.person || '');
+    // Initialize dates using the helper for robustness
+    const [startDate, setStartDate] = useState(getFormattedDate(initialData.startDate));
+    const [endDate, setEndDate] = useState(getFormattedDate(initialData.endDate));
     const [color, setColor] = useState(initialData.color || 'blue');
-    const [completed, setCompleted] = useState(initialData.completed || false); // Add completed status
-    const [isNewPerson, setIsNewPerson] = useState(false); // To toggle between select and input for 'person'
+    const [completed, setCompleted] = useState(initialData.completed || false);
+    const [isNewPerson, setIsNewPerson] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -43,20 +43,27 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
             return;
         }
 
+        // Validate date order
+        const start = parseISO(startDate);
+        const end = parseISO(endDate);
+        if (start > end) {
+            alert(t('gantt_date_order_error', 'La date de début ne peut pas être postérieure à la date de fin.'));
+            return;
+        }
+
         const taskData = {
             id: initialData.id || `gantt-${Date.now()}`,
             title: title.trim(),
             person: person.trim(),
-            startDate: startDate, // Send as 'yyyy-MM-dd' for simplicity, GanttChartPlanning parsesISO
-            endDate: endDate,     // Send as 'yyyy-MM-dd'
+            startDate: startDate, // Send as 'yyyy-MM-dd' strings
+            endDate: endDate,     // Send as 'yyyy-MM-dd' strings
             color: color,
-            completed: completed, // Include completed status
+            completed: completed,
         };
         onSave(taskData);
         onClose();
     };
 
-    // Combine all potential people (staff and clients) for the dropdown
     const allPeople = useMemo(() => {
         const staffNames = Array.isArray(allStaffMembers) ? allStaffMembers.map(m => m.name) : [];
         const clientNames = Array.isArray(allClients) ? allClients.map(c => c.name) : [];
@@ -64,7 +71,6 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
         return uniquePeople.sort();
     }, [allStaffMembers, allClients]);
 
-    // Check if the current 'person' is not in the predefined list, implying a new person
     useEffect(() => {
         if (person && !allPeople.includes(person)) {
             setIsNewPerson(true);
@@ -76,7 +82,7 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
     return (
         <ModalWrapper onClose={onClose} size="max-w-md">
             <h2 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 11h10"/><path d="M7 15h10"/></svg> {/* Icon for Gantt/Planning */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 11h10"/><path d="M7 15h10"/></svg>
                 {initialData.id ? t('edit_gantt_task_title', 'Modifier la tâche Planning') : t('add_gantt_task_title', 'Ajouter une tâche Planning')}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -85,7 +91,6 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
                     <input id="taskTitle" type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={t('gantt_task_title_placeholder', 'Titre de la tâche...')} className="form-input" required />
                 </div>
 
-                {/* Person selection / input */}
                 <div>
                     <label htmlFor="person" className="block text-slate-300 text-sm mb-1 font-medium">{t('gantt_person_label', 'Personne assignée')}</label>
                     {!isNewPerson ? (
@@ -120,7 +125,6 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
                     </div>
                 </div>
 
-                {/* Color picker */}
                 <div>
                     <label className="block text-slate-300 text-sm mb-1 font-medium">{t('gantt_color', 'Couleur')}</label>
                     <div className="grid grid-cols-5 gap-2">
@@ -135,8 +139,7 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
                     </div>
                 </div>
 
-                {/* Completed Checkbox */}
-                {initialData.id && ( // Only show if editing an existing task
+                {initialData.id && (
                     <div>
                         <label htmlFor="completed" className="flex items-center gap-2 text-slate-300 text-sm font-medium">
                             <input

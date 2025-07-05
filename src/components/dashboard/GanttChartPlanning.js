@@ -2,7 +2,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { DashboardCard } from './DashboardCard';
 // Ensure all necessary date-fns functions are imported
-import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, differenceInDays, isValid, parseISO, subMonths, addMonths, startOfDay } from 'date-fns'; // Added startOfDay
+import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, differenceInDays, isValid, parseISO, subMonths, addMonths, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -74,36 +74,35 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         return eachDayOfInterval({ start, end });
     }, [currentDate]);
 
+    // Normalize view start/end dates to start of local day for consistent comparison
+    const viewStartDateNormalized = useMemo(() => startOfDay(viewStartDate), [viewStartDate]);
+    const viewEndDateNormalized = useMemo(() => startOfDay(viewEndDate), [viewEndDate]);
+
     const viewStartDate = daysInView[0];
     const viewEndDate = daysInView[daysInView.length - 1];
     const totalDaysInMonth = daysInView.length;
 
     // Function to calculate style for each task bar accurately
     const getTaskBarStyle = useCallback((task) => {
-        // IMPORTANT: Parse dates and convert to start of local day for consistent calculation.
-        // This mitigates timezone issues when input is 'yyyy-MM-dd' (which parseISO treats as UTC)
-        // but calculations need to be relative to local calendar days.
+        // Parse dates from task and normalize to start of local day
         const taskStart = startOfDay(parseISO(task.startDate));
         const taskEnd = startOfDay(parseISO(task.endDate));
-        const currentViewStart = startOfDay(viewStartDate);
-        const currentViewEnd = startOfDay(viewEndDate);
-
+        
         if (!isValid(taskStart) || !isValid(taskEnd)) {
             return { display: 'none' }; // Hide invalid tasks
         }
 
-        // Clip task duration to the current view boundaries
-        const effectiveStartDate = taskStart < currentViewStart ? currentViewStart : taskStart;
-        const effectiveEndDate = taskEnd > currentViewEnd ? currentViewEnd : taskEnd;
+        // Clip task duration to the current view boundaries (also normalized)
+        const effectiveStartDate = taskStart < viewStartDateNormalized ? viewStartDateNormalized : taskStart;
+        const effectiveEndDate = taskEnd > viewEndDateNormalized ? viewEndDateNormalized : taskEnd;
 
         // If the clipped task is entirely outside the view, hide it
-        // Or if it's an invalid interval after clipping
-        if (effectiveStartDate > effectiveEndDate || effectiveStartDate > currentViewEnd || effectiveEndDate < currentViewStart) {
+        if (effectiveStartDate > effectiveEndDate || effectiveStartDate > viewEndDateNormalized || effectiveEndDate < viewStartDateNormalized) {
             return { display: 'none' };
         }
         
-        // Calculate position relative to the current month's start date
-        const startOffsetDays = differenceInDays(effectiveStartDate, currentViewStart);
+        // Calculate position relative to the current month's start date (normalized)
+        const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDateNormalized);
         // Calculate duration: count includes both start and end day.
         const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1; 
 
@@ -117,7 +116,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
             left: `${left}%`,
             width: `${clampedWidth}%`,
         };
-    }, [viewStartDate, viewEndDate, totalDaysInMonth]);
+    }, [viewStartDateNormalized, viewEndDateNormalized, totalDaysInMonth]);
 
 
     // Month navigation handlers
@@ -159,7 +158,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </motion.button>
                 <h3 className="text-lg font-bold text-color-text-primary flex-grow text-center">
-                    {format(currentDate, 'MMMMédiat', { locale: fr })} {/* Uses correct date format and locale */}
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* CORRECTED: format for Month Year */}
                 </h3>
                 <motion.button
                     onClick={handleNextMonth}
