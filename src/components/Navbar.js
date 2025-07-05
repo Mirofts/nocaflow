@@ -21,21 +21,39 @@ const STATIC_MAIN_NAV_LINKS = [
 
 // NavLink reste un composant séparé et réutilisable
 const NavLink = ({ href, children, currentPath, locale }) => {
+  const router = useRouter();
   const isActive = currentPath === href || (href === '/' && currentPath === '/');
+  const isAnchor = href.includes('#');
+
+const handleClick = (e) => {
+  if (!isAnchor) return; // ← Ne rien faire si ce n’est pas une ancre
+
+  e.preventDefault();
+  const [targetUrl, targetId] = href.split('#');
+  router.push(targetUrl || '/').then(() => {
+    const el = document.getElementById(targetId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+};
+
   return (
-    <Link href={href} locale={locale} className={`relative px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap 
-      ${isActive ? 'text-pink-400' : 'text-color-text-secondary hover:text-color-text-primary'}`}>
+    <Link
+      href={isAnchor ? href.split('#')[0] || '/' : href}
+      locale={locale}
+      onClick={handleClick}
+      className={`text-sm font-medium px-3 py-2 rounded-md transition-colors ${
+        isActive
+          ? 'text-color-text-primary'
+          : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'
+      }`}
+    >
       {children}
-      {isActive && (
-        <motion.div
-          layoutId="underline"
-          className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-pink-500 to-violet-500 rounded-full"
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        />
-      )}
     </Link>
   );
 };
+
 
 // StatPill reste un composant séparé et réutilisable (pour l'affichage des chiffres)
 const StatPill = React.memo(({ icon, count, isPulsing = false, pulseColorClass = 'bg-pink-500' }) => {
