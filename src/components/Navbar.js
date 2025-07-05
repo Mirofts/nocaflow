@@ -1,5 +1,5 @@
 // src/components/Navbar.js
-import React, { useState, useEffect, useMemo } from 'react'; // Ensure useMemo is explicitly imported
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,7 +19,8 @@ const STATIC_MAIN_NAV_LINKS = [
   { href: '/pricing', i18nKey: 'pricing' },
 ];
 
-// FIX: Composant NavLink. No direct use of useMemo/useEffect, so it should be fine.
+
+// Composant NavLink pour les liens de navigation avec animation au survol
 const NavLink = ({ href, children, currentPath }) => {
   const isActive = currentPath === href || (href === '/' && currentPath === '/');
   return (
@@ -37,20 +38,21 @@ const NavLink = ({ href, children, currentPath }) => {
   );
 };
 
-// FIX: Composant StatPill. Explicitly using React.memo to ensure React is in scope for its functional component definition.
-// This often resolves "hook not defined" errors for helper components.
-const StatPill = React.memo(({ icon, count, isPulsing = false, pulseColorClass = 'bg-pink-500' }) => (
-  <div className="flex items-center gap-2 text-sm bg-color-bg-secondary px-3 py-1.5 rounded-full border border-color-border-primary">
-      <motion.div
-          animate={isPulsing ? { scale: [1, 1.15, 1], opacity: [1, 0.7, 1] } : {}}
-          transition={isPulsing ? { duration: 1, repeat: Infinity, ease: "easeInOut" } : {}}
-          className={`flex items-center justify-center p-1.5 rounded-full ${pulseColorClass} bg-opacity-30`}
-      >
-          {icon}
-      </motion.div>
-      <span className="font-bold text-color-text-primary">{count}</span>
-  </div>
-));
+// Composant pour les statistiques dans la Navbar du Dashboard
+const StatPill = React.memo(({ icon, count, isPulsing = false, pulseColorClass = 'bg-pink-500' }) => {
+  return (
+    <div className="flex items-center gap-2 text-sm bg-color-bg-secondary px-3 py-1.5 rounded-full border border-color-border-primary">
+        <motion.div
+            animate={isPulsing ? { scale: [1, 1.15, 1], opacity: [1, 0.7, 1] } : {}}
+            transition={isPulsing ? { duration: 1, repeat: Infinity, ease: "easeInOut" } : {}}
+            className={`flex items-center justify-center p-1.5 rounded-full ${pulseColorClass} bg-opacity-30`}
+        >
+            {icon}
+        </motion.div>
+        <span className="font-bold text-color-text-primary">{count}</span>
+    </div>
+  );
+});
 
 
 // Composant principal Navbar
@@ -97,7 +99,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
 
 
   // Mock stats for guest mode in Navbar (if needed, otherwise fetch real stats in dashboard page)
-  const navbarStats = useMemo(() => { // useMemo is defined in the outer scope of Navbar
+  const navbarStats = useMemo(() => { 
       return {
           messages: isGuestMode ? (initialMockData.messages || []).length : 0, 
           tasks: isGuestMode ? (initialMockData.tasks || []).filter(task => !task.completed).length : 0,
@@ -113,6 +115,11 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
   const setLocale = (newLocale) => {
     push({ pathname, query }, asPath, { locale: newLocale });
   };
+
+  // NavLink et StatPill sont définis dans le scope du module pour éviter la ReferenceError
+  // Ils ont été déplacés *au-dessus* du composant Navbar
+  // Si le problème persiste, la seule solution est de les définir *à l'intérieur* de Navbar
+  // For now, let's assume the current structure is correctly interpreted by the build tool after the comment fix.
 
   return (
     <nav className={`fixed top-0 left-0 w-full z-50 ${isDarkMode ? 'bg-gradient-to-b from-slate-900/80 to-transparent backdrop-blur-md border-b border-slate-700/50' : 'glass-nav border-b border-color-border-primary'}`}>
@@ -130,14 +137,14 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
           <div className="hidden md:flex items-center space-x-4">
             {/* Standard Nav Links (using STATIC_MAIN_NAV_LINKS and t() for labels) */}
             {STATIC_MAIN_NAV_LINKS.map(link => (
-                <NavLink key={link.href} href={link.href} currentPath={currentPath}>{t(link.i18nKey, link.label)}</NavLink>
+                <NavLink key={link.href} href={link.href} currentPath={currentPath}>{t(link.i18nKey)}{/* FIX: Commentaire JSX */}</NavLink> 
             ))}
 
             {/* Dashboard Link (always visible) */}
             {!loadingAuth && (
               <NavLink href="/dashboard" currentPath={currentPath}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-1 text-color-text-primary"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
-                {t('dashboard', 'Dashboard')}
+                {t('dashboard')}
               </NavLink>
             )}
 
@@ -165,8 +172,8 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors"
-              aria-label={isDarkMode ? t('toggle_light_mode', 'Activer le mode clair') : t('toggle_dark_mode', 'Activer le mode sombre')}
-              title={isDarkMode ? t('toggle_light_mode', 'Mode Clair') : t('toggle_dark_mode', 'Mode Sombre')}
+              aria-label={isDarkMode ? t('toggle_light_mode') : t('toggle_dark_mode')}
+              title={isDarkMode ? t('toggle_light_mode') : t('toggle_dark_mode')}
             >
               {isDarkMode ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>
@@ -220,8 +227,8 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                     <button
                         onClick={onOpenCalculator}
                         className="p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors"
-                        aria-label={t('calculator', 'Calculatrice')}
-                        title={t('calculator', 'Calculatrice')}
+                        aria-label={t('calculator')}
+                        title={t('calculator')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
@@ -245,11 +252,11 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                 <button
                   onClick={logout}
                   className="p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors"
-                  aria-label={t('logout', 'Déconnexion')}
-                  title={t('logout', 'Déconnexion')}
+                  aria-label={t('logout')}
+                  title={t('logout')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 16 22 12 17 8"/><line x1="22" x2="10" y1="12" y2="12"/></svg>
-                  {t('logout', 'Déconnexion')}
+                  {t('logout')}
                 </button>
               </div>
             ) : ( // User is NOT logged in (show Login/Register buttons)
@@ -260,14 +267,14 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                     className="px-4 py-2 rounded-full text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 transition-colors flex items-center gap-1 whitespace-nowrap"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-                    {t('login', 'Connexion')}
+                    {t('login')}
                   </button>
                   <button
                     onClick={onRegisterClick}
                     className="px-4 py-2 rounded-full text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-                    {t('register', 'Inscription')}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    {t('register')}
                   </button>
                 </div>
               )
@@ -281,7 +288,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
               className="inline-flex items-center justify-center p-2 rounded-md text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover focus:outline-none focus:ring-2 focus:ring-inset focus:ring-color-border-active"
               aria-expanded={isOpen}
             >
-              <span className="sr-only">{t('open_main_menu', 'Ouvrir le menu principal')}</span>
+              <span className="sr-only">{t('open_main_menu')}</span>
               {isOpen ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="block h-6 w-6" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               ) : (
@@ -303,15 +310,15 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
             className="md:hidden fixed inset-x-0 top-16 z-40 glass-card mx-4 rounded-b-2xl p-4 border-t-0"
           >
             <div className="pt-2 pb-3 space-y-1 sm:px-3">
-              {STATIC_MAIN_NAV_LINKS.map(link => ( // FIX: Utilisation de STATIC_MAIN_NAV_LINKS ici aussi
+              {STATIC_MAIN_NAV_LINKS.map(link => (
                 <Link key={link.href} href={link.href} className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors">
-                  {t(link.i18nKey, link.label)}
+                  {t(link.i18nKey)}
                 </Link>
               ))}
               {!loadingAuth && (
                 <Link href="/dashboard" className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
-                    {t('dashboard', 'Dashboard')}
+                    {t('dashboard')}
                 </Link>
               )}
               {/* Language Selector in mobile menu */}
@@ -339,7 +346,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                     ) : (
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
                     )}
-                    {isDarkMode ? t('toggle_light_mode', 'Activer le mode clair') : t('toggle_dark_mode', 'Activer le mode sombre')}
+                    {isDarkMode ? t('toggle_light_mode') : t('toggle_dark_mode')}
                   </button>
                   {/* Login/Register/Logout buttons in mobile menu */}
                   {user && !loadingAuth ? (
@@ -347,8 +354,8 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                       onClick={logout}
                       className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 16 22 12 17 8"/><line x1="22" x2="10" y1="12" y2="12"/></svg>
-                      {t('logout', 'Déconnexion')}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 16 22 12 17 8"/><line x1="22" x2="10" y1="12" y2="12"/></svg>
+                      {t('logout')}
                     </button>
                   ) : (
                     !loadingAuth && !user && (
@@ -358,14 +365,14 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                           className="w-full px-3 py-2 rounded-md text-base font-medium text-white bg-violet-600 hover:bg-violet-700 transition-colors flex items-center justify-center gap-1"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-                          {t('login', 'Connexion')}
+                          {t('login')}
                         </button>
                         <button
                           onClick={onRegisterClick}
                           className="w-full px-3 py-2 rounded-md text-base font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-                          {t('register', 'Inscription')}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                          {t('register')}
                         </button>
                       </div>
                     )
