@@ -1,5 +1,5 @@
 // src/components/Navbar.js
-import React, { useState, useEffect } from 'react'; // useMemo and useCallback are not needed here anymore
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,15 +7,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'next-i18next';
+import Image from 'next/image';
+import Greeting from './dashboard/Greeting'; // Import Greeting for the text part
+import { initialMockData } from '../lib/mockData'; // For guest stats fallback
 
-// Déplacé STATIC_MAIN_NAV_LINKS ici
+
+// Déplacé STATIC_MAIN_NAV_LINKS ici (restera en dehors du composant)
 const STATIC_MAIN_NAV_LINKS = [
   { href: '/', i18nKey: 'about' },
   { href: '/features', i18nKey: 'features' },
   { href: '/pricing', i18nKey: 'pricing' },
 ];
 
-// NavLink reste un composant séparé car il est simple et réutilisable
+// NavLink reste un composant séparé et réutilisable
 const NavLink = ({ href, children, currentPath }) => {
   const isActive = currentPath === href || (href === '/' && currentPath === '/');
   return (
@@ -33,9 +37,25 @@ const NavLink = ({ href, children, currentPath }) => {
   );
 };
 
+// StatPill reste un composant séparé et réutilisable (pour l'affichage des chiffres)
+const StatPill = React.memo(({ icon, count, isPulsing = false, pulseColorClass = 'bg-pink-500' }) => {
+  return (
+    <div className="flex items-center gap-2 text-sm bg-color-bg-secondary px-3 py-1.5 rounded-full border border-color-border-primary">
+        <motion.div
+            animate={isPulsing ? { scale: [1, 1.15, 1], opacity: [1, 0.7, 1] } : {}}
+            transition={isPulsing ? { duration: 1, repeat: Infinity, ease: "easeInOut" } : {}}
+            className={`flex items-center justify-center p-1.5 rounded-full ${pulseColorClass} bg-opacity-30`}
+        >
+            {icon}
+        </motion.div>
+        <span className="font-bold text-color-text-primary">{count}</span>
+    </div>
+  );
+});
+
 
 // Composant principal Navbar
-export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator }) { // isDashboardPage removed
+export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator, isDashboardPage }) {
   const { t } = useTranslation('common');
   const router = useRouter();
   const { locale: currentLocale, push, pathname, asPath, query } = router;
@@ -45,8 +65,49 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
   const { isDarkMode, toggleTheme } = useTheme();
 
   const currentPath = pathname;
-  // isGuestMode is not directly used for Navbar rendering anymore for user/guest status icons/text
-  // const isGuestMode = user && user.uid === 'guest_noca_flow';
+  const isGuestMode = !user || user.uid === 'guest_noca_flow';
+
+  // User avatar logic (centralized in Navbar for rendering)
+  const displayUserNameForAvatar = user?.displayName || t('guest_user_default', 'Cher Invité');
+  const avatarUrl = isGuestMode ? '/images/avatars/default-avatar.jpg' : (user?.photoURL || '/images/avatars/default-avatar.jpg');
+
+  // Phrases for dashboard greeting (if shown)
+  const phrases = [
+      "NocaFLOW trie même les chaussettes sales ?",
+      "Un seul outil. Zéro chaos. Juste du FLOW.",
+      "Multitâche ? Non. NocaFLOW fait tout, vraiment.",
+      "Productif sans effort. Merci NocaFLOW, dopage légal.",
+      "NocaFLOW gère tout, sauf les ronrons. 🐾",
+      "Adieu stress. Bonjour FLOW (et siestes félines).",
+      "Même mamie l’utilise. Et elle kiffe grave.",
+      "Plus fort que le café : NocaFLOW.",
+      "NocaFLOW rend accros… à l’efficacité !",
+      "Projets qui volent. Tracas au tapis."
+  ];
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+
+  useEffect(() => {
+      let interval;
+      if (isDashboardPage) { // Only animate phrases on Dashboard page
+          interval = setInterval(() => {
+              setCurrentPhraseIndex(prevIndex => (prevIndex + 1) % phrases.length);
+          }, 10000);
+      }
+      return () => clearInterval(interval);
+  }, [isDashboardPage, phrases.length]);
+
+
+  // Mock stats for guest mode in Navbar (if needed, otherwise fetch real stats in dashboard page)
+  const navbarStats = useMemo(() => {
+      // Pour les stats en temps réel, vous devriez les passer via pageProps ou les charger ici
+      // Pour l'exemple, utilisons les mock data si en mode invité.
+      return {
+          messages: isGuestMode ? (initialMockData.messages || []).length : 0, 
+          tasks: isGuestMode ? (initialMockData.tasks || []).filter(task => !task.completed).length : 0,
+          meetings: isGuestMode ? (initialMockData.meetings || []).filter(m => new Date(m.dateTime) > new Date()).length : 0,
+      };
+  }, [isGuestMode]);
+
 
   useEffect(() => {
     setIsOpen(false); // Close mobile menu on route change
@@ -120,12 +181,13 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
             {/* User Login/Register/Logout Buttons */}
             {user && !loadingAuth ? ( // User is logged in (or guest)
               <div className="flex items-center space-x-2 ml-4">
+                {/* Conditionnellement l'avatar de la Navbar et le bouton de déconnexion */}
                 <div className="relative group">
                   <Link href="/dashboard" className="flex items-center space-x-2">
                     <motion.img
-                      src={user?.photoURL || '/images/avatars/default-avatar.jpg'} // Use user photoURL directly
+                      src={user?.photoURL || '/images/avatars/default-avatar.jpg'}
                       alt={user.displayName || 'User Avatar'}
-                      width={32} height={32}
+                      width={32} height={32} // Smaller avatar for Navbar
                       className="w-10 h-10 rounded-full border-2 border-pink-500 cursor-pointer object-cover"
                       whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.2 }}
@@ -159,7 +221,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                     onClick={onRegisterClick}
                     className="px-4 py-2 rounded-full text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y1="14"/><line x1="22" y1="11" x2="16" y1="11"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y1="11"/></svg>
                     {t('register')}
                   </button>
                 </div>

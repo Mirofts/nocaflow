@@ -67,7 +67,8 @@ function MyApp({ Component, pageProps }) {
           />
 
           {/* <main> conditionnel pour les paddings */}
-          <main className={`flex-1 ${isHomePage ? '' : 'px-4 py-8 sm:px-6 lg:px-8'} pt-16`}>
+          {/* Dashboard et Home n'ont pas de padding ici, ils gèrent le leur. Autres pages oui. */}
+          <main className={`flex-1 ${isHomePage || isDashboardPage ? '' : 'px-4 py-8 sm:px-6 lg:px-8'} pt-16`}>
             <Component
               {...pageProps}
               onLoginClick={handleLoginClick}

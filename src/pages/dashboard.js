@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 // IMPORTS DES COMPOSANTS DU DASHBOARD :
-// SUPPRIMÉ : import DashboardHeader from '../components/dashboard/DashboardHeader'; // C'est la ligne à supprimer
+import DashboardHeader from '../components/dashboard/DashboardHeader'; // Rétabli l'import du DashboardHeader
 import TimeAlerts from '../components/dashboard/TimeAlerts';
 import TodoList from '../components/dashboard/TodoList';
 import Notepad from '../components/dashboard/Notepad';
@@ -257,18 +257,23 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     t={t}
                 />
             )}
-            {/* Ajout d'un padding top pour compenser la Navbar fixe */}
-            {/* Le padding est maintenant géré par la balise <main> dans _app.js */}
-            <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8"> {/* Supprimé pt-16 ici */}
+            <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
                 <motion.div
                     className="max-w-screen-2xl mx-auto space-y-6"
                     initial="hidden"
                     animate="visible"
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                 >
-                    {/* DashboardHeader est maintenant supprimé de la page du dashboard */}
-                    {/* Son contenu a été fusionné dans Navbar.js */}
-                    {/* <DashboardHeader ... /> */} 
+                    {/* Rétablissement de DashboardHeader ici, comme demandé */}
+                    <DashboardHeader
+                        user={isGuestMode ? data.user : user}
+                        isGuestMode={isGuestMode}
+                        openModal={openModal}
+                        handleLogout={logout}
+                        stats={stats}
+                        t={t}
+                        onOpenCalculator={onOpenCalculator}
+                    />
 
                     <TimeAlerts projects={data.projects} meetings={data.meetings} t={t} lang={lang} openModal={openModal} />
 
