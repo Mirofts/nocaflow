@@ -14,13 +14,13 @@ import DashboardHeader from '../components/dashboard/DashboardHeader';
 import TimeAlerts from '../components/dashboard/TimeAlerts';
 import TodoList from '../components/dashboard/TodoList';
 import Notepad from '../components/dashboard/Notepad';
-import Calendar from '../components/dashboard/Calendar'; // Ensure this import is correct
+import Calendar from '../components/dashboard/Calendar';
 import Projects from '../components/dashboard/Projects';
 import GuestBanner from '../components/dashboard/GuestBanner';
 import InvoicesSummary from '../components/dashboard/InvoicesSummary';
 import FlowLiveMessages from '../components/dashboard/FlowLiveMessages';
-import TeamManagement from '../components/dashboard/TeamManagement'; // Chemin corrigé si nécessaire
-import ClientManagement from '../components/dashboard/ClientManagement'; // Chemin corrigé si nécessaire
+import TeamManagement from '../components/dashboard/TeamManagement';
+import ClientManagement from '../components/dashboard/ClientManagement';
 import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 
@@ -32,6 +32,7 @@ import {
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
+import CalculatorModal from '../components/CalculatorModal'; // IMPORT THE NEW CALCULATOR MODAL
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -173,7 +174,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
-        ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false
+        ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
+        calculator: false, // ADD NEW STATE FOR CALCULATOR MODAL
     });
 
     const openModal = useCallback((name, modalData = true) => setModals(prev => ({
@@ -185,7 +187,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
-        ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false
+        ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
+        calculator: false, // RESET CALCULATOR MODAL STATE
     }), []);
 
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
@@ -248,6 +251,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         });
     }, [openModal, data.staffMembers]);
 
+    // Function to open the calculator modal
+    const handleOpenCalculatorModal = useCallback(() => {
+        openModal('calculator'); //
+    }, [openModal]);
+
+
     return (
         <>
             <Head><title>Dashboard - NocaFLOW</title></Head>
@@ -273,11 +282,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     <DashboardHeader
                         user={isGuestMode ? data.user : user}
                         isGuestMode={isGuestMode}
-                        openModal={openModal}
+                        openModal={openModal} // Still pass openModal to DashboardHeader
                         handleLogout={logout}
                         stats={stats}
                         t={t}
-                        onOpenCalculator={onOpenCalculator}
+                        onOpenCalculator={handleOpenCalculatorModal} // Pass the new handler
                     />
 
                     <TimeAlerts projects={data.projects} meetings={data.meetings} t={t} lang={lang} openModal={openModal} />
@@ -462,6 +471,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                 {modals.addDeadline && <AddDeadlineModal t={t} onSave={handleAddDeadline} onClose={closeModal} />}
                 {modals.addMeeting && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
+
+                {modals.calculator && <CalculatorModal t={t} onClose={closeModal} />} {/* RENDER CALCULATOR MODAL */}
             </AnimatePresence>
         </>
     );
