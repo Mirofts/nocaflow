@@ -105,7 +105,8 @@ const TimeAlert = ({ type, title, dateTime, icon, pulseColorClass, openModal, t 
                     className={`p-1.5 rounded-full ml-2 transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-slate-700/50 hover:text-white' : 'text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary'}`}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    title={t('add_deadline', 'Ajouter une échéance') : t('schedule_meeting', 'Planifier une réunion')}
+                    // CORRECTED LINE: Added the conditional expression back
+                    title={type === 'deadline' ? t('add_deadline', 'Ajouter une échéance') : t('schedule_meeting', 'Planifier une réunion')}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
                 </motion.button>
@@ -166,6 +167,7 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal }) => {
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center py-4 px-2 text-color-text-secondary">
+                             {/* Corrected SVG for empty state icon */}
                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400 mb-1"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                             <p className="text-base font-semibold text-color-text-primary text-center">{t('no_upcoming_deadlines', 'Aucune échéance à venir')}</p>
                             <p className="text-xs mt-1 text-center">{t('add_new_deadline_hint', 'Ajoutez de nouvelles échéances pour rester organisé.')}</p>
