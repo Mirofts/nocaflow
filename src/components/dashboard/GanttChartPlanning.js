@@ -1,7 +1,8 @@
 // src/components/dashboard/GanttChartPlanning.js
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { DashboardCard } from './DashboardCard';
-import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, differenceInDays, isValid, parseISO, subMonths, addMonths } from 'date-fns'; // Ensure all date-fns functions are imported
+// Import all necessary date-fns functions
+import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, differenceInDays, isValid, parseISO, subMonths, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -66,46 +67,54 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         };
     }, []);
 
-    const getDaysInView = useCallback(() => {
+    // Memoize the days in view for the current month
+    const daysInView = useMemo(() => {
         const start = startOfMonth(currentDate);
         const end = endOfMonth(currentDate);
         return eachDayOfInterval({ start, end });
     }, [currentDate]);
 
-    const daysInView = useMemo(() => getDaysInView(), [getDaysInView]);
     const viewStartDate = daysInView[0];
     const viewEndDate = daysInView[daysInView.length - 1];
-
     const totalDaysInMonth = daysInView.length;
 
     // Function to calculate style for each task bar accurately
     const getTaskBarStyle = useCallback((task) => {
-        const taskStartDate = parseISO(task.startDate);
-        const taskEndDate = parseISO(task.endDate);
+        // IMPORTANT: Ensure dates from task are parsed consistently.
+        // If task.startDate and task.endDate are already 'yyyy-MM-dd' from input,
+        // parseISO will interpret them as UTC midnight.
+        // We need to ensure consistency when calculating differences based on viewStartDate.
+        const taskStart = parseISO(task.startDate);
+        const taskEnd = parseISO(task.endDate);
 
-        if (!isValid(taskStartDate) || !isValid(taskEndDate)) {
+        if (!isValid(taskStart) || !isValid(taskEnd)) {
             return { display: 'none' }; // Hide invalid tasks
         }
 
-        // Determine the portion of the task that falls within the current month view
-        const effectiveStartDate = taskStartDate < viewStartDate ? viewStartDate : taskStartDate;
-        const effectiveEndDate = taskEndDate > viewEndDate ? viewEndDate : taskEndDate;
+        // Clip task duration to the current view boundaries
+        const effectiveStartDate = taskStart < viewStartDate ? viewStartDate : taskStart;
+        const effectiveEndDate = taskEnd > viewEndDate ? viewEndDate : taskEnd;
 
-        // If the task is entirely outside the view, hide it
+        // If the clipped task is entirely outside the view, hide it
         if (effectiveStartDate > viewEndDate || effectiveEndDate < viewStartDate) {
             return { display: 'none' };
         }
         
-        // Calculate position and width relative to the current month's start date
+        // Calculate position relative to the view's start date
+        // Use `differenceInDays` but convert dates to start of day for accurate full day count
         const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
-        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1; // +1 to include the end day
+        // Calculate duration: count includes both start and end day.
+        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
 
         const left = (startOffsetDays / totalDaysInMonth) * 100;
         const width = (durationDays / totalDaysInMonth) * 100;
 
+        // Clamp width to ensure it doesn't exceed 100% of the row if calculation is slightly off
+        const clampedWidth = Math.min(width, 100 - left);
+
         return {
             left: `${left}%`,
-            width: `${width}%`,
+            width: `${clampedWidth}%`,
         };
     }, [viewStartDate, viewEndDate, totalDaysInMonth]);
 
@@ -123,7 +132,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const allPeople = useMemo(() => {
         const staffNames = Array.isArray(staffMembers) ? staffMembers.map(m => m.name) : [];
         const clientNames = Array.isArray(clients) ? clients.map(c => c.name) : [];
-        const taskPeople = Array.isArray(initialTasks) ? initialTasks.map(t => t.person).filter(Boolean) : []; // Use initialTasks
+        const taskPeople = Array.isArray(initialTasks) ? initialTasks.map(t => t.person).filter(Boolean) : [];
         const uniquePeople = [...new Set([...staffNames, ...clientNames, ...taskPeople])];
         return uniquePeople.sort();
     }, [staffMembers, clients, initialTasks]);
@@ -149,7 +158,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </motion.button>
                 <h3 className="text-lg font-bold text-color-text-primary flex-grow text-center">
-                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* Changed 'MMMM vaste' to 'MMMM yyyy' */}
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* Changed format to explicitly include year */}
                 </h3>
                 <motion.button
                     onClick={handleNextMonth}
@@ -213,7 +222,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                                             className={`absolute h-8 rounded-full px-2 text-xs font-semibold flex items-center shadow-md cursor-pointer ${barColorClass} ${textColorClass} ${task.completed ? 'opacity-50' : ''}`}
                                             style={{
                                                 ...barStyle,
-                                                top: `${10 + (tIndex % 2) * 20}%`,
+                                                top: `${10 + (tIndex % 2) * 20}%`, // Adjust top for stacking
                                                 zIndex: 20
                                             }}
                                             whileHover={{ scale: 1.03, boxShadow: '0 0 10px rgba(0,0,0,0.3)' }}

@@ -32,7 +32,7 @@ import {
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
-import CalculatorModal from '../components/dashboard/CalculatorModal'; // This path is correct as per your file structure, assuming CalculatorModal.js is directly in src/components/
+import CalculatorModal from '../components/dashboard/CalculatorModal';
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -40,16 +40,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const { isDarkMode, toggleTheme } = useTheme();
     const { t } = useTranslation('common');
 
-    console.log('DashboardPage: Start render'); // Debug Log
+    console.log('DashboardPage: Start render');
 
     const isGuestMode = !user || user.uid === 'guest_noca_flow';
-    const initialGuestNameSSR = 'Visiteur Curieux'; // Hardcoded
+    const initialGuestNameSSR = 'Visiteur Curieux';
     const userUid = user?.uid;
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
 
     const [localData, setLocalData] = useState(() => {
-        console.log('DashboardPage: Initializing localData state'); // Debug Log
+        console.log('DashboardPage: Initializing localData state');
         let initialValue = initialMockData;
 
         if (typeof window !== 'undefined') {
@@ -70,12 +70,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         initialValue.projects = Array.isArray(initialValue.projects) ? initialValue.projects : [];
         initialValue.staffMembers = Array.isArray(initialValue.staffMembers) ? initialValue.staffMembers : [];
         initialValue.clients = Array.isArray(initialValue.clients) ? initialValue.clients : [];
-        initialValue.ganttTasks = Array.isArray(initialValue.planningTasks) ? initialValue.planningTasks : [];
+        initialValue.ganttTasks = Array.isArray(initialValue.planningTasks) ? initialValue.planningTasks : []; // Ensure this uses planningTasks
         initialValue.invoices = Array.isArray(initialValue.invoices) ? initialValue.invoices : [];
         initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : initialMockData.notes || '';
         initialValue.user = initialValue.user || {};
 
-        console.log('DashboardPage: Initial localData state value:', initialValue); // Debug Log
+        console.log('DashboardPage: Initial localData state value:', initialValue);
         return initialValue;
     });
 
@@ -132,16 +132,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
         useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
-    console.log('DashboardPage: todos from useUserTodos:', todos); // Debug Log
+    console.log('DashboardPage: todos from useUserTodos:', todos);
 
-    console.log('DashboardPage: Before data useMemo - localData:', localData); // Debug Log
-    console.log('DashboardPage: Before data useMemo - todos:', todos); // Debug Log
-    console.log('DashboardPage: Before data useMemo - user:', user); // Debug Log
+    console.log('DashboardPage: Before data useMemo - localData:', localData);
+    console.log('DashboardPage: Before data useMemo - todos:', todos);
+    console.log('DashboardPage: Before data useMemo - user:', user);
 
     const data = useMemo(() => {
-        console.log('DashboardPage: Inside data useMemo - user:', user); // Debug Log
-        console.log('DashboardPage: Inside data useMemo - localData:', localData); // Debug Log
-        console.log('DashboardPage: Inside data useMemo - todos:', todos); // Debug Log
+        console.log('DashboardPage: Inside data useMemo - user:', user);
+        console.log('DashboardPage: Inside data useMemo - localData:', localData);
+        console.log('DashboardPage: Inside data useMemo - todos:', todos);
 
         let currentData = { ...localData };
 
@@ -160,12 +160,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         currentData.projects = Array.isArray(currentData.projects) ? currentData.projects : [];
         currentData.staffMembers = Array.isArray(currentData.staffMembers) ? currentData.staffMembers : [];
         currentData.clients = Array.isArray(currentData.clients) ? currentData.clients : [];
-        currentData.ganttTasks = Array.isArray(currentData.ganttTasks) ? currentData.ganttTasks : [];
+        currentData.ganttTasks = Array.isArray(currentData.ganttTasks) ? currentData.ganttTasks : []; // Ensure this stays as ganttTasks
         currentData.invoices = Array.isArray(currentData.invoices) ? currentData.invoices : [];
         currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
 
 
-        console.log('DashboardPage: Data object constructed:', currentData); // Debug Log
+        console.log('DashboardPage: Data object constructed:', currentData);
         return currentData;
     }, [isGuestMode, localData, todos, guestName, user]);
 
@@ -175,11 +175,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
-        calculator: false, // ADD NEW STATE FOR CALCULATOR MODAL
+        calculator: false,
     });
 
     const openModal = useCallback((name, modalData = true) => setModals(prev => ({
-        ...Object.keys(prev).reduce((acc, key) => (acc[key] = false, acc), {}), // Ferme toutes les modales
+        ...Object.keys(prev).reduce((acc, key) => (acc[key] = false, acc), {}),
         [name]: modalData
     })), []);
 
@@ -188,7 +188,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
-        calculator: false, // RESET CALCULATOR MODAL STATE
+        calculator: false,
     }), []);
 
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
@@ -201,9 +201,18 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const addClient = useCallback((newClient) => { onUpdateGuestData(prev => ({ ...prev, clients: [...(prev.clients || []), { ...newClient, id: `cl${Date.now()}` }] })); }, [onUpdateGuestData]);
     const updateClient = useCallback((updatedClient) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).map(c => c.id === updatedClient.id ? updatedClient : c) })); }, [onUpdateGuestData]);
     const deleteClient = useCallback((clientId) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).filter(c => c.id !== clientId) })); }, [onUpdateGuestData]);
-    const handleSaveGanttTask = useCallback((taskData) => { onUpdateGuestData(prev => ({ ...prev, ganttTasks: taskData.id ? (prev.ganttTasks || []).map(task => task.id === taskData.id ? taskData : task) : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}` }] })); }, [onUpdateGuestData]);
+
+    // Handle Gantt task saving: ensures it matches the expected model for GanttChartPlanning
+    const handleSaveGanttTask = useCallback((taskData) => {
+        onUpdateGuestData(prev => ({
+            ...prev,
+            ganttTasks: taskData.id
+                ? (prev.ganttTasks || []).map(task => task.id === taskData.id ? taskData : task)
+                : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}` }]
+        }));
+    }, [onUpdateGuestData]);
+
     const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { id: `meeting-${Date.now()}`, title: newMeeting.title, dateTime: newMeeting.dateTime, attendees: newMeeting.attendees, timezone: newMeeting.timezone, sendEmail: newMeeting.sendEmail, googleMeetLink: newMeeting.googleMeetLink || 'https://meet.google.com/new', createdAt: new Date().toISOString() }] })); }, [onUpdateGuestData]);
-    // NOTE: handleAddDeadline now creates a project with a deadline, as per your mock data structure logic.
     const handleAddDeadline = useCallback((newDeadline) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { id: `proj-${Date.now()}`, name: newDeadline.title, client: newDeadline.client || 'General', progress: 0, deadline: newDeadline.date, description: newDeadline.description, staff: [], paidAmount: '0 €', nextPayment: 'N/A', totalAmount: 'N/A', createdAt: new Date().toISOString(), googleDriveLink: null }] })); }, [onUpdateGuestData]);
     const handleAddInvoice = useCallback((newInvoice) => { onUpdateGuestData(prev => ({ ...prev, invoices: [...(prev.invoices || []), { ...newInvoice, id: `inv-${Date.now()}` }] })); }, [onUpdateGuestData]);
 
@@ -226,9 +235,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, []);
 
-    console.log('DashboardPage: Before stats useMemo - data for stats:', data); // Debug Log
+    console.log('DashboardPage: Before stats useMemo - data for stats:', data);
     const stats = useMemo(() => {
-        console.log('DashboardPage: Inside stats useMemo - data being used:', data); // Debug Log
+        console.log('DashboardPage: Inside stats useMemo - data being used:', data);
         const now = new Date();
 
         const messages = data?.messages || [];
@@ -241,7 +250,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             meetings: meetings.filter(m => new Date(m.dateTime) > now).length,
         };
     }, [data]);
-    console.log('DashboardPage: Stats calculated:', stats); // Debug Log
+    console.log('DashboardPage: Stats calculated:', stats);
 
     const handleOpenAddTaskFromChat = useCallback((chatData) => {
         openModal('assignTaskProjectDeadline', {
@@ -251,19 +260,17 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         });
     }, [openModal, data.staffMembers]);
 
-    // Function to open the calculator modal
     const handleOpenCalculatorModal = useCallback(() => {
-        openModal('calculator'); //
+        openModal('calculator');
     }, [openModal]);
 
 
     return (
         <>
             <Head><title>Dashboard - NocaFLOW</title></Head>
-            {/* Le padding et la max-width sont maintenant sur le div wrapper ici */}
-            <div className="min-h-screen w-full dashboard-page-content-padding"> 
+            <div className="min-h-screen w-full dashboard-page-content-padding">
                 {isGuestMode && (
-                    <div className="guest-banner-wrapper"> {/* Utilise la nouvelle classe CSS pour l'alignement */}
+                    <div className="guest-banner-wrapper">
                         <GuestBanner
                             onRegisterClick={onRegisterClick}
                             onLoginClick={onLoginClick}
@@ -271,22 +278,20 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         />
                     </div>
                 )}
-                {/* La motion.div est maintenant juste un conteneur pour l'espacement vertical des éléments du dashboard */}
                 <motion.div
-                    className="max-w-screen-2xl mx-auto space-y-6" /* Conserve le max-w et le centrage */
+                    className="max-w-screen-2xl mx-auto space-y-6"
                     initial="hidden"
                     animate="visible"
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                 >
-                    {/* DashboardHeader ici */}
                     <DashboardHeader
                         user={isGuestMode ? data.user : user}
                         isGuestMode={isGuestMode}
-                        openModal={openModal} // Still pass openModal to DashboardHeader
+                        openModal={openModal}
                         handleLogout={logout}
                         stats={stats}
                         t={t}
-                        onOpenCalculator={handleOpenCalculatorModal} // Pass the new handler
+                        onOpenCalculator={handleOpenCalculatorModal}
                     />
 
                     <TimeAlerts projects={data.projects} meetings={data.meetings} t={t} lang={lang} openModal={openModal} />
@@ -312,19 +317,19 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onRegisterClick={onRegisterClick}
                                     onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
                                     availableTeamMembers={data.staffMembers}
-                                    messages={data.messages} // Passer les messages ici
-                                    user={user} // Passer l'objet user
+                                    messages={data.messages}
+                                    user={user}
                                     initialMockData={initialMockData}
                                 />
                             </DashboardCard>
 
-                            <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]" notes={data.notes}/>
-                            <Calendar 
-                                tasks={data.tasks} // Pass tasks from data
-                                meetings={data.meetings} // Pass meetings from data
-                                projects={data.projects} // Pass projects from data
-                                onDayClick={(date, events) => openModal('dayDetails', { date, events })} 
-                                t={t} 
+                            <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]"/>
+                            <Calendar
+                                tasks={data.tasks}
+                                meetings={data.meetings}
+                                projects={data.projects}
+                                onDayClick={(date, events) => openModal('dayDetails', { date, events })}
+                                t={t}
                                 className="flex-1 h-auto"
                             />
                             <InvoicesSummary invoices={data.invoices} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="flex-1 min-h-[350px]"/>
@@ -355,12 +360,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         <div className="col-span-12">
                             <GanttChartPlanning
                                 ref={ganttChartPlanningRef}
-                                initialTasks={data.ganttTasks}
+                                initialTasks={data.ganttTasks} // This prop is correctly passed from data
                                 t={t}
                                 staffMembers={data.staffMembers}
                                 clients={data.clients}
-                                onAddTask={(taskData) => openModal('ganttTaskForm', taskData)}
-                                onSave={handleSaveGanttTask}
+                                onAddTask={(taskData) => openModal('ganttTaskForm', taskData)} // taskData is passed here for editing
+                                onSave={handleSaveGanttTask} // This receives the saved task from the modal
                                 className="h-[600px] w-full"
                                 onFullscreenClick={handleGanttChartPlanningFullscreen}
                             />
@@ -439,7 +444,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {modals.assignTaskProjectDeadline && (
                     <AssignTaskProjectDeadlineModal
                         t={t}
-                        member={modals.assignTaskProjectDeadline} // Passer `member` pour la cohérence
+                        member={modals.assignTaskProjectDeadline}
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers}
                         userUid={userUid}
@@ -453,7 +458,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {modals.ganttTaskForm && (
                     <GanttTaskFormModal
                         t={t}
-                        initialData={modals.ganttTaskForm}
+                        initialData={modals.ganttTaskForm} // This is the task data being passed for editing
                         onSave={handleSaveGanttTask}
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers}
@@ -472,7 +477,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {modals.addDeadline && <AddDeadlineModal t={t} onSave={handleAddDeadline} onClose={closeModal} />}
                 {modals.addMeeting && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
 
-                {modals.calculator && <CalculatorModal t={t} onClose={closeModal} />} {/* RENDER CALCULATOR MODAL */}
+                {modals.calculator && <CalculatorModal t={t} onClose={closeModal} />}
             </AnimatePresence>
         </>
     );

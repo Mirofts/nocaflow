@@ -23,8 +23,8 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
     const [title, setTitle] = useState(initialData.title || '');
     const [person, setPerson] = useState(initialData.person || ''); // 'person' combines staff and client
     const [startDate, setStartDate] = useState(
-        initialData.startDate && isValid(parseISO(initialData.startDate)) 
-            ? format(parseISO(initialData.startDate), 'yyyy-MM-dd') 
+        initialData.startDate && isValid(parseISO(initialData.startDate))
+            ? format(parseISO(initialData.startDate), 'yyyy-MM-dd')
             : format(new Date(), 'yyyy-MM-dd')
     );
     const [endDate, setEndDate] = useState(
@@ -47,8 +47,8 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
             id: initialData.id || `gantt-${Date.now()}`,
             title: title.trim(),
             person: person.trim(),
-            startDate: startDate,
-            endDate: endDate,
+            startDate: startDate, // Send as 'yyyy-MM-dd' for simplicity, GanttChartPlanning parsesISO
+            endDate: endDate,     // Send as 'yyyy-MM-dd'
             color: color,
             completed: completed, // Include completed status
         };
@@ -125,7 +125,7 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
                     <label className="block text-slate-300 text-sm mb-1 font-medium">{t('gantt_color', 'Couleur')}</label>
                     <div className="grid grid-cols-5 gap-2">
                         {GanttColors.map(c => (
-                            <div 
+                            <div
                                 key={c.value}
                                 className={`h-8 w-8 rounded-full cursor-pointer border-2 transition-all ${c.class} ${color === c.value ? 'border-white scale-110' : 'border-transparent'}`}
                                 onClick={() => setColor(c.value)}
