@@ -12,9 +12,7 @@ import Greeting from './dashboard/Greeting';
 import { initialMockData } from '../lib/mockData'; 
 
 // FIX: Déplacer mainNavLinks en dehors du composant Navbar
-// Le 't' ne peut pas être utilisé ici, donc nous devrons le passer via props si NavLink en a besoin,
-// ou utiliser les labels hardcodés pour les routes statiques.
-// Puisque NavLink prend déjà 'children' (le label), cela fonctionnera.
+// Renommé en STATIC_MAIN_NAV_LINKS pour être clair que c'est une constante globale.
 const STATIC_MAIN_NAV_LINKS = [
   { href: '/', i18nKey: 'about' },
   { href: '/features', i18nKey: 'features' },
@@ -131,7 +129,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
           {/* Desktop Navigation Links & User Actions */}
           <div className="hidden md:flex items-center space-x-4">
             {/* Standard Nav Links (using STATIC_MAIN_NAV_LINKS and t() for labels) */}
-            {STATIC_MAIN_NAV_LINKS.map(link => (
+            {STATIC_MAIN_NAV_LINKS.map(link => ( // FIX: Utilisation de STATIC_MAIN_NAV_LINKS
                 <NavLink key={link.href} href={link.href} currentPath={currentPath}>{t(link.i18nKey, link.label)}</NavLink>
             ))}
 
@@ -305,7 +303,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
             className="md:hidden fixed inset-x-0 top-16 z-40 glass-card mx-4 rounded-b-2xl p-4 border-t-0"
           >
             <div className="pt-2 pb-3 space-y-1 sm:px-3">
-              {STATIC_MAIN_NAV_LINKS.map(link => ( // Utilisation de STATIC_MAIN_NAV_LINKS ici aussi
+              {STATIC_MAIN_NAV_LINKS.map(link => ( // FIX: Utilisation de STATIC_MAIN_NAV_LINKS ici aussi
                 <Link key={link.href} href={link.href} className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors">
                   {t(link.i18nKey, link.label)}
                 </Link>
