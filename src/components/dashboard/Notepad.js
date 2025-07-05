@@ -1,5 +1,5 @@
 // components/dashboard/Notepad.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react'; // Added useCallback
 import { DashboardCard } from './DashboardCard';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -19,8 +19,9 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
     useEffect(() => {
         if (isGuest) {
             // For guest mode, initialize from localStorage or mockData once
-            const savedGuestNotes = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}').notes;
-            setNote(savedGuestNotes !== undefined ? savedGuestNotes : initialNoteContent);
+            const savedGuestData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
+            const savedGuestNotes = savedGuestData.notes !== undefined ? savedGuestData.notes : initialNoteContent;
+            setNote(savedGuestNotes);
             setStatus(t('saved', 'Sauvegardé')); // Set to saved initially for guests too
             return;
         }
@@ -79,7 +80,7 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
     return (
         <DashboardCard icon={
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/><line x1="12" x2="12" y1="4" y2="20"/></svg>
-        } title={t('bloc_note_title', 'Bloc-notes')} className={className}> {/* Removed bg-orange-900/20 here, assuming it's managed by global themes */}
+        } title={t('bloc_note_title', 'Bloc-notes')} className={className}>
             <div className="flex flex-col h-full">
                 <textarea
                     ref={textareaRef}
@@ -87,8 +88,9 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
                     onChange={e => handleChange(e.target.value)}
                     onFocus={handleFocus}
                     placeholder={t('notepad_placeholder_initial', 'Vos idées, vos pensées, votre génie...')}
+                    // CORRECTED LINE: Ensure the entire string is one template literal
                     className={`w-full flex-grow bg-transparent resize-none p-1 custom-scrollbar border-none focus:ring-0 focus:outline-none focus:border-transparent 
-                               font-normal text-sm sm:text-base leading-relaxed ${isDarkMode ? 'text-orange-300' : 'text-violet-700'}`} {/* Adjusted font size and line height */}
+                               font-normal text-sm sm:text-base leading-relaxed ${isDarkMode ? 'text-orange-300' : 'text-violet-700'}`}
                 />
                 <motion.div
                     className="text-right text-xs mt-2 transition-opacity flex-shrink-0"
