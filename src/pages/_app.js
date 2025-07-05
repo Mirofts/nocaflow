@@ -7,7 +7,7 @@ import { AuthContextProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import i18nextConfig from '../../next-i18next.config';
 import { AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
@@ -46,6 +46,20 @@ function MyApp({ Component, pageProps }) {
 
   const isHomePage = router.pathname === '/';
   const isDashboardPage = router.pathname === '/dashboard'; // Détection de la page Dashboard
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      if (hash) {
+        setTimeout(() => {
+          const el = document.querySelector(hash);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100); // délai pour attendre que le DOM soit prêt
+      }
+    }
+  }, [router.asPath]);
 
   return (
     <AuthContextProvider>
