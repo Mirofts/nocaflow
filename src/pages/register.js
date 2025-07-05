@@ -4,9 +4,8 @@ import Head from 'next/head';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Mail, Lock, Building, Linkedin } from 'lucide-react';
-import { auth, db, storage } from '../lib/firebase';
+import { auth, storage } from '../lib/firebase';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { setDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../context/AuthContext'; // Utilisez useAuth comme un hook
 import { useRouter } from 'next/router';
@@ -87,46 +86,48 @@ export default function RegisterPage({ onLoginClick, onRegisterClick }) {
       }));
     }
   };
+const createUserDocument = async (user, additionalData) => {
+  const { getFirestore, setDoc, doc } = await import('firebase/firestore');
+  const db = getFirestore();
 
-  const createUserDocument = async (user, additionalData) => {
-    const userDocRef = doc(db, 'users', user.uid);
-    let photoURL = user.photoURL || null;
+  const userDocRef = doc(db, 'users', user.uid);
+  let photoURL = user.photoURL || null;
 
-    if (additionalData.avatarFile) {
-      setLoading(true);
-      try {
-        const avatarRef = ref(storage, `avatars/${user.uid}/${additionalData.avatarFile.name}`);
-        const uploadResult = await uploadBytes(avatarRef, additionalData.avatarFile);
-        photoURL = await getDownloadURL(uploadResult.ref);
-        console.log("Avatar uploaded to:", photoURL);
-      } catch (uploadError) {
-        console.error("Error uploading avatar during registration:", uploadError);
-        setError("Échec du téléchargement de l'avatar. Veuillez réessayer.");
-        setLoading(false);
-        throw uploadError;
-      }
-    }
-
-    const userData = {
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName || `${additionalData.firstname || ''} ${additionalData.lastname || ''}`.trim(),
-      photoURL: photoURL,
-      createdAt: new Date(),
-      firstname: additionalData.firstname || '',
-      lastname: additionalData.lastname || '',
-      company: additionalData.company || ''
-    };
+  if (additionalData.avatarFile) {
+    setLoading(true);
     try {
-      await setDoc(userDocRef, userData, { merge: true });
-      console.log("User document created/updated in Firestore.");
-    } catch (firestoreError) {
-      console.error("Error creating/updating user document in Firestore:", firestoreError);
-      setError("Erreur lors de la sauvegarde de votre profil. Veuillez réessayer.");
-      throw firestoreError;
+      const avatarRef = ref(storage, `avatars/${user.uid}/${additionalData.avatarFile.name}`);
+      const uploadResult = await uploadBytes(avatarRef, additionalData.avatarFile);
+      photoURL = await getDownloadURL(uploadResult.ref);
+      console.log("Avatar uploaded to:", photoURL);
+    } catch (uploadError) {
+      console.error("Error uploading avatar during registration:", uploadError);
+      setError("Échec du téléchargement de l'avatar. Veuillez réessayer.");
+      setLoading(false);
+      throw uploadError;
     }
+  }
+
+  const userData = {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName || `${additionalData.firstname || ''} ${additionalData.lastname || ''}`.trim(),
+    photoURL: photoURL,
+    createdAt: new Date(),
+    firstname: additionalData.firstname || '',
+    lastname: additionalData.lastname || '',
+    company: additionalData.company || ''
   };
 
+  try {
+    await setDoc(userDocRef, userData, { merge: true });
+    console.log("User document created/updated in Firestore.");
+  } catch (firestoreError) {
+    console.error("Error creating/updating user document in Firestore:", firestoreError);
+    setError("Erreur lors de la sauvegarde de votre profil. Veuillez réessayer.");
+    throw firestoreError;
+  }
+};
 
   const handleEmailRegister = async (e) => {
     e.preventDefault();
