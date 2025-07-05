@@ -1,5 +1,5 @@
 // components/dashboard/Notepad.js
-import React, { useState, useEffect, useRef, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DashboardCard } from './DashboardCard';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -18,11 +18,10 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
 
     useEffect(() => {
         if (isGuest) {
-            // For guest mode, initialize from localStorage or mockData once
             const savedGuestData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
             const savedGuestNotes = savedGuestData.notes !== undefined ? savedGuestData.notes : initialNoteContent;
             setNote(savedGuestNotes);
-            setStatus(t('saved', 'Sauvegardé')); // Set to saved initially for guests too
+            setStatus(t('saved', 'Sauvegardé'));
             return;
         }
         if (!uid) return;
@@ -32,7 +31,7 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
             if (snap.exists()) {
                 setNote(snap.data().content || '');
             } else {
-                setNote(''); // Clear if doc doesn't exist
+                setNote('');
             }
             setStatus(t('saved', 'Sauvegardé'));
         }, (error) => {
@@ -40,11 +39,10 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
             setStatus(t('error', 'Erreur'));
         });
 
-        return () => unsubscribe(); // Cleanup listener
+        return () => unsubscribe();
     }, [uid, isGuest, t, initialNoteContent]);
 
     const handleChange = useCallback((content) => {
-        // Only set hasTypedRef to true if user actually starts typing something different from initial mock
         if (!hasTypedRef.current && content !== initialNoteContent && content.length > 0) {
             hasTypedRef.current = true;
         }
@@ -70,12 +68,10 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
     }, [isGuest, uid, onGuestUpdate, t, initialNoteContent]);
 
     const handleFocus = useCallback(() => {
-        // Clear placeholder text only if it's the initial mock content and not already typed
         if (isGuest && !hasTypedRef.current && note === initialNoteContent) {
             setNote('');
         }
     }, [isGuest, note, initialNoteContent]);
-
 
     return (
         <DashboardCard icon={
@@ -88,9 +84,9 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
                     onChange={e => handleChange(e.target.value)}
                     onFocus={handleFocus}
                     placeholder={t('notepad_placeholder_initial', 'Vos idées, vos pensées, votre génie...')}
-                    // CORRECTED LINE: Ensure the entire string is one template literal
+                    // Ensured text-sm for smaller text
                     className={`w-full flex-grow bg-transparent resize-none p-1 custom-scrollbar border-none focus:ring-0 focus:outline-none focus:border-transparent 
-                               font-normal text-sm sm:text-base leading-relaxed ${isDarkMode ? 'text-orange-300' : 'text-violet-700'}`}
+                               font-normal text-sm leading-relaxed ${isDarkMode ? 'text-orange-300' : 'text-violet-700'}`}
                 />
                 <motion.div
                     className="text-right text-xs mt-2 transition-opacity flex-shrink-0"

@@ -1,7 +1,7 @@
 // src/components/dashboard/GanttChartPlanning.js
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react'; // Added useMemo
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { DashboardCard } from './DashboardCard';
-import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, isPast, differenceInDays, isValid, parseISO } from 'date-fns'; // Added differenceInDays, isValid, parseISO
+import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, isPast, differenceInDays, isValid, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
@@ -21,8 +21,8 @@ const GanttColorsMap = {
 // Helper function to determine if text should be dark based on background color
 const isLightColor = (colorValue) => {
     // These are Tailwind CSS classes, so we need to infer brightness
-    // Common light colors in this map: amber, cyan, green, pink (can be mixed), gray
-    return ['amber', 'cyan', 'green'].includes(colorValue); // You can adjust this list
+    // Common light colors in this map: amber, cyan, green. Pink/violet/blue/red are usually dark text.
+    return ['amber', 'cyan', 'green'].includes(colorValue);
 };
 
 const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients, onAddTask, onSave, className = '', noContentPadding = false }, ref) => {
@@ -33,7 +33,6 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const { isDarkMode } = useTheme();
 
     useEffect(() => {
-        // Ensure tasks are updated when initialTasks prop changes
         setTasks(initialTasks);
     }, [initialTasks]);
 
@@ -75,71 +74,56 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         return eachDayOfInterval({ start, end });
     }, [currentDate]);
 
-    const daysInView = useMemo(() => getDaysInView(), [getDaysInView]); // Memoize daysInView
+    const daysInView = useMemo(() => getDaysInView(), [getDaysInView]);
     const viewStartDate = daysInView[0];
     const viewEndDate = daysInView[daysInView.length - 1];
 
-    const totalDaysInMonth = daysInView.length; // This is the total number of days in the month
+    const totalDaysInMonth = daysInView.length;
 
     // Function to calculate style for each task bar
     const getTaskBarStyle = useCallback((task) => {
-        // Ensure task dates are valid and within the current view
         const taskStartDate = parseISO(task.startDate);
         const taskEndDate = parseISO(task.endDate);
 
         if (!isValid(taskStartDate) || !isValid(taskEndDate)) {
-            return { display: 'none' }; // Hide invalid tasks
+            return { display: 'none' };
         }
 
-        // Determine the portion of the task that falls within the current month view
         const effectiveStartDate = taskStartDate < viewStartDate ? viewStartDate : taskStartDate;
         const effectiveEndDate = taskEndDate > viewEndDate ? viewEndDate : taskEndDate;
 
-        // If the task is entirely outside the view, hide it
         if (effectiveStartDate > viewEndDate || effectiveEndDate < viewStartDate) {
             return { display: 'none' };
         }
         
-        // Calculate position and width relative to the current month's start date
         const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
-        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1; // +1 to include the end day
+        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
 
         const left = (startOffsetDays / totalDaysInMonth) * 100;
         const width = (durationDays / totalDaysInMonth) * 100;
 
-        const barColorClass = GanttColorsMap[task.color] || GanttColorsMap['blue'];
-
-        // Determine text color based on bar color for readability
-        const textColorClass = isLightColor(task.color) ? 'text-black' : 'text-white';
-
         return {
             left: `${left}%`,
             width: `${width}%`,
-            backgroundColor: barColorClass.replace('bg-', '#'), // Convert Tailwind bg-class to hex for direct style
-            color: textColorClass === 'text-black' ? '#000000' : '#FFFFFF', // Set exact hex color for text
-            // Add a slight top offset for visual stacking if multiple tasks for same person/day
-            // This is a simple stacking. For more complex, you'd need a collision detection algorithm.
         };
     }, [viewStartDate, viewEndDate, totalDaysInMonth]);
 
 
-    const handlePrevMonth = () => {
-        setCurrentDate(prev => addDays(startOfMonth(prev), -1)); // Go to last day of previous month, then startOfMonth will set it correctly
-    };
+    const handlePrevMonth = useCallback(() => {
+        setCurrentDate(prev => addDays(startOfMonth(prev), -1));
+    }, []);
 
-    const handleNextMonth = () => {
-        setCurrentDate(prev => addDays(endOfMonth(prev), 1)); // Go to first day of next month
-    };
+    const handleNextMonth = useCallback(() => {
+        setCurrentDate(prev => addDays(endOfMonth(prev), 1));
+    }, []);
 
-    // Prepare all unique people (staff + clients + any unique people from tasks)
     const allPeople = useMemo(() => {
         const staffNames = Array.isArray(staffMembers) ? staffMembers.map(m => m.name) : [];
         const clientNames = Array.isArray(clients) ? clients.map(c => c.name) : [];
-        const taskPeople = Array.isArray(initialTasks) ? initialTasks.map(t => t.person).filter(Boolean) : []; // Use initialTasks
+        const taskPeople = Array.isArray(initialTasks) ? initialTasks.map(t => t.person).filter(Boolean) : [];
         const uniquePeople = [...new Set([...staffNames, ...clientNames, ...taskPeople])];
         return uniquePeople.sort();
-    }, [staffMembers, clients, initialTasks]); // Depend on initialTasks
-
+    }, [staffMembers, clients, initialTasks]);
 
     return (
         <DashboardCard
@@ -161,7 +145,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </motion.button>
                 <h3 className="text-lg font-bold text-color-text-primary flex-grow text-center">
-                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* Changed 'MMMM' to 'MMMM yyyy' */}
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* Corrected format for year */}
                 </h3>
                 <motion.button
                     onClick={handleNextMonth}
@@ -174,11 +158,11 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
             </div>
 
             {/* Main Planning Area */}
-            <div className={`flex flex-col flex-1 overflow-auto custom-scrollbar`} ref={containerRef}> {/* Changed to overflow-auto */}
+            <div className={`flex flex-col flex-1 overflow-auto custom-scrollbar`} ref={containerRef}>
                 {/* Fixed Header Row for Days */}
-                <div className={`grid gap-px sticky top-0 z-10`} style={{ gridTemplateColumns: `minmax(150px, 0.5fr) repeat(${totalDaysInMonth}, minmax(0, 1fr))` }}> {/* Adjust minmax for first column */}
+                <div className={`grid gap-px sticky top-0 z-10`} style={{ gridTemplateColumns: `minmax(150px, 0.5fr) repeat(${totalDaysInMonth}, minmax(0, 1fr))` }}>
                     <div className={`p-2 font-bold text-sm ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-color-bg-secondary text-color-text-primary'} sticky left-0 z-20 border-b border-color-border-primary`}>
-                        {t('team_member_client', 'Membre / Client')}
+                        {t('team_member', 'Membre / Client')}
                     </div>
                     {daysInView.map((day, index) => {
                         const isWeekendDay = isWeekend(day);
@@ -200,7 +184,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 {/* Task Rows for each person */}
                 {allPeople.length > 0 ? (
                     allPeople.map((person, pIndex) => (
-                        <div key={pIndex} className="grid gap-px relative" style={{ gridTemplateColumns: `minmax(150px, 0.5fr) repeat(${totalDaysInMonth}, minmax(0, 1fr))` }}> {/* Adjust minmax for first column */}
+                        <div key={pIndex} className="grid gap-px relative" style={{ gridTemplateColumns: `minmax(150px, 0.5fr) repeat(${totalDaysInMonth}, minmax(0, 1fr))` }}>
                             <div className={`h-12 p-2 font-medium text-sm flex items-center ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-color-bg-primary text-color-text-primary'} sticky left-0 z-10 border-b border-color-border-primary`}>
                                 <span className="truncate">{person}</span>
                             </div>
@@ -214,23 +198,28 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                             ))}
                             {tasks
                                 .filter(task => task.person === person)
-                                .map((task, tIndex) => (
-                                    <motion.div
-                                        key={task.id || tIndex}
-                                        className={`absolute h-8 rounded-full px-2 text-xs font-semibold flex items-center shadow-md cursor-pointer ${task.completed ? 'opacity-50' : ''}`}
-                                        style={{
-                                            ...getTaskBarStyle(task), // Use combined style
-                                            // Simple vertical stacking based on index. Can be improved.
-                                            top: `${10 + (tIndex % 2) * 20}%`, // Adjust top for stacking
-                                            zIndex: 20
-                                        }}
-                                        whileHover={{ scale: 1.03, boxShadow: '0 0 10px rgba(0,0,0,0.3)' }}
-                                        title={`${task.title} (${format(parseISO(task.startDate), 'dd/MM', { locale: fr })} - ${format(parseISO(task.endDate), 'dd/MM', { locale: fr })})`}
-                                        onClick={() => onAddTask(task)} // Open edit modal with task data
-                                    >
-                                        <span className="truncate">{task.title}</span>
-                                    </motion.div>
-                                ))}
+                                .map((task, tIndex) => {
+                                    const barStyle = getTaskBarStyle(task);
+                                    const barColorClass = GanttColorsMap[task.color] || GanttColorsMap.blue;
+                                    const textColorClass = isLightColor(task.color) ? 'text-black' : 'text-white'; // Determine text color
+
+                                    return (
+                                        <motion.div
+                                            key={task.id || tIndex}
+                                            className={`absolute h-8 rounded-full px-2 text-xs font-semibold flex items-center shadow-md cursor-pointer ${barColorClass} ${textColorClass} ${task.completed ? 'opacity-50' : ''}`}
+                                            style={{
+                                                ...barStyle, // Apply left and width
+                                                top: `${10 + (tIndex % 2) * 20}%`, // Adjust top for stacking
+                                                zIndex: 20
+                                            }}
+                                            whileHover={{ scale: 1.03, boxShadow: '0 0 10px rgba(0,0,0,0.3)' }}
+                                            title={`${task.title} (${format(parseISO(task.startDate), 'dd/MM', { locale: fr })} - ${format(parseISO(task.endDate), 'dd/MM', { locale: fr })})`}
+                                            onClick={() => onAddTask(task)} // Open edit modal with task data
+                                        >
+                                            <span className="truncate">{task.title}</span>
+                                        </motion.div>
+                                    );
+                                })}
                         </div>
                     ))
                 ) : (
@@ -238,8 +227,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                         {t('no_gantt_tasks', 'Aucune tâche de planification à afficher.')}
                     </div>
                 )}
-                {/* Spacer to push content up if needed (for fixed height) */}
-                {allPeople.length === 0 && <div className="h-full"></div>} 
+                {allPeople.length === 0 && <div className="h-full"></div>}
             </div>
 
             {/* Add Task Button */}
