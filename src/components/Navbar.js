@@ -38,8 +38,6 @@ const NavLink = ({ href, children, currentPath, locale }) => {
   );
 };
 
-export default NavLink;
-
 // StatPill reste un composant séparé et réutilisable (pour l'affichage des chiffres)
 const StatPill = React.memo(({ icon, count, isPulsing = false, pulseColorClass = 'bg-pink-500' }) => {
   return (
