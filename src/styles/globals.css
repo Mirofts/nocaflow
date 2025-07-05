@@ -139,7 +139,7 @@
 
   .glass-card-input {
     background-color: var(--glass-card-bg); /* Utilise la même base que glass-card pour la consistance */
-    border: 1px solid var(--glass-card-border);
+    border: 1px solid var(--color-border-input);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border-radius: 1.25rem; /* rounded-2xl */
@@ -366,47 +366,46 @@
     box-shadow: 0 0 0 3px var(--color-border-active-shadow), inset 0 0 8px rgba(0,0,0,0.1);
 }
 
-/* Nouvelles classes pour le Dashboard */
-.dashboard-page-content-padding {
-    padding-top: 1rem; /* Padding top plus petit pour réduire l'espace après la Navbar */
-    padding-bottom: 2rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-}
-
-@media (min-width: 640px) {
-    .dashboard-page-content-padding {
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .dashboard-page-content-padding {
-        padding-left: 2rem;
-        padding-right: 2rem;
-    }
-}
-
-/* La bannière invité et le dashboard header devraient utiliser le même max-width/mx-auto que le reste du contenu */
-.guest-banner-wrapper {
-    max-width: var(--max-w-screen-2xl, 1440px); /* Utilise la variable Tailwind ou une valeur fixe */
+/* Classes pour un alignement cohérent du contenu principal sur toutes les pages */
+.content-max-width-wrapper {
+    max-width: 1440px; /* Equivalent de max-w-screen-2xl si vous l'avez défini, sinon choisissez une valeur */
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* Pour correspondre au padding du .dashboard-page-content-padding */
+    padding-left: 1rem; /* Padding pour mobile */
     padding-right: 1rem;
 }
 
-@media (min-width: 640px) {
-    .guest-banner-wrapper {
+@media (min-width: 640px) { /* sm */
+    .content-max-width-wrapper {
         padding-left: 1.5rem;
         padding-right: 1.5rem;
     }
 }
 
-@media (min-width: 1024px) {
-    .guest-banner-wrapper {
+@media (min-width: 1024px) { /* lg */
+    .content-max-width-wrapper {
         padding-left: 2rem;
         padding-right: 2rem;
     }
+}
+
+/* Spécifique à la page Dashboard */
+/* Le div principal de la page dashboard qui englobe tout le contenu (GuestBanner, DashboardHeader, cartes...) */
+.dashboard-page-content-padding {
+    padding-top: 1rem; /* Espace après la Navbar */
+    padding-bottom: 2rem;
+    /* Les paddings horizontaux sont maintenant gérés par .content-max-width-wrapper */
+}
+
+/* Ajustement pour la GuestBanner */
+/* Elle devrait hériter des paddings de .dashboard-page-content-padding et sa largeur du .max-w-screen-2xl mx-auto */
+.guest-banner-wrapper {
+    margin-bottom: 0.75rem; /* Réduit l'espace en dessous de la bannière */
+}
+
+/* Ajustement pour DashboardHeader */
+/* Réduit l'espace au-dessus du DashboardHeader */
+.dashboard-header-spacing {
+    margin-top: 0.5rem; /* Marge très petite au-dessus */
+    margin-bottom: 1.5rem; /* Marge en bas pour séparer des TimeAlerts */
 }

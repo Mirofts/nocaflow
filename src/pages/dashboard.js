@@ -19,9 +19,8 @@ import Projects from '../components/dashboard/Projects';
 import GuestBanner from '../components/dashboard/GuestBanner';
 import InvoicesSummary from '../components/dashboard/InvoicesSummary';
 import FlowLiveMessages from '../components/dashboard/FlowLiveMessages';
-// FIX: Corrected import paths for TeamManagement and ClientManagement
-import TeamManagement from '../components/dashboard/TeamManagement';
-import ClientManagement from '../components/dashboard/ClientManagement';
+import TeamManagement from '../components/dashboard/TeamManagement'; // Chemin corrigé si nécessaire
+import ClientManagement from '../components/dashboard/ClientManagement'; // Chemin corrigé si nécessaire
 import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 
@@ -251,18 +250,18 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     return (
         <>
             <Head><title>Dashboard - NocaFLOW</title></Head>
-            {/* Wrapper pour la bannière invité pour un alignement correct */}
-            {isGuestMode && (
-                <div className="guest-banner-wrapper"> {/* Utilise la nouvelle classe CSS */}
-                    <GuestBanner
-                        onRegisterClick={onRegisterClick}
-                        onLoginClick={onLoginClick}
-                        t={t}
-                    />
-                </div>
-            )}
-            {/* Le div principal du contenu de la page Dashboard avec padding et max-width */}
+            {/* Le padding et la max-width sont maintenant sur le div wrapper ici */}
             <div className="min-h-screen w-full dashboard-page-content-padding"> 
+                {isGuestMode && (
+                    <div className="guest-banner-wrapper"> {/* Utilise la nouvelle classe CSS pour l'alignement */}
+                        <GuestBanner
+                            onRegisterClick={onRegisterClick}
+                            onLoginClick={onLoginClick}
+                            t={t}
+                        />
+                    </div>
+                )}
+                {/* La motion.div est maintenant juste un conteneur pour l'espacement vertical des éléments du dashboard */}
                 <motion.div
                     className="max-w-screen-2xl mx-auto space-y-6" /* Conserve le max-w et le centrage */
                     initial="hidden"
