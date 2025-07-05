@@ -19,8 +19,9 @@ import Projects from '../components/dashboard/Projects';
 import GuestBanner from '../components/dashboard/GuestBanner';
 import InvoicesSummary from '../components/dashboard/InvoicesSummary';
 import FlowLiveMessages from '../components/dashboard/FlowLiveMessages';
-import TeamManagement from '../components/team-management';
-import ClientManagement from '../components/client-management';
+// FIX: Corrected import paths for TeamManagement and ClientManagement
+import TeamManagement from '../components/dashboard/TeamManagement';
+import ClientManagement from '../components/dashboard/ClientManagement';
 import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 
@@ -261,14 +262,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 </div>
             )}
             {/* Le div principal du contenu de la page Dashboard avec padding et max-width */}
-            <div className="min-h-screen w-full dashboard-page-content-padding"> {/* Utilise la nouvelle classe CSS */}
+            <div className="min-h-screen w-full dashboard-page-content-padding"> 
                 <motion.div
-                    className="max-w-screen-2xl mx-auto space-y-6" /* Conserve le max-width et le centrage */
+                    className="max-w-screen-2xl mx-auto space-y-6" /* Conserve le max-w et le centrage */
                     initial="hidden"
                     animate="visible"
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                 >
-                    {/* Rétablissement de DashboardHeader ici, avec un ajustement de marge si nécessaire */}
+                    {/* DashboardHeader ici */}
                     <DashboardHeader
                         user={isGuestMode ? data.user : user}
                         isGuestMode={isGuestMode}
