@@ -1,7 +1,7 @@
 // components/dashboard/TimeAlerts.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { format, differenceInMinutes, parseISO, isValid, addDays, differenceInSeconds } from 'date-fns'; // Added differenceInSeconds
+import { format, differenceInMinutes, parseISO, isValid, addDays, differenceInSeconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useTheme } from '../../context/ThemeContext';
 import { DashboardCard } from './DashboardCard'; // Make sure DashboardCard is imported
@@ -82,9 +82,9 @@ const TimeAlert = ({ type, title, dateTime, icon, pulseColorClass, openModal, t 
     const gaugeTrackColorClass = isDarkMode ? 'bg-slate-700' : 'bg-gray-200';
 
     return (
-        <div className="flex-1 flex flex-col items-center py-3 px-2"> {/* Smaller padding */}
-            <div className="flex items-center justify-center mb-2"> {/* Smaller margin-bottom */}
-                <div className={`flex items-center justify-center p-2 rounded-full ${pulseColorClass} bg-opacity-30`}> {/* Smaller padding */}
+        <div className="flex-1 flex flex-col items-center py-3 px-2">
+            <div className="flex items-center justify-center mb-2">
+                <div className={`flex items-center justify-center p-2 rounded-full ${pulseColorClass} bg-opacity-30`}>
                     {icon}
                 </div>
                 <motion.button
@@ -97,10 +97,10 @@ const TimeAlert = ({ type, title, dateTime, icon, pulseColorClass, openModal, t 
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
                 </motion.button>
             </div>
-            <h4 className={`text-center text-base font-semibold ${isDarkMode ? 'text-pink-400' : 'text-purple-700'}`}> {/* Smaller text */}
+            <h4 className={`text-center text-base font-semibold ${isDarkMode ? 'text-pink-400' : 'text-purple-700'}`}>
                 {title}
             </h4>
-            <p className={`text-center text-xs font-medium ${type === 'deadline' ? (isDarkMode ? 'text-pink-300' : 'text-purple-600') : (isDarkMode ? 'text-violet-300' : 'text-purple-400')} mt-0.5`}> {/* Smaller text, specific color for meeting */}
+            <p className={`text-center text-xs font-medium ${type === 'deadline' ? (isDarkMode ? 'text-pink-300' : 'text-purple-600') : (isDarkMode ? 'text-violet-300' : 'text-purple-400')} mt-0.5`}>
                 {timeLeft.overdue ? t('overdue', 'Passé') : displayTime}
             </p>
 
@@ -138,13 +138,13 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal }) => {
             className="col-span-12"
             noContentPadding={true}
         >
-            <div className={`grid grid-cols-1 md:grid-cols-2 flex-grow p-2 gap-2 ${isDarkMode ? 'bg-color-bg-secondary' : 'bg-white'} rounded-xl`}> {/* Smaller padding and gap */}
+            <div className={`grid grid-cols-1 md:grid-cols-2 flex-grow p-2 gap-2 ${isDarkMode ? 'bg-color-bg-secondary' : 'bg-white'} rounded-xl`}>
                 {/* Next Deadline Card */}
-                <div className={`rounded-lg p-3 flex flex-col items-center border ${isDarkMode ? 'border-color-border-primary' : 'border-gray-200'} ${isDarkMode ? 'bg-color-bg-tertiary' : 'bg-gray-50'}`}> {/* Smaller padding, smaller rounded */}
+                <div className={`rounded-lg p-3 flex flex-col items-center border ${isDarkMode ? 'border-color-border-primary' : 'border-gray-200'} ${isDarkMode ? 'bg-color-bg-tertiary' : 'bg-gray-50'}`}>
                     {nextDeadline ? (
                         <TimeAlert
                             type="deadline"
-                            title={t('next_deadline', 'Prochaine Échéance')} {/* Changed to Échéance */}
+                            title={t('next_deadline', 'Prochaine Échéance')}
                             dateTime={nextDeadline.deadline}
                             icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>}
                             pulseColorClass="bg-pink-500"
@@ -152,13 +152,14 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal }) => {
                             t={t}
                         />
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-4 px-2 text-color-text-secondary"> {/* Smaller padding */}
+                        <div className="flex flex-col items-center justify-center py-4 px-2 text-color-text-secondary">
+                             {/* Corrected SVG for empty state icon */}
                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400 mb-1"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                            <p className="text-base font-semibold text-color-text-primary text-center">{t('no_upcoming_deadlines', 'Aucune échéance à venir')}</p> {/* Smaller text */}
-                            <p className="text-xs mt-1 text-center">{t('add_new_deadline_hint', 'Ajoutez de nouvelles échéances pour rester organisé.')}</p> {/* Smaller text */}
+                            <p className="text-base font-semibold text-color-text-primary text-center">{t('no_upcoming_deadlines', 'Aucune échéance à venir')}</p>
+                            <p className="text-xs mt-1 text-center">{t('add_new_deadline_hint', 'Ajoutez de nouvelles échéances pour rester organisé.')}</p>
                             <motion.button
                                 onClick={() => openModal('addDeadline')}
-                                className={`p-1.5 rounded-full mt-2 transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-slate-700/50 hover:text-white' : 'text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary'}`} {/* Smaller padding, margin */}
+                                className={`p-1.5 rounded-full mt-2 transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-slate-700/50 hover:text-white' : 'text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary'}`}
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                                 title={t('add_deadline', 'Ajouter une échéance')}
@@ -170,7 +171,7 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal }) => {
                 </div>
 
                 {/* Next Meeting Card */}
-                <div className={`rounded-lg p-3 flex flex-col items-center border ${isDarkMode ? 'border-color-border-primary' : 'border-gray-200'} ${isDarkMode ? 'bg-color-bg-tertiary' : 'bg-gray-50'}`}> {/* Smaller padding, smaller rounded */}
+                <div className={`rounded-lg p-3 flex flex-col items-center border ${isDarkMode ? 'border-color-border-primary' : 'border-gray-200'} ${isDarkMode ? 'bg-color-bg-tertiary' : 'bg-gray-50'}`}>
                     {nextMeeting ? (
                         <TimeAlert
                             type="meeting"
@@ -182,13 +183,14 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal }) => {
                             t={t}
                         />
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-4 px-2 text-color-text-secondary"> {/* Smaller padding */}
+                        <div className="flex flex-col items-center justify-center py-4 px-2 text-color-text-secondary">
+                             {/* Corrected SVG for empty state icon */}
                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400 mb-1"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>
-                            <p className="text-base font-semibold text-color-text-primary text-center">{t('no_upcoming_meetings', 'Aucune réunion à venir')}</p> {/* Smaller text */}
-                            <p className="text-xs mt-1 text-center">{t('add_new_meeting_hint', 'Planifiez de nouvelles réunions pour rester connecté.')}</p> {/* Smaller text */}
+                            <p className="text-base font-semibold text-color-text-primary text-center">{t('no_upcoming_meetings', 'Aucune réunion à venir')}</p>
+                            <p className="text-xs mt-1 text-center">{t('add_new_meeting_hint', 'Planifiez de nouvelles réunions pour rester connecté.')}</p>
                             <motion.button
                                 onClick={() => openModal('addMeeting')}
-                                className={`p-1.5 rounded-full mt-2 transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-slate-700/50 hover:text-white' : 'text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary'}`} {/* Smaller padding, margin */}
+                                className={`p-1.5 rounded-full mt-2 transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-slate-700/50 hover:text-white' : 'text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary'}`}
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                                 title={t('schedule_meeting', 'Planifier une réunion')}
