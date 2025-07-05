@@ -20,10 +20,10 @@ const STATIC_MAIN_NAV_LINKS = [
 ];
 
 // NavLink reste un composant séparé et réutilisable
-const NavLink = ({ href, children, currentPath, locale }) => { // <--- Ajout de 'locale' ici
+const NavLink = ({ href, children, currentPath, locale }) => { // <-- Ajout de 'locale' ici
   const isActive = currentPath === href || (href === '/' && currentPath === '/');
   return (
-    <Link href={href} locale={locale} className={`relative px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap 
+    <Link href={href} locale={locale} className={`relative px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap
       ${isActive ? 'text-pink-400' : 'text-color-text-secondary hover:text-color-text-primary'}`}>
       {children}
       {isActive && (
@@ -72,7 +72,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
   const avatarUrl = isGuestMode ? '/images/avatars/default-avatar.jpg' : (user?.photoURL || '/images/avatars/default-avatar.jpg');
 
   // Phrases for dashboard greeting (if shown)
-  const phrases = [
+  const phrases = useMemo(() => [
       "NocaFLOW trie même les chaussettes sales ?",
       "Un seul outil. Zéro chaos. Juste du FLOW.",
       "Multitâche ? Non. NocaFLOW fait tout, vraiment.",
@@ -83,7 +83,8 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
       "Plus fort que le café : NocaFLOW.",
       "NocaFLOW rend accros… à l’efficacité !",
       "Projets qui volent. Tracas au tapis."
-  ];
+  ], []); // <-- Memoize phrases
+
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
 
   useEffect(() => {
@@ -102,7 +103,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
       // Pour les stats en temps réel, vous devriez les passer via pageProps ou les charger ici
       // Pour l'exemple, utilisons les mock data si en mode invité.
       return {
-          messages: isGuestMode ? (initialMockData.messages || []).length : 0, 
+          messages: isGuestMode ? (initialMockData.messages || []).length : 0,
           tasks: isGuestMode ? (initialMockData.tasks || []).filter(task => !task.completed).length : 0,
           meetings: isGuestMode ? (initialMockData.meetings || []).filter(m => new Date(m.dateTime) > new Date()).length : 0,
       };
@@ -123,7 +124,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
         <div className="flex justify-between items-center h-16">
           {/* Logo / Brand Name */}
           <div className="flex items-center">
-            {/* Ajout de locale={currentLocale} ici aussi */}
+            {/* Correction: Ajout de locale={currentLocale} au Link racine */}
             <Link href="/" locale={currentLocale} className="flex-shrink-0 text-color-text-primary font-bold text-2xl whitespace-nowrap">
               <span className="text-color-text-primary">Noca</span>
               <span className="animated-gradient-text pink-violet-gradient-text">FLOW</span>
@@ -132,14 +133,15 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
 
           {/* Desktop Navigation Links & User Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* Standard Nav Links */}
+            {/* Correction: Ajout de locale={currentLocale} à tous les NavLink statiques */}
             {STATIC_MAIN_NAV_LINKS.map(link => (
-                <NavLink key={link.href} href={link.href} currentPath={currentPath} locale={currentLocale}>{t(link.i18nKey)}</NavLink> {/* <--- locale ajouté ici */}
+                <NavLink key={link.href} href={link.href} currentPath={currentPath} locale={currentLocale}>{t(link.i18nKey)}</NavLink>
             ))}
 
             {/* Dashboard Link (always visible) */}
             {!loadingAuth && (
-              <NavLink href="/dashboard" currentPath={currentPath} locale={currentLocale}> {/* <--- locale ajouté ici */}
+              {/* Correction: Ajout de locale={currentLocale} au NavLink du Dashboard */}
+              <NavLink href="/dashboard" currentPath={currentPath} locale={currentLocale}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-1 text-color-text-primary"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
                 {t('dashboard')}
               </NavLink>
@@ -184,7 +186,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
               <div className="flex items-center space-x-2 ml-4">
                 {/* Conditionnellement l'avatar de la Navbar et le bouton de déconnexion */}
                 <div className="relative group">
-                  {/* Ajout de locale={currentLocale} ici aussi */}
+                  {/* Correction: Ajout de locale={currentLocale} au Link de l'avatar vers le dashboard */}
                   <Link href="/dashboard" locale={currentLocale} className="flex items-center space-x-2">
                     <motion.img
                       src={user?.photoURL || '/images/avatars/default-avatar.jpg'}
@@ -260,13 +262,15 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
             className="md:hidden fixed inset-x-0 top-16 z-40 glass-card mx-4 rounded-b-2xl p-4 border-t-0"
           >
             <div className="pt-2 pb-3 space-y-1 sm:px-3">
+              {/* Correction: Ajout de locale={currentLocale} à tous les Link statiques pour mobile */}
               {STATIC_MAIN_NAV_LINKS.map(link => (
-                <Link key={link.href} href={link.href} locale={currentLocale} className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors"> {/* <--- locale ajouté ici */}
+                <Link key={link.href} href={link.href} locale={currentLocale} className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors">
                   {t(link.i18nKey)}
                 </Link>
               ))}
               {!loadingAuth && (
-                <Link href="/dashboard" locale={currentLocale} className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors"> {/* <--- locale ajouté ici */}
+                {/* Correction: Ajout de locale={currentLocale} au Link du Dashboard pour mobile */}
+                <Link href="/dashboard" locale={currentLocale} className="block px-3 py-2 rounded-md text-base font-medium text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
                     {t('dashboard')}
                 </Link>
