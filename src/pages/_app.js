@@ -10,6 +10,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
+import LoadingIndicator from '../src/components/LoadingIndicator'; // <-- Import it here
 
 // IMPORTS DES COMPOSANTS DE LAYOUT
 import Navbar from '../components/Navbar'; // La Navbar globale
