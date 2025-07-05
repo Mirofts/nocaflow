@@ -1,5 +1,5 @@
 // components/dashboard/Calendar.js
-import React, { useState, useEffect, useMemo, useCallback } from 'react'; // Added useMemo, useCallback
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DashboardCard } from './DashboardCard';
 import { format, getDaysInMonth, startOfMonth, getDay, isSameDay, isToday as checkIsToday, parseISO, isValid, addMonths, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -11,7 +11,6 @@ const Calendar = ({ onDayClick, t, className = '', tasks, meetings, projects }) 
     const [selectedDate, setSelectedDate] = useState(null);
     const { isDarkMode } = useTheme();
 
-    // Memoize the data for performance if it doesn't change frequently
     const allTasks = useMemo(() => tasks || [], [tasks]);
     const allMeetings = useMemo(() => meetings || [], [meetings]);
     const allProjects = useMemo(() => projects || [], [projects]);
@@ -78,7 +77,6 @@ const Calendar = ({ onDayClick, t, className = '', tasks, meetings, projects }) 
                 <div className="grid grid-cols-7 gap-1 text-center text-xs text-color-text-secondary font-bold mb-2 flex-shrink-0">
                     {weekDays.map(d => <div key={d}>{d}</div>)}
                 </div>
-                {/* Adjusted min-h for cells to be smaller, allowing more rows to fit naturally */}
                 <div className="grid grid-cols-7 gap-1 flex-grow overflow-y-auto custom-scrollbar">
                     {calendarDays.map((day, i) => {
                         const date = day ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day) : null;
@@ -93,16 +91,14 @@ const Calendar = ({ onDayClick, t, className = '', tasks, meetings, projects }) 
                                 ${day ? '' : 'invisible pointer-events-none'}
                                 ${isCurrentDay ? (isDarkMode ? 'bg-pink-500/20 text-white font-bold' : 'bg-violet-200 text-violet-800 font-bold') : 'text-color-text-primary'}
                                 ${isSelected ? 'border-2 border-pink-400' : ''}`}
-                                style={{ minHeight: 'calc(100% / 6 - 2px)' }} /* Ensure minimum height for 6 rows in month view */
+                                style={{ minHeight: 'calc(100% / 6 - 2px)' }}
                                 whileHover={{ scale: 1.05, zIndex: 10, backgroundColor: isDarkMode ? 'rgba(236, 72, 153, 0.2)' : 'rgba(168, 85, 247, 0.2)' }}
                                 onClick={() => handleDayClickWrapper(day)}
                             >
-                                <span className="text-sm sm:text-base font-medium">{day}</span> {/* Smaller date number */}
+                                <span className="text-sm sm:text-base font-medium">{day}</span>
                                 {eventsCount > 0 && (
-                                    // Adjusted positioning for the badge to be closer to the number and centered below it
                                     <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 flex items-center justify-center text-xs rounded-full 
-                                                     ${isDarkMode ? 'bg-violet-500 text-white' : 'bg-purple-600 text-white'} animate-bounce-slow`}
-                                         style={{ animationDuration: `${0.5 + eventsCount * 0.1}s` }}>
+                                                     ${isDarkMode ? 'bg-violet-500 text-white' : 'bg-purple-600 text-white'}`}> {/* Removed animate-bounce-slow class */}
                                         {eventsCount}
                                     </div>
                                 )}
