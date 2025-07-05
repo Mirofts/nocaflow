@@ -47,20 +47,6 @@ function MyApp({ Component, pageProps }) {
   const isHomePage = router.pathname === '/';
   const isDashboardPage = router.pathname === '/dashboard'; // Détection de la page Dashboard
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hash = window.location.hash;
-      if (hash) {
-        setTimeout(() => {
-          const el = document.querySelector(hash);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 100); // délai pour attendre que le DOM soit prêt
-      }
-    }
-  }, [router.asPath]);
-
   return (
     <AuthContextProvider>
       <ThemeProvider>

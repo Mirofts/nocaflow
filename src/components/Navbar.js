@@ -23,20 +23,23 @@ const STATIC_MAIN_NAV_LINKS = [
 const NavLink = ({ href, children, currentPath, locale }) => {
   const router = useRouter();
   const isActive = currentPath === href || (href === '/' && currentPath === '/');
-  const isAnchor = href.includes('#');
 
-const handleClick = (e) => {
-  if (!isAnchor) return; // ← Ne rien faire si ce n’est pas une ancre
-
-  e.preventDefault();
-  const [targetUrl, targetId] = href.split('#');
-  router.push(targetUrl || '/').then(() => {
-    const el = document.getElementById(targetId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  });
+  return (
+    <Link
+      href={href}
+      locale={locale}
+      className={`text-sm font-medium px-3 py-2 rounded-md transition-colors ${
+        isActive
+          ? 'text-color-text-primary'
+          : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'
+      }`}
+    >
+      {children}
+    </Link>
+  );
 };
+
+export default NavLink;
 
   return (
     <Link
