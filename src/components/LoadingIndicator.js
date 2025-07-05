@@ -1,40 +1,42 @@
 // src/components/LoadingIndicator.js
-import { useEffect, useState } from 'react'; // Add useState
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
-import { motion, AnimatePresence } from 'framer-motion'; // For animations
+import { motion, AnimatePresence } from 'framer-motion';
 
+// Optionnel: Configure NProgress. showSpinner: false est important si tu utilises ton propre spinner.
 NProgress.configure({ showSpinner: false, speed: 400, trickleSpeed: 200 });
 
 const LoadingIndicator = () => {
   const router = useRouter();
-  const [loading, setLoading] = useState(false); // State to control spinner visibility
+  const [loading, setLoading] = useState(false); // État pour contrôler la visibilité du spinner personnalisé
 
   useEffect(() => {
-    const handleStart = (url) => {
-      setLoading(true);
-      NProgress.start();
-    };
-    const handleStop = () => {
-      setLoading(false);
-      NProgress.done();
-    };
-    const handleError = () => {
-      setLoading(false);
-      NProgress.done();
+    // Fonction appelée au début de la navigation
+    const handleStart = () => {
+      setLoading(true); // Affiche le spinner personnalisé
+      NProgress.start(); // Démarre la barre de progression NProgress
     };
 
+    // Fonction appelée à la fin de la navigation (succès ou erreur)
+    const handleStop = () => {
+      setLoading(false); // Cache le spinner personnalisé
+      NProgress.done(); // Termine la barre de progression NProgress
+    };
+
+    // Écoute les événements du routeur
     router.events.on('routeChangeStart', handleStart);
     router.events.on('routeChangeComplete', handleStop);
-    router.events.on('routeChangeError', handleError);
+    router.events.on('routeChangeError', handleStop); // Gère aussi les erreurs pour cacher le spinner
 
+    // Fonction de nettoyage pour désabonner les écouteurs d'événements
     return () => {
       router.events.off('routeChangeStart', handleStart);
       router.events.off('routeChangeComplete', handleStop);
-      router.events.off('routeChangeError', handleError);
+      router.events.off('routeChangeError', handleStop);
     };
-  }, [router]);
+  }, [router]); // Dépendance à l'objet router pour s'assurer que les écouteurs sont bien configurés
 
   return (
     <AnimatePresence>
@@ -50,26 +52,39 @@ const LoadingIndicator = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
+            backgroundColor: 'rgba(0, 0, 0, 0.6)', // Fond semi-transparent plus sombre pour mieux voir le spinner
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            zIndex: 9999, // Ensure it's on top
+            zIndex: 9999, // Assure que le spinner est au-dessus de tout
           }}
         >
-          {/* Your beautiful spinner goes here */}
+          {/* Ton spinner personnalisé Framer Motion */}
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             style={{
-              width: '50px',
-              height: '50px',
-              border: '5px solid #f3f3f3', // Light grey
-              borderTop: '5px solid #3498db', // Blue spinner part
+              width: '60px', // Taille légèrement augmentée
+              height: '60px',
+              border: '6px solid rgba(255, 255, 255, 0.3)', // Cercle gris clair
+              borderTop: '6px solid #FF69B4', // Partie rose (couleur NocaFLOW)
               borderRadius: '50%',
             }}
           />
-          {/* You can replace the simple spinner above with an SVG, Lottie animation, etc. */}
+          {/* Optionnel: Ajoute un texte ou une icône au centre du spinner */}
+          {/* <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+            style={{
+              position: 'absolute',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            Loading...
+          </motion.span> */}
         </motion.div>
       )}
     </AnimatePresence>
