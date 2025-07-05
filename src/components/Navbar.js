@@ -15,8 +15,8 @@ import { initialMockData } from '../lib/mockData'; // For guest stats fallback
 // Déplacé STATIC_MAIN_NAV_LINKS ici (restera en dehors du composant)
 const STATIC_MAIN_NAV_LINKS = [
   { href: '/', i18nKey: 'about' },          // Va à l'accueil (index)
-  { href: '/#features', i18nKey: 'features' }, // Scroll vers la section #features de l'accueil
-  { href: '/#pricing', i18nKey: 'pricing' },   // Scroll vers la section #pricing de l'accueil
+  { href: '/features', i18nKey: 'features' }, // Scroll vers la section #features de l'accueil
+  { href: '/pricing', i18nKey: 'pricing' },   // Scroll vers la section #pricing de l'accueil
 ];
 
 // NavLink reste un composant séparé et réutilisable
