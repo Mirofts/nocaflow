@@ -1,26 +1,21 @@
 // src/components/Navbar.js
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react'; // useMemo and useCallback are not needed here anymore
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useTranslation } from 'next-i18next'; 
-import Image from 'next/image';
-import Greeting from './dashboard/Greeting';
-import { initialMockData } from '../lib/mockData'; 
+import { useTranslation } from 'next-i18next';
 
-
-// FIX: Déplacer mainNavLinks en dehors du composant Navbar
+// Déplacé STATIC_MAIN_NAV_LINKS ici
 const STATIC_MAIN_NAV_LINKS = [
   { href: '/', i18nKey: 'about' },
   { href: '/features', i18nKey: 'features' },
   { href: '/pricing', i18nKey: 'pricing' },
 ];
 
-
-// Composant NavLink pour les liens de navigation avec animation au survol
+// NavLink reste un composant séparé car il est simple et réutilisable
 const NavLink = ({ href, children, currentPath }) => {
   const isActive = currentPath === href || (href === '/' && currentPath === '/');
   return (
@@ -38,25 +33,9 @@ const NavLink = ({ href, children, currentPath }) => {
   );
 };
 
-// Composant pour les statistiques dans la Navbar du Dashboard
-const StatPill = React.memo(({ icon, count, isPulsing = false, pulseColorClass = 'bg-pink-500' }) => {
-  return (
-    <div className="flex items-center gap-2 text-sm bg-color-bg-secondary px-3 py-1.5 rounded-full border border-color-border-primary">
-        <motion.div
-            animate={isPulsing ? { scale: [1, 1.15, 1], opacity: [1, 0.7, 1] } : {}}
-            transition={isPulsing ? { duration: 1, repeat: Infinity, ease: "easeInOut" } : {}}
-            className={`flex items-center justify-center p-1.5 rounded-full ${pulseColorClass} bg-opacity-30`}
-        >
-            {icon}
-        </motion.div>
-        <span className="font-bold text-color-text-primary">{count}</span>
-    </div>
-  );
-});
-
 
 // Composant principal Navbar
-export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator, isDashboardPage }) {
+export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator }) { // isDashboardPage removed
   const { t } = useTranslation('common');
   const router = useRouter();
   const { locale: currentLocale, push, pathname, asPath, query } = router;
@@ -66,47 +45,8 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
   const { isDarkMode, toggleTheme } = useTheme();
 
   const currentPath = pathname;
-  const isGuestMode = !user || user.uid === 'guest_noca_flow';
-
-  // User avatar logic (centralized)
-  const displayUserNameForAvatar = user?.displayName || t('guest_user_default', 'Cher Invité');
-  const avatarUrl = isGuestMode ? '/images/avatars/avatarguest.jpg' : (user?.photoURL || '/images/avatars/default-avatar.jpg');
-
-  // Phrases for dashboard greeting (if shown)
-  const phrases = [
-      "NocaFLOW trie même les chaussettes sales ?",
-      "Un seul outil. Zéro chaos. Juste du FLOW.",
-      "Multitâche ? Non. NocaFLOW fait tout, vraiment.",
-      "Productif sans effort. Merci NocaFLOW, dopage légal.",
-      "NocaFLOW gère tout, sauf les ronrons. 🐾",
-      "Adieu stress. Bonjour FLOW (et siestes félines).",
-      "Même mamie l’utilise. Et elle kiffe grave.",
-      "Plus fort que le café : NocaFLOW.",
-      "NocaFLOW rend accros… à l’efficacité !",
-      "Projets qui volent. Tracas au tapis."
-  ];
-  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
-
-  useEffect(() => {
-      let interval;
-      if (isDashboardPage) { // Only animate phrases on Dashboard page
-          interval = setInterval(() => {
-              setCurrentPhraseIndex(prevIndex => (prevIndex + 1) % phrases.length);
-          }, 10000);
-      }
-      return () => clearInterval(interval);
-  }, [isDashboardPage, phrases.length]);
-
-
-  // Mock stats for guest mode in Navbar (if needed, otherwise fetch real stats in dashboard page)
-  const navbarStats = useMemo(() => { 
-      return {
-          messages: isGuestMode ? (initialMockData.messages || []).length : 0, 
-          tasks: isGuestMode ? (initialMockData.tasks || []).filter(task => !task.completed).length : 0,
-          meetings: isGuestMode ? (initialMockData.meetings || []).filter(m => new Date(m.dateTime) > new Date()).length : 0,
-      };
-  }, [isGuestMode]);
-
+  // isGuestMode is not directly used for Navbar rendering anymore for user/guest status icons/text
+  // const isGuestMode = user && user.uid === 'guest_noca_flow';
 
   useEffect(() => {
     setIsOpen(false); // Close mobile menu on route change
@@ -115,11 +55,6 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
   const setLocale = (newLocale) => {
     push({ pathname, query }, asPath, { locale: newLocale });
   };
-
-  // NavLink et StatPill sont définis dans le scope du module pour éviter la ReferenceError
-  // Ils ont été déplacés *au-dessus* du composant Navbar
-  // Si le problème persiste, la seule solution est de les définir *à l'intérieur* de Navbar
-  // For now, let's assume the current structure is correctly interpreted by the build tool after the comment fix.
 
   return (
     <nav className={`fixed top-0 left-0 w-full z-50 ${isDarkMode ? 'bg-gradient-to-b from-slate-900/80 to-transparent backdrop-blur-md border-b border-slate-700/50' : 'glass-nav border-b border-color-border-primary'}`}>
@@ -135,9 +70,9 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
 
           {/* Desktop Navigation Links & User Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* Standard Nav Links (using STATIC_MAIN_NAV_LINKS and t() for labels) */}
+            {/* Standard Nav Links */}
             {STATIC_MAIN_NAV_LINKS.map(link => (
-                <NavLink key={link.href} href={link.href} currentPath={currentPath}>{t(link.i18nKey)}{/* FIX: Commentaire JSX */}</NavLink> 
+                <NavLink key={link.href} href={link.href} currentPath={currentPath}>{t(link.i18nKey)}</NavLink>
             ))}
 
             {/* Dashboard Link (always visible) */}
@@ -182,73 +117,24 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
               )}
             </button>
 
-            {/* User Avatar, Greeting, and Login/Register Buttons */}
+            {/* User Login/Register/Logout Buttons */}
             {user && !loadingAuth ? ( // User is logged in (or guest)
               <div className="flex items-center space-x-2 ml-4">
-                {isDashboardPage && ( // Only show Dashboard-specific content if on Dashboard page
-                  <>
-                    <div className="relative group cursor-pointer" onClick={() => router.push('/dashboard')}>
-                        <Image
-                            src={avatarUrl}
-                            alt={displayUserNameForAvatar}
-                            width={32} height={32} // Smaller avatar for Navbar
-                            className={`rounded-full border-2 ${isDarkMode ? 'border-slate-700' : 'border-color-border-primary'} group-hover:border-pink-500 transition-colors object-cover`}
-                        />
-                    </div>
-                    <div className="flex flex-col items-start mr-2">
-                        <div className="flex items-center">
-                            <Greeting t={t} /> {/* Ave, TOI / Ave, YOU */}
-                        </div>
-                        <div className="h-4 overflow-hidden text-xs text-color-text-secondary leading-tight whitespace-nowrap">
-                            <AnimatePresence mode="wait">
-                                <motion.p
-                                    key={currentPhraseIndex}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    transition={{ duration: 0.3 }}
-                                >
-                                    {phrases[currentPhraseIndex]}
-                                </motion.p>
-                            </AnimatePresence>
-                        </div>
-                    </div>
-                    {/* Stats Pills (using dummy data for Navbar) */}
-                    <StatPill icon={
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-1.9A8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5Z"/></svg>
-                    } count={navbarStats.messages} isPulsing={navbarStats.messages > 0} pulseColorClass="bg-pink-500" />
-                    <StatPill icon={
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sky-400"><path d="M9 11L12 14L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                    } count={navbarStats.tasks} isPulsing={navbarStats.tasks > 0} pulseColorClass="bg-sky-500" />
-                    <StatPill icon={
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                    } count={navbarStats.meetings} isPulsing={navbarStats.meetings > 0} pulseColorClass="bg-amber-500" />
-
-                    <button
-                        onClick={onOpenCalculator}
-                        className="p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors"
-                        aria-label={t('calculator')}
-                        title={t('calculator')}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
-                            <line x1="8" y1="6" x2="8.01" y2="6"/>
-                            <line x1="16" y1="6" x2="16.01" y2="6"/>
-                            <line x1="8" y1="10" x2="8.01" y2="10"/>
-                            <line x1="16" y1="10" x2="16.01" y2="10"/>
-                            <line x1="8" y1="14" x2="8.01" y2="14"/>
-                            <line x1="16" y1="14" x2="16.01" y2="14"/>
-                            <line x1="8" y1="18" x2="8.01" y2="18"/>
-                            <line x1="12" y1="18" x2="12.01" y2="18"/>
-                            <line x1="16" y1="18" x2="16.01" y2="18"/>
-                            <line x1="12" y1="2" x2="12" y2="22"/>
-                            <line x1="4" y1="10" x2="20" y2="10"/>
-                        </svg>
-                    </button>
-                  </>
-                )}
-
-                {/* Logout Button (always visible if user is logged in) */}
+                <div className="relative group">
+                  <Link href="/dashboard" className="flex items-center space-x-2">
+                    <motion.img
+                      src={user?.photoURL || '/images/avatars/default-avatar.jpg'} // Use user photoURL directly
+                      alt={user.displayName || 'User Avatar'}
+                      width={32} height={32}
+                      className="w-10 h-10 rounded-full border-2 border-pink-500 cursor-pointer object-cover"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.2 }}
+                    />
+                  </Link>
+                  <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1 bg-color-bg-secondary text-color-text-primary text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                    {user.displayName || (user.uid === 'guest_noca_flow' ? t('guest_user') : t('user_profile'))}
+                  </span>
+                </div>
                 <button
                   onClick={logout}
                   className="p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors"
@@ -273,7 +159,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                     onClick={onRegisterClick}
                     className="px-4 py-2 rounded-full text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y1="14"/><line x1="22" y1="11" x2="16" y1="11"/></svg>
                     {t('register')}
                   </button>
                 </div>
@@ -371,7 +257,7 @@ export default function Navbar({ onLoginClick, onRegisterClick, onOpenCalculator
                           onClick={onRegisterClick}
                           className="w-full px-3 py-2 rounded-md text-base font-medium text-white bg-pink-600 hover:bg-pink-700 transition-colors flex items-center justify-center gap-1"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y1="11"/></svg>
                           {t('register')}
                         </button>
                       </div>

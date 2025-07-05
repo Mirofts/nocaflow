@@ -1,9 +1,10 @@
 // src/context/AuthContext.js
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'; // FIX: Ajout de useMemo ici
 import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'; // Import getDoc
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'; 
 import { auth, db } from '../lib/firebase';
 import { useRouter } from 'next/router';
+import { initialMockData } from '../lib/mockData'; // Import nécessaire pour loginAsGuest
 
 export const AuthContext = createContext({
   currentUser: null,
@@ -18,15 +19,14 @@ export const AuthContext = createContext({
 
 export const AuthContextProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [loadingAuth, setLoadingAuth] = useState(true); // Commencer à true pour indiquer le chargement initial
-  const router = useRouter(); // Utilisation de useRouter pour la redirection contextuelle
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const router = useRouter();
 
-  // Fonction utilitaire pour créer ou mettre à jour le document utilisateur dans Firestore
   const createUserDocument = async (userAuth, additionalData = {}) => {
     if (!userAuth) return;
 
     const userRef = doc(db, 'users', userAuth.uid);
-    const userSnapshot = await getDoc(userRef); // Utilisation de getDoc
+    const userSnapshot = await getDoc(userRef);
 
     if (!userSnapshot.exists()) {
       const { displayName, email, photoURL, uid } = userAuth;
@@ -45,13 +45,12 @@ export const AuthContextProvider = ({ children }) => {
           lastname: lastName,
           company: additionalData.company || '',
           createdAt,
-          ...additionalData, // Permet de fusionner d'autres données passées
+          ...additionalData,
         });
       } catch (error) {
         console.error("Error creating user document:", error);
       }
     } else {
-        // Mettre à jour des champs si l'utilisateur existe déjà (par exemple, photoURL de Google si absent)
         const existingData = userSnapshot.data();
         if (userAuth.photoURL && !existingData.photoURL) {
             await updateDoc(userRef, { photoURL: userAuth.photoURL });
@@ -62,41 +61,33 @@ export const AuthContextProvider = ({ children }) => {
     }
   };
 
-  // Met à jour l'état de l'utilisateur et gère Firestore
   const updateCurrentUserState = useCallback(async (userAuth) => {
     if (userAuth) {
-      // Pour les utilisateurs non-guest, rafraîchir ou créer le document Firestore
       if (userAuth.uid !== 'guest_noca_flow') {
         await createUserDocument(userAuth);
-        // Récupérer les données utilisateur complètes après la création/mise à jour
         const userDoc = await getDoc(doc(db, 'users', userAuth.uid));
         setCurrentUser({ ...userAuth, ...userDoc.data() });
       } else {
-        // Gérer le mode invité
         setCurrentUser({
             uid: 'guest_noca_flow',
-            displayName: localStorage.getItem('nocaflow_guest_name') || 'Visiteur Curieux',
+            displayName: typeof window !== 'undefined' ? localStorage.getItem('nocaflow_guest_name') || 'Visiteur Curieux' : 'Visiteur Curieux',
             email: 'guest@nocaflow.com',
-            photoURL: localStorage.getItem('nocaflow_guest_avatar') || '/images/avatars/default-avatar.jpg',
+            photoURL: typeof window !== 'undefined' ? localStorage.getItem('nocaflow_guest_avatar') || '/images/avatars/default-avatar.jpg' : '/images/avatars/default-avatar.jpg',
         });
       }
     } else {
       setCurrentUser(null);
     }
-    setLoadingAuth(false); // Fin du chargement après la résolution de l'état de l'utilisateur
+    setLoadingAuth(false);
   }, []);
 
-  // Surveille l'état d'authentification Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (userAuth) => {
-      // Démarre le chargement avant de tenter de résoudre l'état de l'utilisateur
       setLoadingAuth(true); 
       await updateCurrentUserState(userAuth);
     });
     return unsubscribe;
   }, [updateCurrentUserState]);
-
-  // Méthodes d'authentification
 
   const login = useCallback(async (email, password) => {
     setLoadingAuth(true);
@@ -114,8 +105,8 @@ export const AuthContextProvider = ({ children }) => {
     setLoadingAuth(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await createUserDocument(userCredential.user, additionalData); // Crée le document Firestore avec les données additionnelles
-      await updateCurrentUserState(userCredential.user); // Met à jour l'état React avec les données complètes
+      await createUserDocument(userCredential.user, additionalData);
+      await updateCurrentUserState(userCredential.user);
       return userCredential.user;
     } catch (error) {
       setLoadingAuth(false);
@@ -128,7 +119,6 @@ export const AuthContextProvider = ({ children }) => {
     setLoadingAuth(true);
     try {
       await signOut(auth);
-      // Réinitialiser les données de l'invité en cas de déconnexion d'un invité
       if (typeof window !== 'undefined') {
         localStorage.removeItem('nocaflow_guest_data');
         localStorage.removeItem('nocaflow_guest_name');
@@ -136,7 +126,7 @@ export const AuthContextProvider = ({ children }) => {
       }
       setCurrentUser(null);
       setLoadingAuth(false);
-      router.push('/'); // Rediriger vers la page d'accueil après déconnexion
+      router.push('/');
     } catch (error) {
       setLoadingAuth(false);
       throw error;
@@ -158,27 +148,23 @@ export const AuthContextProvider = ({ children }) => {
 
   const loginAsGuest = useCallback(async () => {
     setLoadingAuth(true);
-    // Simuler un UID unique pour l'invité
     const guestUid = 'guest_noca_flow';
     if (typeof window !== 'undefined') {
-        // Initialiser les données invitées si elles n'existent pas
         if (!localStorage.getItem('nocaflow_guest_data')) {
             localStorage.setItem('nocaflow_guest_data', JSON.stringify(initialMockData));
             localStorage.setItem('nocaflow_guest_name', initialMockData.user.displayName);
             localStorage.setItem('nocaflow_guest_avatar', initialMockData.user.photoURL);
         }
     }
-    // Mettre à jour l'état du composant avec l'utilisateur invité
     setCurrentUser({
       uid: guestUid,
-      displayName: localStorage.getItem('nocaflow_guest_name') || 'Visiteur Curieux',
+      displayName: typeof window !== 'undefined' ? localStorage.getItem('nocaflow_guest_name') || 'Visiteur Curieux' : 'Visiteur Curieux',
       email: 'guest@nocaflow.com',
-      photoURL: localStorage.getItem('nocaflow_guest_avatar') || '/images/avatars/default-avatar.jpg',
+      photoURL: typeof window !== 'undefined' ? localStorage.getItem('nocaflow_guest_avatar') || '/images/avatars/default-avatar.jpg' : '/images/avatars/default-avatar.jpg',
     });
-    setLoadingAuth(false); // Fin du chargement
+    setLoadingAuth(false); 
   }, []);
 
-  // Fonction pour rafraîchir les données de l'utilisateur depuis Firestore si displayName/photoURL changent
   const refreshUser = useCallback(async () => {
     if (currentUser && currentUser.uid !== 'guest_noca_flow') {
       const userDocRef = doc(db, 'users', currentUser.uid);
@@ -187,11 +173,10 @@ export const AuthContextProvider = ({ children }) => {
         setCurrentUser(prev => ({ ...prev, ...userDoc.data() }));
       }
     } else if (currentUser && currentUser.uid === 'guest_noca_flow') {
-        // Pour les invités, rafraîchir à partir de localStorage
         setCurrentUser(prev => ({
             ...prev,
-            displayName: localStorage.getItem('nocaflow_guest_name') || 'Visiteur Curieux',
-            photoURL: localStorage.getItem('nocaflow_guest_avatar') || '/images/avatars/default-avatar.jpg',
+            displayName: typeof window !== 'undefined' ? localStorage.getItem('nocaflow_guest_name') || 'Visiteur Curieux' : 'Visiteur Curieux',
+            photoURL: typeof window !== 'undefined' ? localStorage.getItem('nocaflow_guest_avatar') || '/images/avatars/default-avatar.jpg' : '/images/avatars/default-avatar.jpg',
         }));
     }
   }, [currentUser]);
@@ -218,11 +203,9 @@ export const AuthContextProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    // Fournir un objet par défaut pour SSR/SSG pour éviter les erreurs de déstructuration.
-    // L'état de chargement initial est true pour indiquer que l'auth n'a pas encore été résolue.
     return { 
       currentUser: null, 
-      loadingAuth: true, // Initialisation à true pour le SSR
+      loadingAuth: true,
       login: async () => {},
       register: async () => {},
       logout: async () => {},

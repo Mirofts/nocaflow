@@ -1,26 +1,26 @@
 // src/pages/_app.js
 
 import '@/styles/globals.css';
-import { appWithTranslation } from 'next-i18next'; // Assurez-vous que c'est bien 'next-i18next'
+import { appWithTranslation } from 'next-i18next';
 import Head from 'next/head';
 import { AuthContextProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
-import i18nextConfig from '../../next-i18next.config'; // Le chemin vers votre config i18n
+import i18nextConfig from '../../next-i18next.config';
 import { AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { useTranslation } from 'next-i18next'; // Assurez-vous que c'est bien 'next-i18next'
+import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 // IMPORTS DES COMPOSANTS DE LAYOUT
-import Navbar from '../components/Navbar';
+import Navbar from '../components/Navbar'; // La Navbar globale
 import Footer from '../components/Footer';
 
-// IMPORTEZ VOS VRAIS COMPOSANTS DE MODALES ICI
+// IMPORTS DES MODALES (globales)
 import LoginModal from '../components/LoginModal';
 import RegisterModal from '../components/RegisterModal';
 
 function MyApp({ Component, pageProps }) {
-  const { t } = useTranslation('common'); // Utilisation correcte du namespace 'common'
+  const { t } = useTranslation('common');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const router = useRouter();
@@ -45,7 +45,7 @@ function MyApp({ Component, pageProps }) {
   };
 
   const isHomePage = router.pathname === '/';
-  const isDashboardPage = router.pathname === '/dashboard';
+  const isDashboardPage = router.pathname === '/dashboard'; // Détection de la page Dashboard
 
   return (
     <AuthContextProvider>
@@ -58,14 +58,16 @@ function MyApp({ Component, pageProps }) {
             <title>NocaFLOW</title>
           </Head>
 
+          {/* Navbar est toujours présente sur toutes les pages */}
           <Navbar
             onLoginClick={handleLoginClick}
             onRegisterClick={handleRegisterClick}
             onOpenCalculator={handleOpenCalculator}
-            isDashboardPage={isDashboardPage}
+            isDashboardPage={isDashboardPage} // Passe l'info à la Navbar si elle en a besoin
           />
 
-          <main className={`flex-1 ${isHomePage || isDashboardPage ? '' : 'px-4 py-8 sm:px-6 lg:px-8'} pt-16`}>
+          {/* <main> conditionnel pour les paddings */}
+          <main className={`flex-1 ${isHomePage ? '' : 'px-4 py-8 sm:px-6 lg:px-8'} pt-16`}>
             <Component
               {...pageProps}
               onLoginClick={handleLoginClick}
@@ -77,6 +79,7 @@ function MyApp({ Component, pageProps }) {
           <Footer />
         </div>
 
+        {/* Modales gérées globalement */}
         <AnimatePresence>
             {showLoginModal && (
                 <LoginModal
@@ -99,6 +102,4 @@ function MyApp({ Component, pageProps }) {
   );
 }
 
-// appWithTranslation doit envelopper l'export par défaut de votre composant MyApp
-// Il prend le composant et la configuration i18next
 export default appWithTranslation(MyApp, i18nextConfig);
