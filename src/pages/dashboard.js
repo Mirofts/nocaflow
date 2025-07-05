@@ -32,7 +32,7 @@ import {
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
-import CalculatorModal from '../components/CalculatorModal'; // IMPORT THE NEW CALCULATOR MODAL
+import CalculatorModal from '../components/dashboard/CalculatorModal'; // This path is correct as per your file structure, assuming CalculatorModal.js is directly in src/components/
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
