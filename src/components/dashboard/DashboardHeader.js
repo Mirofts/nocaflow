@@ -62,7 +62,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
         <motion.header
             initial={{ opacity: 0, y: -20 }} // Animation initiale
             animate={{ opacity: 1, y: 0 }} // Animation d'entrée
-            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-8" // Ajout de mt-8 pour espacer de la Navbar
+            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-4" // Réduit mt-8 à mt-4 pour réduire l'espace
         >
             <div className="flex items-center gap-4">
                 {/* Avatar principal (le grand, cliquable pour changer) */}

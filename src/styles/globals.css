@@ -365,3 +365,48 @@
     border-color: var(--color-border-active);
     box-shadow: 0 0 0 3px var(--color-border-active-shadow), inset 0 0 8px rgba(0,0,0,0.1);
 }
+
+/* Nouvelles classes pour le Dashboard */
+.dashboard-page-content-padding {
+    padding-top: 1rem; /* Padding top plus petit pour réduire l'espace après la Navbar */
+    padding-bottom: 2rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+    .dashboard-page-content-padding {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .dashboard-page-content-padding {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+}
+
+/* La bannière invité et le dashboard header devraient utiliser le même max-width/mx-auto que le reste du contenu */
+.guest-banner-wrapper {
+    max-width: var(--max-w-screen-2xl, 1440px); /* Utilise la variable Tailwind ou une valeur fixe */
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem; /* Pour correspondre au padding du .dashboard-page-content-padding */
+    padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+    .guest-banner-wrapper {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .guest-banner-wrapper {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+}

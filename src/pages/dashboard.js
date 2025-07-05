@@ -19,8 +19,8 @@ import Projects from '../components/dashboard/Projects';
 import GuestBanner from '../components/dashboard/GuestBanner';
 import InvoicesSummary from '../components/dashboard/InvoicesSummary';
 import FlowLiveMessages from '../components/dashboard/FlowLiveMessages';
-import TeamManagement from '../components/dashboard/TeamManagement';
-import ClientManagement from '../components/dashboard/ClientManagement';
+import TeamManagement from '../components/team-management';
+import ClientManagement from '../components/client-management';
 import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 
@@ -250,22 +250,25 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     return (
         <>
             <Head><title>Dashboard - NocaFLOW</title></Head>
+            {/* Wrapper pour la bannière invité pour un alignement correct */}
             {isGuestMode && (
-                <GuestBanner
-                    onRegisterClick={onRegisterClick}
-                    onLoginClick={onLoginClick}
-                    t={t}
-                />
+                <div className="guest-banner-wrapper"> {/* Utilise la nouvelle classe CSS */}
+                    <GuestBanner
+                        onRegisterClick={onRegisterClick}
+                        onLoginClick={onLoginClick}
+                        t={t}
+                    />
+                </div>
             )}
-            <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
+            {/* Le div principal du contenu de la page Dashboard avec padding et max-width */}
+            <div className="min-h-screen w-full dashboard-page-content-padding"> {/* Utilise la nouvelle classe CSS */}
                 <motion.div
-                    className="max-w-screen-2xl mx-auto space-y-6"
+                    className="max-w-screen-2xl mx-auto space-y-6" /* Conserve le max-width et le centrage */
                     initial="hidden"
                     animate="visible"
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                 >
-                    {/* Rétablissement de DashboardHeader ici, comme demandé */}
-                    {/* Retrait de la classe mt-8 car l'espace doit être réduit */}
+                    {/* Rétablissement de DashboardHeader ici, avec un ajustement de marge si nécessaire */}
                     <DashboardHeader
                         user={isGuestMode ? data.user : user}
                         isGuestMode={isGuestMode}
