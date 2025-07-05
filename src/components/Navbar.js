@@ -14,7 +14,7 @@ import { initialMockData } from '../lib/mockData'; // For guest stats fallback
 
 // Déplacé STATIC_MAIN_NAV_LINKS ici (restera en dehors du composant)
 const STATIC_MAIN_NAV_LINKS = [
-  { href: '/index', i18nKey: 'index' },    // Removed '#'
+  { href: '/index', i18nKey: 'about' },    // Removed '#'
   { href: '/features', i18nKey: 'features' }, // Removed '#'
   { href: '/pricing', i18nKey: 'pricing' },  // Removed '#'
 ];
