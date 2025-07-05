@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 // IMPORTS DES COMPOSANTS DU DASHBOARD :
-import DashboardHeader from '../components/dashboard/DashboardHeader'; // Rétabli l'import du DashboardHeader
+import DashboardHeader from '../components/dashboard/DashboardHeader';
 import TimeAlerts from '../components/dashboard/TimeAlerts';
 import TodoList from '../components/dashboard/TodoList';
 import Notepad from '../components/dashboard/Notepad';
@@ -265,6 +265,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                 >
                     {/* Rétablissement de DashboardHeader ici, comme demandé */}
+                    {/* Retrait de la classe mt-8 car l'espace doit être réduit */}
                     <DashboardHeader
                         user={isGuestMode ? data.user : user}
                         isGuestMode={isGuestMode}
