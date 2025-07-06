@@ -202,48 +202,44 @@ return {
 
                     {/* Task Rows */}
                     {allPeople.map((person, idx) => (
-<div
-  key={idx}
-  className="flex relative border-b border-gray-200 dark:border-gray-700 last:border-b-0"
-  style={{ minHeight: `${rowHeight}px` }}
->                            <div className="w-48 p-2 text-sm truncate bg-white dark:bg-gray-800 sticky left-0 z-5 border-r border-gray-200 dark:border-gray-700 flex items-center">
+                        <div key={idx} className="flex relative border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                            <div className="w-48 p-2 text-sm truncate bg-white dark:bg-gray-800 sticky left-0 z-5 border-r border-gray-200 dark:border-gray-700 flex items-center">
                                 {person}
                             </div>
-{daysInView.map((day, j) => (
-  <div
-    key={j}
-    className={`flex-1 min-w-[40px] border-l border-gray-100 dark:border-gray-700 cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-gray-700/30
-                ${isSameDay(day, new Date()) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
-                ${isWeekend(day) && !isSameDay(day, new Date()) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`}
-    style={{ height: `${rowHeight}px` }}
-    onClick={() => handleCellClick(day, person)}
-  />
-))}
+                            {daysInView.map((day, j) => (
+                                <div
+                                    key={j}
+                                    className={`flex-1 min-w-[40px] h-10 border-l border-gray-100 dark:border-gray-700 cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-gray-700/30
+                                                ${isSameDay(day, new Date()) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
+                                                ${isWeekend(day) && !isSameDay(day, new Date()) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`} // Apply weekend/today background directly here
+                                    onClick={() => handleCellClick(day, person)}
+                                />
+                            ))}
      
 {localTasks.map((task) => {
-  const rowIndex = allPeople.findIndex(p => p === task.person);
-  if (rowIndex === -1) return null;
+    const rowHeight = 40;
+    const rowIndex = allPeople.findIndex(p => p === task.person);
+    if (rowIndex === -1) return null;
 
-  const taskTop = rowIndex * rowHeight + 2;
+    const taskTop = 2 + rowIndex * rowHeight;
 
-  return (
-    <motion.div
-      key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
-      className={`absolute h-6 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
-        ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
-      style={{ ...getTaskBarStyle(task), top: `${taskTop}px` }}
-      whileHover={{ scale: 1.02, zIndex: 12 }}
-      onClick={(e) => {
-        e.stopPropagation();
-        setModalData(task);
-        setShowModal(true);
-      }}
-    >
-      {task.title}
-    </motion.div>
-  );
+    return (
+        <motion.div
+            key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
+            className={`absolute h-6 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
+                        ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
+            style={{ ...getTaskBarStyle(task), top: `${taskTop}px` }}
+            whileHover={{ scale: 1.02, zIndex: 12 }}
+            onClick={(e) => {
+                e.stopPropagation();
+                setModalData(task);
+                setShowModal(true);
+            }}
+        >
+            {task.title}
+        </motion.div>
+    );
 })}
-
 
 
                         </div>
