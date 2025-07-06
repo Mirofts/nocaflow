@@ -29,7 +29,11 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const chartAreaRef = React.useRef(null); // Ref for the actual chart content to fullscreen
     const { isDarkMode } = useTheme();
 
-    const localTasks = useMemo(() => initialTasks, [initialTasks]);
+const [localTasks, setLocalTasks] = useState(initialTasks);
+
+useEffect(() => {
+    setLocalTasks(initialTasks);
+}, [initialTasks]);
 
     const [showModal, setShowModal] = useState(false);
     const [modalData, setModalData] = useState({});
@@ -91,6 +95,9 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         const left = (startOffsetDays / totalDaysInViewSpan) * 100;
         const width = (durationDays / totalDaysInViewSpan) * 100;
         
+        // Final debug log for a task's style
+        // console.log(`Calculated style for "${task.title}" (ID: ${task.id || 'new'}): Left: ${left.toFixed(2)}%, Width: ${width.toFixed(2)}%`);
+
         return {
             left: `${left}%`,
             width: `${width}%`
@@ -142,7 +149,8 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
                 <span className="text-sm font-semibold text-gray-800 dark:text-white mx-2">
-                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* FIX: Corrected format string */}
+                    {/* FIX: Correct date-fns format string here */}
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })}
                 </span>
                 <button
                     onClick={handleNextMonth}
@@ -173,7 +181,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
             <div className="overflow-auto flex-grow" ref={containerRef}> {/* This div handles the main scrolling */}
                 <div className="relative" ref={chartAreaRef} style={{ minWidth: `${192 + (totalDaysInViewSpan * 40)}px` }}> {/* This is the element that will go fullscreen */}
                     {/* Date Header Row */}
-                    <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 sticky top-[48px] z-10"> {/* Adjusted top to clear month nav (48px is height of top bar) */}
+                   <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-900 sticky top-[48px] z-30">
                         <div className="w-48 p-2 font-bold text-sm text-gray-700 dark:text-gray-200 flex-shrink-0">
                             {t('team_member', 'Personne / Client')}
                         </div>
@@ -208,17 +216,16 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                             {localTasks.filter(t => t.person === person).map((task) => (
                                 <motion.div
                                     key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
-                                    className={`absolute h-6 top-2 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-20`} /* Z-index for tasks - higher than date header (z-10) */
+                                    className={`absolute h-6 top-2 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
+                                                ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
                                     style={getTaskBarStyle(task)}
-                                    whileHover={{ scale: 1.02, zIndex: 22 }} /* Higher z-index on hover */
+                                    whileHover={{ scale: 1.02, zIndex: 12 }}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         console.log("Task bar clicked:", task);
                                         setModalData(task); // Pass existing task data to modal for editing
                                         setShowModal(true);
                                     }}
-                                    // Apply color classes here (was removed in a prior iteration, adding back)
-                                    className={`${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
                                 >
                                     {task.title}
                                 </motion.div>

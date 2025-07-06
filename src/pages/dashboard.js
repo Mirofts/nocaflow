@@ -204,19 +204,37 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const deleteClient = useCallback((clientId) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).filter(c => c.id !== clientId) })); }, [onUpdateGuestData]);
 
     // This is the single source of truth for saving Gantt tasks
-    const handleSaveGanttTask = useCallback((taskData) => {
-        onUpdateGuestData(prev => {
-            console.log("handleSaveGanttTask in dashboard.js called with taskData:", taskData);
-            const updatedGanttTasks = taskData.id
-                ? (prev.ganttTasks || []).map(task => task.id === taskData.id ? taskData : task)
-                : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }];
-            console.log("Updated ganttTasks array in dashboard.js state:", updatedGanttTasks);
-            return {
-                ...prev,
-                ganttTasks: updatedGanttTasks
+const handleSaveGanttTask = useCallback((taskData) => {
+    onUpdateGuestData(prev => {
+        const currentTasks = prev.ganttTasks || [];
+
+        const existingTaskIndex = currentTasks.findIndex(t => t.id === taskData.id);
+
+        let updatedGanttTasks;
+
+        if (existingTaskIndex !== -1) {
+            // La tâche existe déjà → mise à jour
+            updatedGanttTasks = currentTasks.map(t =>
+                t.id === taskData.id ? taskData : t
+            );
+        } else {
+            // Nouvelle tâche → on lui assigne un ID si besoin
+            const newTask = {
+                ...taskData,
+                id: taskData.id || `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
             };
-        });
-    }, [onUpdateGuestData]);
+            updatedGanttTasks = [...currentTasks, newTask];
+        }
+
+        console.log("✅ Tâches Gantt mises à jour :", updatedGanttTasks);
+
+        return {
+            ...prev,
+            ganttTasks: updatedGanttTasks
+        };
+    });
+}, [onUpdateGuestData]);
+
 
     const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { id: `meeting-${Date.now()}`, title: newMeeting.title, dateTime: newMeeting.dateTime, attendees: newMeeting.attendees, timezone: newMeeting.timezone, sendEmail: newMeeting.sendEmail, googleMeetLink: newMeeting.googleMeetLink || 'https://meet.google.com/new', createdAt: new Date().toISOString() }] })); }, [onUpdateGuestData]);
     const handleAddDeadline = useCallback((newDeadline) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { id: `proj-${Date.now()}`, name: newDeadline.title, client: newDeadline.client || 'General', progress: 0, deadline: newDeadline.date, description: newDeadline.description, staff: [], paidAmount: '0 €', nextPayment: 'N/A', totalAmount: 'N/A', createdAt: new Date().toISOString(), googleDriveLink: null }] })); }, [onUpdateGuestData]);
