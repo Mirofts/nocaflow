@@ -5,6 +5,9 @@ import { useTheme } from '../../../context/ThemeContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+// Import sub-components if any
+// import ChatBubble from './ChatBubble'; // Assuming you have a ChatBubble component
+
 const FlowLiveMessagesDisplay = ({
     messages,
     currentUser,
@@ -51,14 +54,15 @@ const FlowLiveMessagesDisplay = ({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-                {messages?.length === 0 ? ( {/* Added optional chaining for messages */}
+                {/* Added optional chaining for messages - Removed problematic comment syntax */}
+                {messages?.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
                         <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                         <p className="text-lg font-semibold">{t('no_messages', 'Aucun message pour l\'instant.')}</p>
                         <p className="text-sm mt-2">{t('start_conversation', 'Commencez une nouvelle conversation ou sélectionnez-en une.')}</p>
                     </div>
                 ) : (
-                    messages?.map((msg) => ( {/* Added optional chaining for messages */}
+                    messages?.map((msg) => (
                         <div
                             key={msg.id}
                             className={`flex mb-4 ${msg.senderId === (currentUser?.uid || 'guest_noca_flow') ? 'justify-end' : 'justify-start'}`}
@@ -83,7 +87,7 @@ const FlowLiveMessagesDisplay = ({
                                 <p className="font-semibold text-sm mb-1">
                                     {getSenderDisplayName(msg.senderId, msg.senderName)}
                                 </p>
-                                <p className="text-sm break-words">{msg.text || ''}</p> {/* Ensure msg.text is not undefined */}
+                                <p className="text-sm break-words">{msg.text || ''}</p>
                                 <p className={`text-right text-xs mt-1 ${msg.senderId === (currentUser?.uid || 'guest_noca_flow') ? 'text-blue-200' : (isDarkMode ? 'text-gray-400' : 'text-gray-500')}`}>
                                     {format(new Date(msg.timestamp), 'HH:mm', { locale: fr })}
                                 </p>

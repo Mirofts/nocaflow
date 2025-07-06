@@ -15,15 +15,12 @@ import { fr } from 'date-fns/locale';
 import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
 import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
 import FlowLiveMessagesInput from './FlowLiveMessagesInput';
-import NewDiscussionModal from './modals/NewDiscussionModal'; // Assurez-vous que ce chemin est correct
-// import { AssignTaskProjectDeadlineModal } from '../modals/modals'; // N'est pas utilisé directement dans ce fichier
+import NewDiscussionModal from './modals/NewDiscussionModal'; // Chemin confirmé (pointent vers le sous-dossier 'modals')
 
-// IMPORT MANQUANT : useFullScreen
-import { useFullScreen } from '../../../hooks/useFullScreen'; // <-- AJOUTÉ
-
-// IMPORT DES CHAT HOOKS
-import { useChatLogic } from '../../../hooks/useChatLogic'; // <-- RÉACTIVÉ
-import { useChatActions } from '../../../hooks/useChatActions'; // <-- RÉACTIVÉ
+// IMPORTS DES HOOKS : chemins corrigés
+import { useFullScreen } from '../../../hooks/useFullScreen'; // <-- Chemin corrigé
+import { useChatLogic } from '../../../hooks/useChatLogic'; // <-- Chemin corrigé
+import { useChatActions } from '../../../hooks/useChatActions'; // <-- Chemin corrigé
 
 
 // Définir la liste complète des emojis dans une constante
@@ -40,8 +37,9 @@ const FlowLiveMessages = forwardRef(({
     messages: messagesProp, // Renommé pour éviter conflit avec l'état interne
     user, // Reçu de dashboard.js
     initialMockData, // Reçu de dashboard.js (pour compatibilité useChatLogic)
+    handleSelectUserOnMobile // Prop passée de dashboard.js
 }, ref) => {
-    const { currentUser: authUser } = useAuth(); // Renommé pour éviter conflit avec la prop
+    const { currentUser: authUser } = useAuth();
     const { isDarkMode } = useTheme();
     const { t, i18n } = useTranslation('common');
 
@@ -76,7 +74,7 @@ const FlowLiveMessages = forwardRef(({
         // addMessageToConversation n'est pas exposé ici, car utilisé en interne par sendMessage
         handleMessageAction, // Pour actions comme assigner tâche
         handleFileUpload // Pour l'envoi de fichiers
-    } = useChatActions(currentUser, conversations, setConversations, setMessages); // setMessages du hook
+    } = useChatActions(currentUser, conversations, setConversations, setMessages);
 
 
     // --- GESTION DU PLEIN ÉCRAN ---
@@ -103,6 +101,9 @@ const FlowLiveMessages = forwardRef(({
     const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null);
     const fileInputRef = useRef(null);
     const emojiButtonRef = useRef(null);
+
+    // showMobileSidebar est un état local ici, pas dans useChatLogic
+    const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
     // Synchronisation des membres d'équipe disponibles (pour NewDiscussionModal et assignTask)
     // Cette logique peut être simplifiée si initialMockData.staffMembers est toujours passé.
@@ -140,7 +141,10 @@ const FlowLiveMessages = forwardRef(({
         if (!currentFirebaseUid) { handleLoginPrompt(); return; }
         if (fileInputRef.current) {
             fileInputRef.current.onchange = (e) => {
-                handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, false);
+                // Ensure file exists before passing to handleFileUpload
+                if (e.target.files && e.target.files[0]) {
+                    handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, false);
+                }
                 e.target.value = null; // Clear the input
             };
             fileInputRef.current.click();
@@ -151,12 +155,15 @@ const FlowLiveMessages = forwardRef(({
         if (!currentFirebaseUid) { handleLoginPrompt(); return; }
         if (fileInputRef.current) {
             fileInputRef.current.onchange = (e) => {
-                handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, true);
+                if (e.target.files && e.target.files[0]) {
+                    handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, true);
+                }
                 e.target.value = null; // Clear the input
             };
             fileInputRef.current.click();
         }
     }, [fileInputRef, handleFileUpload, selectedConversationId, currentFirebaseUid, handleLoginPrompt]);
+
 
     const handleEmoticonClick = useCallback((emoji) => {
         setNewMessage(prev => prev + emoji);
@@ -363,75 +370,12 @@ const FlowLiveMessages = forwardRef(({
 
         const sortedParticipantUids = Array.from(participantUids).sort();
 
-        // Vérifier si une conversation avec exactement les mêmes participants existe déjà
-        const existingConvsQuery = query(collection(db, 'conversations'), where('participants', '==', sortedParticipantUids));
-        const existingConvsSnapshot = await getDocs(existingConvsQuery);
+        // Utilise la fonction startNewConversation du hook useChatActions
+        await startNewConversation(sortedParticipantUids, name?.trim() || ''); // Pass name for conversation
+        setIsNewDiscussionModalOpen(false); // Close the modal
+        setNewMessage(''); // Clear message input
+    }, [currentUser, currentFirebaseUid, t, startNewConversation, setIsNewDiscussionModalOpen, setNewMessage]);
 
-        if (!existingConvsSnapshot.empty) {
-            const existingConvData = existingConvsSnapshot.docs[0].data();
-            const existingConvId = existingConvsSnapshot.docs[0].id;
-            setSelectedConversationId(existingConvId);
-            // Mettre à jour activeConversationInfo si nécessaire (géré par setSelectedConversationId si le hook est bien fait)
-            setShowNewDiscussionModal(false);
-            console.log("Existing conversation found:", existingConvId);
-            return;
-        }
-
-        let conversationName = name?.trim() || ''; // Use optional chaining
-        if (!conversationName && sortedParticipantUids.length === 2) { // 1-1 chat
-            const otherParticipantUid = sortedParticipantUids.find(uid => uid !== currentFirebaseUid);
-            if (otherParticipantUid) {
-                const partnerDocSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', otherParticipantUid)));
-                conversationName = partnerDocSnap.docs[0]?.data()?.displayName || t('new_conversation_default', 'Nouvelle Conversation');
-            } else {
-                conversationName = t('new_conversation_default', 'Nouvelle Conversation');
-            }
-        } else if (!conversationName && sortedParticipantUids.length > 2) { // Group chat
-             conversationName = t('new_group', 'Nouveau Groupe');
-        }
-
-        try {
-            const allParticipantsDetailsPromises = sortedParticipantUids.map(uid =>
-                getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
-                    .then(snap => snap.docs[0]?.data() || { uid: uid, displayName: t('unknown_user', 'Utilisateur'), photoURL: '/images/default-avatar.jpg', isOnline: false })
-            );
-            const allParticipantsDetails = await Promise.all(allParticipantsDetailsPromises);
-
-            const newConvRef = await addDoc(collection(db, 'conversations'), {
-                participants: sortedParticipantUids,
-                participantsDetails: allParticipantsDetails,
-                createdAt: serverTimestamp(),
-                lastMessage: t('conversation_start_message', 'Début de la conversation'),
-                lastMessageTime: serverTimestamp(),
-                name: conversationName,
-                isGroup: sortedParticipantUids.length > 2,
-                lastMessageReadBy: [currentFirebaseUid]
-            });
-            setSelectedConversationId(newConvRef.id);
-            // Mettre à jour conversations state immédiatement pour la réactivité
-            setConversations(prev => [{
-                id: newConvRef.id,
-                participants: sortedParticipantUids,
-                participantsDetails: allParticipantsDetails,
-                createdAt: new Date(), // Use local date for immediate display
-                lastMessage: t('conversation_start_message', 'Début de la conversation'),
-                lastMessageTime: new Date(),
-                name: conversationName,
-                isGroup: sortedParticipantUids.length > 2,
-                lastMessageReadBy: [currentFirebaseUid],
-                photoURL: sortedParticipantUids.length === 2 ? allParticipantsDetails.find(p => p.uid !== currentFirebaseUid)?.photoURL || '/images/default-avatar.jpg' : null,
-                initials: conversationName.charAt(0).toUpperCase(),
-                unread: 0 // New conversations start read
-            }, ...prev]);
-
-            setShowNewDiscussionModal(false);
-            setNewMessage(''); // Clear message input
-            console.log("New conversation created:", newConvRef.id);
-        } catch (error) {
-            console.error("Error creating new discussion:", error);
-            alert(t('create_discussion_failed', 'Échec de la création de la discussion. Vérifiez les règles de sécurité Firestore et la console.'));
-        }
-    }, [currentFirebaseUid, currentUser, t, db, setSelectedConversationId, setConversations, sendMessage]); // Added sendMessage to deps
 
     // Gérer la sélection d'une conversation depuis la sidebar
     const handleSelectConversation = useCallback((conv) => {
@@ -536,10 +480,9 @@ const FlowLiveMessages = forwardRef(({
                 {/* Zone d'affichage des messages */}
                 <FlowLiveMessagesDisplay
                     messages={filteredMessages || []}
-                    // chatPanelRef={chatPanelRef} // chatPanelRef est géré en interne par FlowLiveMessagesDisplay maintenant
                     currentUser={currentUser}
-                    selectedConversationId={selectedConversationId} // Passer pour contexte d'affichage
-                    activeConversationInfo={conversations.find(c => c.id === selectedConversationId) || {}} // Passer les infos de la conversation active
+                    selectedConversationId={selectedConversationId}
+                    activeConversationInfo={conversations.find(c => c.id === selectedConversationId) || {}} // Keep activeConversationInfo for Display
                     openEphemeralImagePreview={openEphemeralImagePreview}
                     t={t}
                     isDarkMode={isDarkMode}
@@ -559,10 +502,10 @@ const FlowLiveMessages = forwardRef(({
                     fileInputRef={fileInputRef}
                     isDarkMode={isDarkMode}
                     t={t}
-                    activeConversationId={selectedConversationId} // Ensure input is disabled if no conversation selected
-                    isGuestMode={isGuestMode} // Ensure input is disabled in guest mode
-                    handleSendEphemeralMessage={handleSendEphemeralMessage} // Pass the ephemeral message handler
-                    handleAttachEphemeralFile={handleAttachEphemeralFile} // Pass the ephemeral file handler
+                    activeConversationId={selectedConversationId}
+                    isGuestMode={isGuestMode}
+                    handleSendEphemeralMessage={handleSendEphemeralMessage}
+                    handleAttachEphemeralFile={handleAttachEphemeralFile}
                 />
             </div>
 
@@ -570,9 +513,9 @@ const FlowLiveMessages = forwardRef(({
             <AnimatePresence>
                 {isNewDiscussionModalOpen && (
                     <NewDiscussionModal
-                        showModal={isNewDiscussionModalOpen} // Prop pour la visibilité de la modale
-                        onClose={() => setIsNewDiscussionModalOpen(false)} // Pour fermer la modale
-                        onCreate={handleCreateNewDiscussion} // Fonction pour créer une nouvelle discussion
+                        showModal={isNewDiscussionModalOpen}
+                        onClose={() => setIsNewDiscussionModalOpen(false)}
+                        onCreate={handleCreateNewDiscussion}
                         internalAvailableTeamMembers={internalAvailableTeamMembers}
                         currentFirebaseUid={currentFirebaseUid}
                         currentUserName={currentUserName}
