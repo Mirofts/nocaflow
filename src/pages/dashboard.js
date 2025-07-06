@@ -206,11 +206,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     // This is the single source of truth for saving Gantt tasks
     const handleSaveGanttTask = useCallback((taskData) => {
         onUpdateGuestData(prev => {
-            console.log("handleSaveGanttTask in dashboard.js called with:", taskData);
+            console.log("handleSaveGanttTask in dashboard.js called with taskData:", taskData);
             const updatedGanttTasks = taskData.id
                 ? (prev.ganttTasks || []).map(task => task.id === taskData.id ? taskData : task)
                 : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }];
-            console.log("Updated ganttTasks in dashboard.js state:", updatedGanttTasks);
+            console.log("Updated ganttTasks array in dashboard.js state:", updatedGanttTasks);
             return {
                 ...prev,
                 ganttTasks: updatedGanttTasks
@@ -234,7 +234,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, []);
 
     const handleGanttChartPlanningFullscreen = useCallback(() => {
-        console.log("handleGanttChartPlanningFullscreen called. Ref:", ganttChartPlanningRef.current);
+        console.log("handleGanttChartPlanningFullscreen called in dashboard.js. Attempting to call ref method.");
         if (ganttChartPlanningRef.current && ganttChartPlanningRef.current.toggleFullScreen) {
             ganttChartPlanningRef.current.toggleFullScreen();
         } else {
@@ -374,15 +374,15 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 className="h-[600px] w-full"
                                 onFullscreenClick={handleGanttChartPlanningFullscreen}
                                 t={t}
-                                noContentPadding={true} // Important to let GanttChartPlanning manage its own internal spacing
+                                noContentPadding={true} // Important: GanttChartPlanning manages its own internal padding
                             >
                                 <GanttChartPlanning
                                     ref={ganttChartPlanningRef}
-                                    initialTasks={data.ganttTasks} // This prop receives the updated list from handleSaveGanttTask
+                                    initialTasks={data.ganttTasks}
                                     t={t}
                                     staffMembers={data.staffMembers}
                                     clients={data.clients}
-                                    onSaveTask={handleSaveGanttTask} // Pass the main save handler down
+                                    onSaveTask={handleSaveGanttTask} // Passing the main save handler down
                                 />
                             </DashboardCard>
                         </div>
@@ -475,7 +475,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     <GanttTaskFormModal
                         t={t}
                         initialData={modals.ganttTaskForm}
-                        onSave={handleSaveGanttTask} // This is the crucial prop to save the new/edited task to dashboard state
+                        onSave={handleSaveGanttTask}
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers}
                         allClients={data.clients}
