@@ -8,6 +8,8 @@ import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '../lib/mockData';
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { format, parseISO, isValid } from 'date-fns'; // Importez format, parseISO, isValid
+import { fr } from 'date-fns/locale'; // Importez la locale française
 
 // IMPORTS DES COMPOSANTS DU DASHBOARD :
 import DashboardHeader from '../components/dashboard/DashboardHeader';
@@ -33,6 +35,7 @@ import {
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
+import DetailsModal from '../components/dashboard/modals/DetailsModal'; // <-- Importez la nouvelle modale de détails
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -177,20 +180,33 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
         calculator: false,
+        // Nouveaux états pour la modale de détails des alertes
+        detailsModal: { isOpen: false, title: '', content: '' }, // <-- Ajouté
     });
 
-    const openModal = useCallback((name, modalData = true) => setModals(prev => ({
-        ...Object.keys(prev).reduce((acc, key) => (acc[key] = false, acc), {}),
-        [name]: modalData
-    })), []);
+    const openModal = useCallback((name, modalData = true) => setModals(prev => {
+        const newState = {
+            ...Object.keys(prev).reduce((acc, key) => (acc[key] = false, acc), {}), // Réinitialise toutes les modales à false/null
+            [name]: modalData // Ouvre la modale spécifique
+        };
+        // Gérer spécifiquement la modale de détails si elle est ouverte via cette fonction
+        if (name === 'detailsModal') {
+            return {
+                ...newState,
+                detailsModal: { isOpen: true, title: modalData.title, content: modalData.content }
+            };
+        }
+        return newState;
+    }), []);
 
-    const closeModal = useCallback(() => setModals({
+    const closeModal = useCallback(() => setModals(prev => ({
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
         calculator: false,
-    }), []);
+        detailsModal: { isOpen: false, title: '', content: '' }, // <-- Réinitialise la modale de détails
+    })), []);
 
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
@@ -204,39 +220,39 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const deleteClient = useCallback((clientId) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).filter(c => c.id !== clientId) })); }, [onUpdateGuestData]);
 
     // This is the single source of truth for saving Gantt tasks
-const handleSaveGanttTask = useCallback((taskData) => {
-    onUpdateGuestData(prev => {
-        const currentTasks = prev.ganttTasks || [];
+    const handleSaveGanttTask = useCallback((taskData) => {
+        onUpdateGuestData(prev => {
+            const currentTasks = prev.ganttTasks || [];
 
-        const existingTaskIndex = currentTasks.findIndex(t => t.id === taskData.id);
+            const existingTaskIndex = currentTasks.findIndex(t => t.id === taskData.id);
 
-        let updatedGanttTasks;
+            let updatedGanttTasks;
 
-        if (existingTaskIndex !== -1) {
-            // La tâche existe déjà → mise à jour
-            updatedGanttTasks = currentTasks.map(t =>
-                t.id === taskData.id ? taskData : t
-            );
-        } else {
-            // Nouvelle tâche → on lui assigne un ID si besoin
-            const newTask = {
-                ...taskData,
-                id: taskData.id || `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+            if (existingTaskIndex !== -1) {
+                // La tâche existe déjà → mise à jour
+                updatedGanttTasks = currentTasks.map(t =>
+                    t.id === taskData.id ? taskData : t
+                );
+            } else {
+                // Nouvelle tâche → on lui assigne un ID si besoin
+                const newTask = {
+                    ...taskData,
+                    id: taskData.id || `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                };
+                updatedGanttTasks = [...currentTasks, newTask];
+            }
+
+            console.log("✅ Tâches Gantt mises à jour :", updatedGanttTasks);
+
+            return {
+                ...prev,
+                ganttTasks: updatedGanttTasks
             };
-            updatedGanttTasks = [...currentTasks, newTask];
-        }
-
-        console.log("✅ Tâches Gantt mises à jour :", updatedGanttTasks);
-
-        return {
-            ...prev,
-            ganttTasks: updatedGanttTasks
-        };
-    });
-}, [onUpdateGuestData]);
+        });
+    }, [onUpdateGuestData]);
 
 
-    const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { id: `meeting-${Date.now()}`, title: newMeeting.title, dateTime: newMeeting.dateTime, attendees: newMeeting.attendees, timezone: newMeeting.timezone, sendEmail: newMeeting.sendEmail, googleMeetLink: newMeeting.googleMeetLink || 'https://meet.google.com/new', createdAt: new Date().toISOString() }] })); }, [onUpdateGuestData]);
+    const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { id: `meeting-${Date.now()}`, title: newMeeting.title, dateTime: newMeeting.dateTime, attendees: newMeeting.attendees, timezone: newMeeting.timezone, sendEmail: newMeeting.sendEmail, googleMeetLink: newMeeting.googleMeetLink || 'https://meet.google.com/new', createdAt: new Date().toISOString(), description: newMeeting.description || '', location: newMeeting.location || '' }] })); }, [onUpdateGuestData]); // <-- Ajout de description et location
     const handleAddDeadline = useCallback((newDeadline) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { id: `proj-${Date.now()}`, name: newDeadline.title, client: newDeadline.client || 'General', progress: 0, deadline: newDeadline.date, description: newDeadline.description, staff: [], paidAmount: '0 €', nextPayment: 'N/A', totalAmount: 'N/A', createdAt: new Date().toISOString(), googleDriveLink: null }] })); }, [onUpdateGuestData]);
     const handleAddInvoice = useCallback((newInvoice) => { onUpdateGuestData(prev => ({ ...prev, invoices: [...(prev.invoices || []), { ...newInvoice, id: `inv-${Date.now()}` }] })); }, [onUpdateGuestData]);
 
@@ -289,6 +305,33 @@ const handleSaveGanttTask = useCallback((taskData) => {
         openModal('calculator');
     }, [openModal]);
 
+    // Handler pour ouvrir la modale de détails des alertes (passée à TimeAlerts)
+    const handleOpenAlertDetails = useCallback((alertItem) => {
+        let title = '';
+        let content = '';
+
+        if (alertItem.type === 'deadline') {
+            title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.title}`);
+            // Assurez-vous que alertItem.deadline contient la date de l'échéance du projet
+            const deadlineDate = parseISO(alertItem.deadline);
+            content = `Tâche/Projet : ${alertItem.name || alertItem.title}\n` + // Utiliser name pour projets, title pour tâches
+                      `Client : ${alertItem.client || t('not_specified', 'Non spécifié')}\n` +
+                      `Date : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
+                      `Description : ${alertItem.description || t('no_description', 'Pas de description.')}`;
+        } else if (alertItem.type === 'meeting') {
+            title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title}`);
+            // Assurez-vous que alertItem.dateTime contient la date et l'heure de la réunion
+            const meetingDateTime = parseISO(alertItem.dateTime);
+            content = `Sujet : ${alertItem.title}\n` +
+                      `Date : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
+                      `Lieu : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
+                      `Description : ${alertItem.description || t('no_description', 'Pas de description.')}`;
+        }
+
+        // Ouvrir la modale de détails via la fonction openModal générale
+        openModal('detailsModal', { title, content });
+    }, [openModal, t]);
+
 
     return (
         <>
@@ -319,14 +362,22 @@ const handleSaveGanttTask = useCallback((taskData) => {
                         onOpenCalculator={handleOpenCalculatorModal}
                     />
 
-                    <TimeAlerts projects={data.projects} meetings={data.meetings} t={t} lang={lang} openModal={openModal} />
+                    {/* TimeAlerts component with new onAlertCardClick prop */}
+                    <TimeAlerts
+                        projects={data.projects} // Contient les échéances
+                        meetings={data.meetings} // Contient les réunions
+                        t={t}
+                        lang={lang}
+                        openModal={openModal} // Ceci est pour le bouton '+' pour ajouter
+                        onAlertCardClick={handleOpenAlertDetails} // Ceci est pour le clic sur la carte elle-même
+                    />
 
                     <div className="grid grid-cols-12 gap-6">
 
                         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
                             <DashboardCard
                                 icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                                 }
                                 title={t('flow_messages_title', 'Flow Live Messages')}
                                 className="flex-1 min-h-[500px]"
@@ -341,10 +392,10 @@ const handleSaveGanttTask = useCallback((taskData) => {
                                     onLoginClick={onLoginClick}
                                     onRegisterClick={onRegisterClick}
                                     onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
-                                    availableTeamMembers={data.staffMembers}
                                     messages={data.messages}
                                     user={user}
                                     initialMockData={initialMockData}
+                                    availableTeamMembers={data.staffMembers} // Assurez-vous que cette prop est bien passée
                                 />
                             </DashboardCard>
 
@@ -511,6 +562,16 @@ const handleSaveGanttTask = useCallback((taskData) => {
                 {modals.addMeeting && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
 
                 {modals.calculator && <CalculatorModal t={t} onClose={closeModal} />}
+
+                {/* Modale de détails pour les alertes */}
+                {modals.detailsModal.isOpen && (
+                    <DetailsModal
+                        isOpen={modals.detailsModal.isOpen}
+                        onClose={() => setModals(prev => ({ ...prev, detailsModal: { ...prev.detailsModal, isOpen: false } }))}
+                        title={modals.detailsModal.title}
+                        content={modals.detailsModal.content}
+                    />
+                )}
             </AnimatePresence>
         </>
     );
