@@ -94,9 +94,8 @@ const getTaskBarStyle = useCallback((task) => {
     const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
     const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
 
-const dayWidthPx = 40; // car tu as `min-w-[40px]` sur chaque jour
-
-const left = startOffsetDays * dayWidthPx;
+const dayWidthPx = 40;
+const left = 192 + startOffsetDays * dayWidthPx;
 const width = durationDays * dayWidthPx;
 
 return {
@@ -216,23 +215,29 @@ return {
                                     onClick={() => handleCellClick(day, person)}
                                 />
                             ))}
-                            {localTasks.filter(t => t.person === person).map((task) => (
-                                <motion.div
-                                    key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
-                                    className={`absolute h-6 top-2 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
-                                                ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
-                                    style={getTaskBarStyle(task)}
-                                    whileHover={{ scale: 1.02, zIndex: 12 }}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        console.log("Task bar clicked:", task);
-                                        setModalData(task); // Pass existing task data to modal for editing
-                                        setShowModal(true);
-                                    }}
-                                >
-                                    {task.title}
-                                </motion.div>
-                            ))}
+              {localTasks.filter(t => t.person === person).map((task) => {
+    const rowHeight = 40;
+    const taskTop = 2 + idx * rowHeight; // Alignement vertical selon la ligne
+
+    return (
+        <motion.div
+            key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
+            className={`absolute h-6 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
+                        ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
+            style={{ ...getTaskBarStyle(task), top: `${taskTop}px` }}
+            whileHover={{ scale: 1.02, zIndex: 12 }}
+            onClick={(e) => {
+                e.stopPropagation();
+                console.log("Task bar clicked:", task);
+                setModalData(task);
+                setShowModal(true);
+            }}
+        >
+            {task.title}
+        </motion.div>
+    );
+})}
+
                         </div>
                     ))}
                 </div>
