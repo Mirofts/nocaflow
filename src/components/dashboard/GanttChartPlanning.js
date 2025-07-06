@@ -35,19 +35,18 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const [modalData, setModalData] = useState({});
 
     useImperativeHandle(ref, () => ({
-        // This function is called by DashboardCard for fullscreen
         toggleFullScreen: () => {
-            console.log("GanttChartPlanning toggleFullScreen called.");
-            const elementToFullscreen = chartAreaRef.current; // Target the inner chart area
+            console.log("GanttChartPlanning toggleFullScreen called. Target Ref:", chartAreaRef.current);
+            const elementToFullscreen = chartAreaRef.current;
 
             if (elementToFullscreen) {
                 if (!document.fullscreenElement) {
-                    console.log("Requesting fullscreen on:", elementToFullscreen);
+                    console.log("Attempting requestFullscreen on:", elementToFullscreen);
                     elementToFullscreen.requestFullscreen().catch(err => {
                         console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
                     });
                 } else {
-                    console.log("Exiting fullscreen.");
+                    console.log("Attempting exitFullscreen.");
                     document.exitFullscreen();
                 }
             } else {
@@ -68,27 +67,20 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const totalDaysInViewSpan = useMemo(() => differenceInDays(viewEndDate, viewStartDate) + 1, [viewStartDate, viewEndDate]);
 
     const getTaskBarStyle = useCallback((task) => {
-        // Ensure task.startDate and task.endDate are strings before parsing
         const taskStartDateStr = task.startDate ? String(task.startDate) : '';
         const taskEndDateStr = task.endDate ? String(task.endDate) : '';
 
         const taskStart = isValid(parseISO(taskStartDateStr)) ? startOfDay(parseISO(taskStartDateStr)) : null;
         const taskEnd = isValid(parseISO(taskEndDateStr)) ? startOfDay(parseISO(taskEndDateStr)) : null;
 
-        // More robust debugging for invalid dates
-        if (!taskStart) {
-            console.error(`Task "${task.title}" (ID: ${task.id}) has an invalid START date: "${task.startDate}". Parsed result: ${taskStart}`);
-            return { display: 'none' };
-        }
-        if (!taskEnd) {
-            console.error(`Task "${task.title}" (ID: ${task.id}) has an invalid END date: "${task.endDate}". Parsed result: ${taskEnd}`);
+        if (!taskStart || !taskEnd) {
+            console.error(`Task "${task.title}" (ID: ${task.id || 'new'}) has invalid dates: Start "${task.startDate}" (parsed: ${taskStart}), End "${task.endDate}" (parsed: ${taskEnd}). Hiding task.`);
             return { display: 'none' };
         }
 
         const effectiveStartDate = taskStart < viewStartDate ? viewStartDate : taskStart;
         const effectiveEndDate = taskEnd > viewEndDate ? viewEndDate : taskEnd;
         
-        // If the task is completely outside the current view, hide it
         if (effectiveStartDate > effectiveEndDate || taskEnd < viewStartDate || taskStart > viewEndDate) {
             return { display: 'none' };
         }
@@ -99,15 +91,8 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         const left = (startOffsetDays / totalDaysInViewSpan) * 100;
         const width = (durationDays / totalDaysInViewSpan) * 100;
         
-        // Detailed console log for task bar positioning
-        // console.log(`--- Task: ${task.title} (ID: ${task.id}) ---`);
-        // console.log(`Raw Dates: Start: ${task.startDate}, End: ${task.endDate}`);
-        // console.log(`Parsed Dates: Start: ${format(taskStart, 'yyyy-MM-dd')}, End: ${format(taskEnd, 'yyyy-MM-dd')}`);
-        // console.log(`View Range: ${format(viewStartDate, 'yyyy-MM-dd')} to ${format(viewEndDate, 'yyyy-MM-dd')}`);
-        // console.log(`Effective Range: ${format(effectiveStartDate, 'yyyy-MM-dd')} to ${format(effectiveEndDate, 'yyyy-MM-dd')}`);
-        // console.log(`Start Offset Days: ${startOffsetDays}, Duration Days: ${durationDays}`);
-        // console.log(`Total Days in View Span: ${totalDaysInViewSpan}`);
-        // console.log(`Calculated Style: Left: ${left.toFixed(2)}%, Width: ${width.toFixed(2)}%`);
+        // Final debug log for a task's style
+        // console.log(`Calculated style for "${task.title}" (ID: ${task.id || 'new'}): Left: ${left.toFixed(2)}%, Width: ${width.toFixed(2)}%`);
 
         return {
             left: `${left}%`,
@@ -129,19 +114,20 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const handleCellClick = useCallback((date, personName) => {
         if (personName) {
             const formattedDate = format(date, 'yyyy-MM-dd');
-            console.log(`Cell click: Date ${formattedDate}, Person ${personName}. Setting modalData.`);
+            console.log(`Cell clicked: Date ${formattedDate}, Person ${personName}. Preparing modal for new task.`);
             setModalData({
                 startDate: formattedDate,
                 endDate: formattedDate,
                 person: personName,
-                color: 'blue' // Default color for new tasks
+                title: '', // Ensure title is initialized
+                color: 'blue' // Ensure a default color is set
             });
             setShowModal(true);
         }
     }, []);
 
     const handleModalSave = useCallback((task) => {
-        console.log("handleModalSave (in GanttChartPlanning) received task:", task);
+        console.log("handleModalSave (in GanttChartPlanning) triggered onSaveTask with:", task);
         onSaveTask(task); // IMPORTANT: Pass the task up to dashboard.js to update the main state
         setShowModal(false);
     }, [onSaveTask]);
@@ -149,8 +135,8 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
 
     return (
         <div className={`relative flex flex-col h-full ${className}`}>
-            {/* Month Navigation and Add Task button - NOW CONTROLED BY THIS COMPONENT */}
-            <div className="flex items-center justify-center p-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-10 sticky top-0">
+            {/* Month Navigation and Add Task button - NOW CONTROLLED BY THIS COMPONENT */}
+            <div className="flex items-center justify-center p-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-20 sticky top-0">
                 <button
                     onClick={handlePrevMonth}
                     className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
@@ -159,7 +145,8 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
                 <span className="text-sm font-semibold text-gray-800 dark:text-white mx-2">
-                    {format(currentDate, 'MMMM spender', { locale: fr })}
+                    {/* FIX: Correct date-fns format string here */}
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })}
                 </span>
                 <button
                     onClick={handleNextMonth}
@@ -171,11 +158,12 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 <button
                     onClick={() => {
                         console.log("Add Task button clicked. Opening modal for new task.");
-                        setModalData({ // Reset modal data for a new task
-                            startDate: format(new Date(), 'yyyy-MM-dd'),
-                            endDate: format(new Date(), 'yyyy-MM-dd'),
+                        setModalData({ // Initialize all fields for a new task
+                            startDate: format(currentDate, 'yyyy-MM-dd'),
+                            endDate: format(currentDate, 'yyyy-MM-dd'),
                             person: '',
-                            color: 'blue'
+                            title: '',
+                            color: 'blue' // Default color
                         });
                         setShowModal(true);
                     }}
@@ -187,11 +175,9 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
             </div>
 
             <div className="overflow-auto flex-grow" ref={containerRef}> {/* This div handles the main scrolling */}
-                {/* min-width set dynamically to ensure all days fit, and allows horizontal scrolling */}
-                {/* 192px (w-48 for person column) + (totalDaysInViewSpan * 40px/day for avg day width) */}
                 <div className="relative" ref={chartAreaRef} style={{ minWidth: `${192 + (totalDaysInViewSpan * 40)}px` }}> {/* This is the element that will go fullscreen */}
                     {/* Date Header Row */}
-                    <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 sticky top-[48px] z-10"> {/* Adjusted top to clear month nav */}
+                    <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 sticky top-[48px] z-10"> {/* Adjusted top to clear month nav (48px is height of top bar) */}
                         <div className="w-48 p-2 font-bold text-sm text-gray-700 dark:text-gray-200 flex-shrink-0">
                             {t('team_member', 'Personne / Client')}
                         </div>
@@ -199,10 +185,11 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                             <div
                                 key={i}
                                 className={`flex-1 min-w-[40px] text-center text-xs p-2 border-l border-gray-100 dark:border-gray-600 transition-colors
-                                            ${isWeekend(day) ? 'bg-gray-100 dark:bg-gray-700/60 text-gray-500' : 'text-gray-600 dark:text-gray-300'}`}
+                                            ${isSameDay(day, new Date()) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
+                                            ${isWeekend(day) && !isSameDay(day, new Date()) ? 'bg-gray-100 dark:bg-gray-700/60 text-gray-500' : 'text-gray-600 dark:text-gray-300'}`}
                             >
-                                <div className="font-semibold">{format(day, 'EEE', { locale: fr })}</div> {/* Day of week */}
-                                <div>{format(day, 'dd', { locale: fr })}</div> {/* Day number */}
+                                <div className="font-semibold">{format(day, 'EEE', { locale: fr })}</div>
+                                <div>{format(day, 'dd', { locale: fr })}</div>
                             </div>
                         ))}
                     </div>
@@ -216,31 +203,23 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                             {daysInView.map((day, j) => (
                                 <div
                                     key={j}
-                                    className={`flex-1 min-w-[40px] h-10 border-l border-gray-100 dark:border-gray-700 cursor-pointer transition-colors`} // Height reduced to h-10 (40px)
+                                    className={`flex-1 min-w-[40px] h-10 border-l border-gray-100 dark:border-gray-700 cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-gray-700/30
+                                                ${isSameDay(day, new Date()) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
+                                                ${isWeekend(day) && !isSameDay(day, new Date()) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`} // Apply weekend/today background directly here
                                     onClick={() => handleCellClick(day, person)}
-                                >
-                                    {/* These background divs provide the correct styling for today/weekend */}
-                                    {isSameDay(day, new Date()) && (
-                                        <div className="absolute inset-0 bg-blue-50 dark:bg-blue-900/20" />
-                                    )}
-                                    {isWeekend(day) && !isSameDay(day, new Date()) && (
-                                        <div className="absolute inset-0 bg-gray-50 dark:bg-gray-700/50" />
-                                    )}
-                                    {/* This div provides the hover effect without affecting the background of today/weekend */}
-                                    <div className="absolute inset-0 hover:bg-blue-50 dark:hover:bg-gray-700/30"></div>
-                                </div>
+                                />
                             ))}
                             {localTasks.filter(t => t.person === person).map((task) => (
                                 <motion.div
-                                    key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`} // Fallback key
+                                    key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
                                     className={`absolute h-6 top-2 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
                                                 ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
-                                    // Height reduced to h-6 (24px)
                                     style={getTaskBarStyle(task)}
                                     whileHover={{ scale: 1.02, zIndex: 12 }}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setModalData(task);
+                                        console.log("Task bar clicked:", task);
+                                        setModalData(task); // Pass existing task data to modal for editing
                                         setShowModal(true);
                                     }}
                                 >

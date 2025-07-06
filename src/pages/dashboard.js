@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/Auth/AuthContext'; // Corrected import path for AuthContext
 import { useTheme } from '../context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '../lib/mockData';
@@ -70,7 +70,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         initialValue.projects = Array.isArray(initialValue.projects) ? initialValue.projects : [];
         initialValue.staffMembers = Array.isArray(initialValue.staffMembers) ? initialValue.staffMembers : [];
         initialValue.clients = Array.isArray(initialValue.clients) ? initialValue.clients : [];
-        initialValue.ganttTasks = Array.isArray(initialValue.planningTasks) ? initialValue.planningTasks : []; // Ensure this uses planningTasks
+        initialValue.ganttTasks = Array.isArray(initialValue.planningTasks) ? initialValue.planningTasks : [];
         initialValue.invoices = Array.isArray(initialValue.invoices) ? initialValue.invoices : [];
         initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : initialMockData.notes || '';
         initialValue.user = initialValue.user || {};
@@ -161,7 +161,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         currentData.projects = Array.isArray(currentData.projects) ? currentData.projects : [];
         currentData.staffMembers = Array.isArray(currentData.staffMembers) ? currentData.staffMembers : [];
         currentData.clients = Array.isArray(currentData.clients) ? currentData.clients : [];
-        currentData.ganttTasks = Array.isArray(currentData.ganttTasks) ? currentData.ganttTasks : []; // Ensure this stays as ganttTasks
+        currentData.ganttTasks = Array.isArray(currentData.ganttTasks) ? currentData.ganttTasks : [];
         currentData.invoices = Array.isArray(currentData.invoices) ? currentData.invoices : [];
         currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
 
@@ -365,7 +365,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         </div>
 
                         <div className="col-span-12">
-                            {/* Gantt Chart wrapped in DashboardCard with title, icon, and fullscreen prop */}
                             <DashboardCard
                                 title={t('gantt_chart_title', 'Planning Gantt')}
                                 icon={
@@ -374,7 +373,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 className="h-[600px] w-full"
                                 onFullscreenClick={handleGanttChartPlanningFullscreen}
                                 t={t}
-                                noContentPadding={true} // Important: GanttChartPlanning manages its own internal padding
+                                noContentPadding={true}
                             >
                                 <GanttChartPlanning
                                     ref={ganttChartPlanningRef}
@@ -382,7 +381,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     t={t}
                                     staffMembers={data.staffMembers}
                                     clients={data.clients}
-                                    onSaveTask={handleSaveGanttTask} // Passing the main save handler down
+                                    onSaveTask={handleSaveGanttTask}
                                 />
                             </DashboardCard>
                         </div>
