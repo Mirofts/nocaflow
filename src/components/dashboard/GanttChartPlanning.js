@@ -177,7 +177,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 </button>
                 <span className="text-sm font-semibold text-gray-800 dark:text-white mx-2">
                     {/* FIX: Correct date-fns format string here */}
-                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* Changed 'MMMM????' to 'MMMM yyyy' */}
+                    {format(currentDate, 'MMMM', { locale: fr })}
                 </span>
                 <button
                     onClick={handleNextMonth}
@@ -217,8 +217,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
             <div className="overflow-auto flex-grow" ref={containerRef}> {/* This div handles the main scrolling */}
                 <div className="relative" ref={chartAreaRef} style={{ minWidth: `${192 + (totalDaysInViewSpan * 40)}px` }}> {/* This is the element that will go fullscreen */}
                     {/* Date Header Row */}
-                    {/* Removed sticky top-[48px] to eliminate the gap and make it touch the month row */}
-                    <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-900 z-30">
+                   <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-900 z-30">
                         <div className="w-48 p-2 font-bold text-sm text-gray-700 dark:text-gray-200 flex-shrink-0">
                             {t('team_member', 'Personne / Client')}
                         </div>
@@ -254,7 +253,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                             {/* Render tasks for the current person */}
                             {localTasks
                                 .filter(task => task.person === person) // Filter tasks for the current person
-                                .sort((a, b) => new new Date(a.startDate) - new Date(b.startDate)) // Sort to ensure consistent stacking
+                                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate)) // Corrected: removed extra 'new'
                                 .map((task, taskIdx) => {
                                     const rowHeight = 40; // Height of each row
                                     const taskOffsetWithinRow = taskIdx * 6; // Small vertical offset for stacking
