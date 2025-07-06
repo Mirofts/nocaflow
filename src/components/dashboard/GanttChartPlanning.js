@@ -6,6 +6,11 @@ import { motion } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import GanttTaskFormModal from './modals/GanttTaskFormModal';
 
+// Importez les bibliothèques xlsx et file-saver
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+
+
 const GanttColorsMap = {
     pink: 'bg-pink-500',
     red: 'bg-red-500',
@@ -136,6 +141,29 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         setShowModal(false);
     }, [onSaveTask]);
 
+    // Nouvelle fonction pour l'exportation Excel
+    const handleExportToExcel = useCallback(() => {
+        const dataForExport = localTasks.map(task => ({
+            "Titre de la tâche": task.title,
+            "Personne assignée": task.person,
+            "Date de début": task.startDate,
+            "Date de fin": task.endDate,
+            "Description": task.description || '', // Ajoutez d'autres champs si nécessaire
+            "Couleur": task.color,
+            // Ajoutez ici d'autres propriétés de tâche que vous souhaitez exporter
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataForExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Tâches Gantt");
+
+        // Créez le fichier Excel et déclenchez le téléchargement
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
+        saveAs(data, `Gantt_Planning_${format(currentDate, 'yyyyMMdd')}.xlsx`);
+    }, [localTasks, currentDate]);
+
+
     return (
         <div className={`relative flex flex-col h-full ${className}`}>
             {/* Month Navigation and Add Task button - NOW CONTROLLED BY THIS COMPONENT */}
@@ -149,7 +177,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 </button>
                 <span className="text-sm font-semibold text-gray-800 dark:text-white mx-2">
                     {/* FIX: Correct date-fns format string here */}
-                    {format(currentDate, 'MMMM yyyy', { locale: fr })}
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* Changed 'MMMM????' to 'MMMM yyyy' */}
                 </span>
                 <button
                     onClick={handleNextMonth}
@@ -174,6 +202,15 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     <span>{t('add_task', 'Ajouter une tâche')}</span>
+                </button>
+
+                {/* Nouveau bouton "Exporter en XLS" */}
+                <button
+                    onClick={handleExportToExcel}
+                    className="ml-2 bg-green-600 text-white font-semibold py-1 px-3 rounded-lg shadow-md hover:bg-green-700 transition-colors flex items-center space-x-1 text-sm"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.485 10.707a1 1 0 00-.707-.293H7.228a1 1 0 00-.707.293l-4 4a1 1 0 00-.293.707v5a1 1 0 001 1h16a1 1 0 001-1v-5a1 1 0 00-.293-.707l-4-4zM21 12V4a2 2 0 00-2-2H5a2 2 0 00-2 2v8l3 3h12l3-3z"></path></svg>
+                    <span>{t('export_xls', 'Exporter XLS')}</span>
                 </button>
             </div>
 
@@ -217,7 +254,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                             {/* Render tasks for the current person */}
                             {localTasks
                                 .filter(task => task.person === person) // Filter tasks for the current person
-                                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate)) // Sort to ensure consistent stacking
+                                .sort((a, b) => new new Date(a.startDate) - new Date(b.startDate)) // Sort to ensure consistent stacking
                                 .map((task, taskIdx) => {
                                     const rowHeight = 40; // Height of each row
                                     const taskOffsetWithinRow = taskIdx * 6; // Small vertical offset for stacking
