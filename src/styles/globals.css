@@ -31,7 +31,7 @@
   body {
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
-    transition: background-color 0.5s ease, color 0.5s ease; /* Transitions plus douces */
+    transition: background-color 0.4s ease, color 0.4s ease; /* Transitions plus douces */
     font-family: 'Inter', sans-serif;
     /* Optionnel: pour un design plus "propre", ajuster le line-height global */
     line-height: 1.6;
@@ -134,7 +134,7 @@
     -webkit-backdrop-filter: blur(12px);
     border-radius: 1.25rem; /* rounded-2xl */
     /* Ajout d'une ombre par défaut pour un look plus "flottant" */
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 8px -2px var(--shadow-color), 0 10px 15px -3px var(--shadow-color);
   }
 
   .glass-card-input {
@@ -263,21 +263,21 @@
     background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border-primary);
     border-radius: 1.25rem; /* rounded-2xl */
-    box-shadow: 0 4px 12px var(--shadow-color);
+    box-shadow: 0 6px 16px var(--shadow-color); /* Ombre plus prononcée */
     transition: all 0.3s ease-in-out;
   }
 
   .futuristic-card:hover {
-    box-shadow: 0 6px 16px var(--shadow-color);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 20px var(--shadow-color); /* Ombre encore plus prononcée au survol */
+    transform: translateY(-3px); /* Mouvement vers le haut légèrement plus marqué */
   }
 
-  .review-card {
-    @apply futuristic-card; /* Hérite du style futuristic-card */
-    background-color: var(--color-bg-tertiary); /* Une nuance un peu plus foncée */
-    border: 1px solid var(--color-border-primary);
-    padding: 1rem;
-  }
+	.review-card {
+		@apply futuristic-card; /* Hérite du style futuristic-card */
+		background-color: var(--color-bg-tertiary); /* Une nuance un peu plus foncée */
+		border: 1px solid var(--color-border-primary);
+		padding: 1.25rem; /* Augmenter le padding pour plus d'espace */
+	}
 
   /* Animation pour les bulles de notification */
   .animate-bounce-slow {
@@ -294,7 +294,7 @@
   }
 
   .minimized-card {
-    height: 70px !important;
+    height: 72px !important; /* Slightly adjusted height for minimized state */
     transition: height 0.3s ease-in-out, padding 0.3s ease-in-out;
     padding-bottom: 0 !important;
     overflow: hidden !important;
@@ -393,20 +393,24 @@
 /* Spécifique à la page Dashboard */
 /* Le div principal de la page dashboard qui englobe GuestBanner, DashboardHeader, cartes... */
 .dashboard-page-overall-wrapper {
-    padding-top: 1rem; /* Espace après la Navbar, réduit pour être plus compact */
-    padding-bottom: 2rem;
+	padding-top: 2rem;    /* Plus d'espace au-dessus du contenu */
+	padding-bottom: 3rem; /* Plus d'espace en bas du contenu */
     /* Les paddings horizontaux seront gérés par la classe .content-max-width-wrapper appliquée à l'enfant direct */
 }
 
 /* Ajustement pour la GuestBanner */
 /* Elle est maintenant directement enfant du .dashboard-page-overall-wrapper */
 .guest-banner-spacing {
-    margin-bottom: 0.75rem; /* Réduit l'espace en dessous de la bannière */
+    margin-bottom: 1.5rem; /* Augmente l'espace en dessous de la bannière */
 }
 
 /* Ajustement pour DashboardHeader */
 /* Réduit l'espace au-dessus du DashboardHeader pour le coller plus haut */
 .dashboard-header-spacing {
-    margin-top: 0.5rem; /* Marge très petite au-dessus */
-    margin-bottom: 1.5rem; /* Marge en bas pour séparer des TimeAlerts */
+	margin-top: 1rem;   /* Marge au-dessus, pour un peu d'air */
+	margin-bottom: 2rem; /* Marge en bas pour séparer des TimeAlerts */
 }
+
+/* Ajout de classes de taille de texte pour une meilleure granularité */
+.text-heading-card { @apply text-xl font-semibold; } /* Pour les titres de cartes */
+.text-content-sm { @apply text-sm; } /* Pour le texte plus petit dans les cartes */
