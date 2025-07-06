@@ -141,6 +141,19 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         return uniquePeople.sort();
     }, [staffMembers, clients, initialTasks]);
 
+    // Handle cell click to add a new task
+    const handleCellClick = useCallback((date, personName) => {
+        // Only open modal if a person is associated with the row
+        if (personName) {
+            const formattedDate = format(date, 'yyyy-MM-dd');
+            onAddTask({
+                startDate: formattedDate,
+                endDate: formattedDate,
+                person: personName
+            });
+        }
+    }, [onAddTask]);
+
 
     return (
         <DashboardCard
@@ -162,7 +175,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </motion.button>
                 <h3 className="text-lg font-bold text-color-text-primary flex-grow text-center">
-                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* CORRECTED: format to 'MMMM yyyy' */}
+                    {format(currentDate, 'MMMM yyyy', { locale: fr })}
                 </h3>
                 <motion.button
                     onClick={handleNextMonth}
@@ -174,7 +187,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 </motion.button>
             </div>
 
-            {/* Main Planning Area */}
+            {/* Main Planning Area - now the overflow is here */}
             <div className={`flex flex-col flex-1 overflow-auto custom-scrollbar`} ref={containerRef}>
                 {/* Fixed Header Row for Days */}
                 <div className={`grid gap-px sticky top-0 z-10`} style={{ gridTemplateColumns: `minmax(150px, 0.5fr) repeat(${totalDaysInMonth}, minmax(0, 1fr))` }}>
@@ -211,6 +224,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                                     className={`h-12 p-2 border-b border-color-border-primary ${
                                         isWeekend(day) ? (isDarkMode ? 'bg-slate-800' : 'bg-gray-50') : (isDarkMode ? 'bg-gray-800' : 'bg-color-bg-primary')
                                     } ${isSameDay(day, new Date()) ? (isDarkMode ? 'bg-pink-500/10' : 'bg-violet-100') : ''}`}
+                                    onClick={() => handleCellClick(day, person)} // Add onClick here
                                 ></div>
                             ))}
                             {tasks
@@ -247,7 +261,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 {allPeople.length === 0 && <div className="h-full"></div>}
             </div>
 
-            {/* Add Task Button */}
+            {/* Add Task Button - moved outside the scrollable area but still within DashboardCard */}
             <div className={`p-4 border-t border-color-border-primary flex-shrink-0 ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
                 <motion.button
                     onClick={() => onAddTask({})}

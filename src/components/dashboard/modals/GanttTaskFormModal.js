@@ -19,7 +19,7 @@ const GanttColors = [
 const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers = [], allClients = [], t }) => {
     // Helper to robustly get a 'yyyy-MM-dd' string from various date formats
     const getFormattedDate = (dateString) => {
-        if (!dateString) return format(new Date(), 'yyyy-MM-dd'); // Default to today
+        if (!dateString) return format(new Date(), 'yyyy-MM-dd'); // Default to today if no dateString
         const date = parseISO(dateString);
         if (isValid(date)) {
             return format(date, 'yyyy-MM-dd');
@@ -28,10 +28,11 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
     };
 
     const [title, setTitle] = useState(initialData.title || '');
+    // Pre-fill person if available from initialData
     const [person, setPerson] = useState(initialData.person || '');
     // Initialize dates using the helper for robustness
     const [startDate, setStartDate] = useState(getFormattedDate(initialData.startDate));
-    const [endDate, setEndDate] = useState(getFormattedDate(initialData.endDate));
+    const [endDate, setEndDate] = useState(getFormattedDate(initialData.endDate || initialData.startDate)); // Use start date as default end date
     const [color, setColor] = useState(initialData.color || 'blue');
     const [completed, setCompleted] = useState(initialData.completed || false);
     const [isNewPerson, setIsNewPerson] = useState(false);
@@ -72,6 +73,7 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
     }, [allStaffMembers, allClients]);
 
     useEffect(() => {
+        // If 'person' is pre-filled and not in the existing list, assume it's a new person
         if (person && !allPeople.includes(person)) {
             setIsNewPerson(true);
         } else {
@@ -88,7 +90,7 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="taskTitle" className="block text-slate-300 text-sm mb-1 font-medium">{t('gantt_task_title_label', 'Titre de la tâche')}</label>
-                    <input id="taskTitle" type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={t('gantt_task_title_placeholder', 'Titre de la tâche...')} className="form-input" required />
+                    <input id="taskTitle" type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={t('gantt_task_title_placeholder', 'Titre de la tâche...')} className="form-input modal-input" required />
                 </div>
 
                 <div>
@@ -99,29 +101,29 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
                                 id="person"
                                 value={person}
                                 onChange={e => setPerson(e.target.value)}
-                                className="form-input appearance-none pr-10"
+                                className="form-input modal-input appearance-none pr-10"
                                 required
                             >
                                 <option value="">{t('select_person_placeholder', 'Sélectionner une personne...')}</option>
                                 {allPeople.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
-                            <button type="button" onClick={() => setIsNewPerson(true)} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-xs text-pink-400 hover:underline">
+                            <button type="button" onClick={() => setIsNewPerson(true)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-xs text-pink-400 hover:underline">
                                 {t('add_new', 'Nouvelle ?')}
                             </button>
                         </div>
                     ) : (
-                        <input type="text" value={person} onChange={e => setPerson(e.target.value)} placeholder={t('new_person_name_placeholder', 'Nom de la nouvelle personne...')} className="form-input" required />
+                        <input type="text" value={person} onChange={e => setPerson(e.target.value)} placeholder={t('new_person_name_placeholder', 'Nom de la nouvelle personne...')} className="form-input modal-input" required />
                     )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="startDate" className="block text-slate-300 text-sm mb-1 font-medium">{t('start_date', 'Date de début')}</label>
-                        <input id="startDate" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="form-input" required />
+                        <input id="startDate" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="form-input modal-input" required />
                     </div>
                     <div>
                         <label htmlFor="endDate" className="block text-slate-300 text-sm mb-1 font-medium">{t('end_date', 'Date de fin')}</label>
-                        <input id="endDate" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="form-input" required />
+                        <input id="endDate" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="form-input modal-input" required />
                     </div>
                 </div>
 
