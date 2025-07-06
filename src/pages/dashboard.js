@@ -22,7 +22,7 @@ import FlowLiveMessages from '../components/dashboard/FlowLiveMessages';
 import TeamManagement from '../components/dashboard/TeamManagement';
 import ClientManagement from '../components/dashboard/ClientManagement';
 import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
-import { DashboardCard } from '../components/dashboard/DashboardCard';
+import { DashboardCard } from '../components/dashboard/DashboardCard'; // Make sure this is imported
 
 
 // IMPORTS DES MODALES :
@@ -208,7 +208,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             ...prev,
             ganttTasks: taskData.id
                 ? (prev.ganttTasks || []).map(task => task.id === taskData.id ? taskData : task)
-                : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}` }]
+                : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}` }] // Generate ID if not present
         }));
     }, [onUpdateGuestData]);
 
@@ -358,17 +358,27 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         </div>
 
                         <div className="col-span-12">
-                            <GanttChartPlanning
-                                ref={ganttChartPlanningRef}
-                                initialTasks={data.ganttTasks} // This prop is correctly passed from data
-                                t={t}
-                                staffMembers={data.staffMembers}
-                                clients={data.clients}
-                                onAddTask={(taskData) => openModal('ganttTaskForm', taskData)} // taskData is passed here for editing
-                                onSave={handleSaveGanttTask} // This receives the saved task from the modal
+                            {/* Gantt Chart wrapped in DashboardCard with title, icon, and fullscreen prop */}
+                            <DashboardCard
+                                title={t('gantt_chart_title', 'Planning Gantt')}
+                                icon={
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                }
                                 className="h-[600px] w-full"
                                 onFullscreenClick={handleGanttChartPlanningFullscreen}
-                            />
+                                t={t}
+                                noContentPadding={true} // Important to let GanttChartPlanning manage its own internal spacing
+                            >
+                                <GanttChartPlanning
+                                    ref={ganttChartPlanningRef}
+                                    initialTasks={data.ganttTasks}
+                                    t={t}
+                                    staffMembers={data.staffMembers}
+                                    clients={data.clients}
+                                    // onAddTask and onSave are handled by the modal triggered inside GanttChartPlanning
+                                    // The modal's onSave directly calls handleSaveGanttTask from this dashboard context
+                                />
+                            </DashboardCard>
                         </div>
 
                         <div className="col-span-12 lg:col-span-6">
@@ -458,8 +468,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {modals.ganttTaskForm && (
                     <GanttTaskFormModal
                         t={t}
-                        initialData={modals.ganttTaskForm} // This is the task data being passed for editing
-                        onSave={handleSaveGanttTask}
+                        initialData={modals.ganttTaskForm}
+                        onSave={handleSaveGanttTask} // This is the crucial prop to save the new/edited task
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers}
                         allClients={data.clients}

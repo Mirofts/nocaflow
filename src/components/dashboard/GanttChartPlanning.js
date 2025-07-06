@@ -1,6 +1,8 @@
 // src/components/dashboard/GanttChartPlanning.js
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
-import { DashboardCard } from './DashboardCard';
+// DashboardCard is usually a wrapper, not directly used inside GanttChartPlanning for its UI
+// import { DashboardCard } from './DashboardCard'; // This import might be unnecessary here
+
 import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, differenceInDays, isValid, parseISO, subMonths, addMonths, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { motion } from 'framer-motion';
@@ -24,10 +26,10 @@ const GanttColorsMap = {
 
 const isLightColor = (colorValue) => ['amber', 'cyan', 'green', 'teal', 'orange'].includes(colorValue);
 
-const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients, onAddTask, onSave, className = '', noContentPadding = false }, ref) => {
+const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients, className = '' }, ref) => { // Removed onAddTask, onSave as DashboardCard wraps it
     const [currentDate, setCurrentDate] = useState(new Date());
     const containerRef = React.useRef(null);
-    const [isFullScreen, setIsFullScreen] = useState(false);
+    const [isFullScreen, setIsFullScreen] = useState(false); // Managed by DashboardCard now
     const { isDarkMode } = useTheme();
 
     const [localTasks, setLocalTasks] = useState(initialTasks);
@@ -39,6 +41,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     }, [initialTasks]);
 
     useImperativeHandle(ref, () => ({
+        // This is still needed for DashboardCard to call it for fullscreen
         toggleFullScreen: () => {
             if (containerRef.current) {
                 if (!document.fullscreenElement) {
@@ -77,36 +80,39 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const viewStartDate = useMemo(() => startOfDay(daysInView[0]), [daysInView]);
     const viewEndDate = useMemo(() => startOfDay(daysInView[daysInView.length - 1]), [daysInView]);
 
-    const totalDaysInMonth = daysInView.length;
-    // Define a fixed width for each day column to ensure all days fit and are consistently sized
-    // 1200px (min-width) - 48px (person column width) = 1152px available for days
-    // 1152px / 31 days approx = ~37px per day. Let's make it 40px for clarity and ensure it scales
-    const dayColumnWidth = 40; // in pixels
+    const totalDaysInMonth = daysInView.length; // This is correct, it will be 28, 29, 30, or 31
 
     const getTaskBarStyle = useCallback((task) => {
         const taskStart = isValid(parseISO(task.startDate)) ? startOfDay(parseISO(task.startDate)) : null;
         const taskEnd = isValid(parseISO(task.endDate)) ? startOfDay(parseISO(task.endDate)) : null;
         if (!taskStart || !taskEnd) return { display: 'none' };
 
+        // Determine the actual start and end dates within the current view
         const effectiveStartDate = taskStart < viewStartDate ? viewStartDate : taskStart;
         const effectiveEndDate = taskEnd > viewEndDate ? viewEndDate : taskEnd;
         
+        // If the task is completely outside the current view, hide it
         if (effectiveStartDate > effectiveEndDate || taskEnd < viewStartDate || taskStart > viewEndDate) {
             return { display: 'none' };
         }
 
+        // Calculate offset from the beginning of the *viewable month*
+        // The number of days from the start of the view (e.g., July 1st) to the task's effective start
         const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
-        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1; // +1 to include both start and end days
 
-        // Calculate left and width based on pixel values now, as columns have fixed pixel widths
-        const left = startOffsetDays * dayColumnWidth;
-        const width = durationDays * dayColumnWidth;
+        // Calculate the duration of the task *within the view*, inclusive of start and end days
+        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
+
+        // Calculate left and width as percentages relative to the total days in view
+        // The totalDaysInMonth is the actual number of days in the month (e.g., 31 for July)
+        const left = (startOffsetDays / totalDaysInMonth) * 100;
+        const width = (durationDays / totalDaysInMonth) * 100;
         
         return {
-            left: `${left}px`,
-            width: `${width}px`
+            left: `${left}%`,
+            width: `${width}%`
         };
-    }, [viewStartDate, viewEndDate, dayColumnWidth]);
+    }, [viewStartDate, viewEndDate, totalDaysInMonth]);
 
 
     const handlePrevMonth = useCallback(() => setCurrentDate(prev => subMonths(prev, 1)), []);
@@ -137,57 +143,38 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 // Update existing task
                 return prev.map(t => t.id === task.id ? task : t);
             } else {
-                // Add new task with a temporary unique ID
-                return [...prev, { ...task, id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }];
+                // Add new task with a temporary unique ID if none exists (important for React keys)
+                return [...prev, { ...task, id: `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }];
             }
         });
         setShowModal(false);
     };
 
     return (
-        <div className={`relative flex flex-col ${className} bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden`}>
-            {/* Header for Month Navigation and Add Task */}
-            <div className="sticky top-0 z-20 bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                    <button
-                        onClick={handlePrevMonth}
-                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
-                        aria-label="Previous Month"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                    </button>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                        {format(currentDate, 'MMMM yyyy', { locale: fr })}
-                    </h2>
-                    <button
-                        onClick={handleNextMonth}
-                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
-                        aria-label="Next Month"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                    </button>
-                </div>
-                <button onClick={() => setShowModal(true)} className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                    <span>{t('add_task', 'Ajouter une tâche')}</span>
-                </button>
-            </div>
+        // The outer div should not have the shadow/border/bg, as DashboardCard provides that
+        // This component focuses purely on the Gantt chart content structure
+        <div className={`relative flex flex-col h-full ${className}`}>
+            {/* Header for Month Navigation and Add Task - MOVED TO DASHBOARDCARD */}
 
             <div className="overflow-auto flex-grow" ref={containerRef}>
-                <div className="relative" style={{ minWidth: `${(allPeople.length > 0 ? 48 : 0) + (totalDaysInMonth * dayColumnWidth)}px` }}> {/* Dynamically set minWidth */}
-                    {/* Date Header Row - Now fixed top and scrolls horizontally */}
-                    <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 sticky top-0 z-10"> {/* Changed top to 0 for sticky */}
+                {/* min-w-[calc(10rem + var(--day-column-width) * 31)] - dynamically calculate minimum width
+                    where 10rem is for 'Personne / Client' column and 31 is max days.
+                    Let's use a base large min-width and let flex handle it for design aesthetic. */}
+                <div className="min-w-[1400px] relative"> {/* Increased min-width for better spacing and to accommodate all days cleanly */}
+                    {/* Date Header Row */}
+                    <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                         <div className="w-48 p-3 font-bold text-sm text-gray-700 dark:text-gray-200 flex-shrink-0">
                             {t('team_member', 'Personne / Client')}
                         </div>
                         {daysInView.map((day, i) => (
                             <div
                                 key={i}
-                                className={`text-center text-xs p-3 border-l border-gray-100 dark:border-gray-600 flex-shrink-0`}
-                                style={{ width: `${dayColumnWidth}px` }} // Fixed width for each day
+                                // flex-1 ensures even distribution, min-w prevents collapse on smaller screens
+                                className={`flex-1 min-w-[40px] text-center text-xs p-3 border-l border-gray-100 dark:border-gray-600 transition-colors
+                                            ${isWeekend(day) ? 'bg-gray-100 dark:bg-gray-700/60 text-gray-500' : 'text-gray-600 dark:text-gray-300'}`}
                             >
-                                <div className="font-semibold">{format(day, 'EEE', { locale: fr })}</div>
-                                <div>{format(day, 'dd', { locale: fr })}</div>
+                                <div className="font-semibold">{format(day, 'EEE', { locale: fr })}</div> {/* Day of week */}
+                                <div>{format(day, 'dd', { locale: fr })}</div> {/* Day number */}
                             </div>
                         ))}
                     </div>
@@ -201,25 +188,24 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                             {daysInView.map((day, j) => (
                                 <div
                                     key={j}
-                                    className={`h-16 border-l border-gray-100 dark:border-gray-700 cursor-pointer transition-colors flex-shrink-0`}
-                                    style={{ width: `${dayColumnWidth}px` }} // Fixed width for each day
+                                    className={`flex-1 min-w-[40px] h-16 border-l border-gray-100 dark:border-gray-700 cursor-pointer transition-colors
+                                                ${isSameDay(day, new Date()) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
+                                                ${isWeekend(day) ? 'bg-gray-50 dark:bg-gray-700/50' : 'hover:bg-blue-50 dark:hover:bg-gray-700/30'}`}
                                     onClick={() => handleCellClick(day, person)}
                                 />
                             ))}
                             {localTasks.filter(t => t.person === person).map((task) => (
                                 <motion.div
-                                    key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`} // Fallback key for safety
-                                    className={`absolute h-8 rounded-md px-3 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10`} // Increased z-index
+                                    key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`} // Fallback key for robustness
+                                    className={`absolute h-8 rounded-md px-3 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
+                                                ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
                                     style={getTaskBarStyle(task)}
-                                    whileHover={{ scale: 1.02, zIndex: 12 }} // Higher z-index on hover
+                                    whileHover={{ scale: 1.02, zIndex: 12 }}
                                     onClick={(e) => {
-                                        e.stopPropagation();
+                                        e.stopPropagation(); // Prevent cell click
                                         setModalData(task);
                                         setShowModal(true);
                                     }}
-                                    // Apply color class dynamically
-                                    data-color={task.color} // Custom attribute for potential CSS targeting
-                                    className={`${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
                                 >
                                     {task.title}
                                 </motion.div>
