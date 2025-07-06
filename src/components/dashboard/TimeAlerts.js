@@ -18,6 +18,8 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
     useEffect(() => {
         if (!isValid(targetDate)) {
             console.warn(`Invalid date provided for ${type} alert: ${dateTime}`);
+            // Set overdue if date is invalid to display 'Passée'
+            setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: true });
             return;
         }
 
@@ -56,15 +58,21 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
             .replace('{{hours}}', timeLeft.hours)
             .replace('{{minutes}}', timeLeft.minutes);
 
+    const isUrgent = timeLeft.days < 1 && !timeLeft.overdue; // <-- Définition de isUrgent ici
+    // const pulseEffect = isUrgent || timeLeft.overdue; // Cette variable n'est pas utilisée, peut être supprimée si vous ne l'utilisez pas ailleurs.
+
     // Calculate progress for the gauge based on 48 hours as the max
     let progressPercentage = 0;
     if (timeLeft.overdue) {
-        progressPercentage = 100;
+        progressPercentage = 100; // If overdue, gauge is 100% (passed the deadline)
     } else if (timeLeft.totalMinutes <= 0) {
-        progressPercentage = 100;
+         progressPercentage = 100; // If exact time is zero, it's also 100% (at the deadline)
     } else if (timeLeft.totalMinutes >= FULL_GAUGE_DURATION_MINUTES) {
-        progressPercentage = 0;
+        // If remaining time is more than or exactly 48 hours, gauge shows 0% completed/remaining (full bar for future)
+        progressPercentage = 0; // Gauge starts empty for very future events, fills up as time passes
     } else {
+        // If within 48 hours, calculate based on time passed within the 48h window
+        // (FULL_GAUGE_DURATION_MINUTES - timeLeft.totalMinutes) is the time 'consumed' from the 48h window
         progressPercentage = ((FULL_GAUGE_DURATION_MINUTES - timeLeft.totalMinutes) / FULL_GAUGE_DURATION_MINUTES) * 100;
     }
 
@@ -84,7 +92,7 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
 
     const gaugeTrackColorClass = isDarkMode ? 'bg-gray-700' : 'bg-gray-200';
 
-    const cardBgClass = isDarkMode ? 'bg-gray-700' : 'bg-white'; // Consistent card background
+    const cardBgClass = isDarkMode ? 'bg-gray-700' : 'bg-white';
 
     return (
         <motion.div
@@ -115,11 +123,11 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
             </p>
             {/* Added detail line for context */}
             <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-                {alertData.name || alertData.title} {/* Shows project/task name or meeting title */}
+                {alertData.name || alertData.title}
             </p>
 
             {/* Progress Gauge */}
-            <div className={`w-full h-2 rounded-full ${gaugeTrackColorClass} mt-auto overflow-hidden`}> {/* mt-auto pushes gauge to bottom */}
+            <div className={`w-full h-2 rounded-full ${gaugeTrackColorClass} mt-auto overflow-hidden`}>
                 <motion.div
                     className={`h-full rounded-full ${progressBarColor}`}
                     initial={{ width: '0%' }}
@@ -136,6 +144,9 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
 
 
 const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }) => {
+    // Note: projects.deadline should be the specific deadline date string for the project.
+    // meetings.dateTime should be the date-time string for the meeting.
+
     const nextDeadline = projects
         .filter(p => p.deadline && isValid(parseISO(p.deadline)) && new Date(p.deadline) > new Date())
         .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0];
@@ -153,9 +164,9 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
             className="col-span-12"
             noContentPadding={true}
         >
-            <div className={`grid grid-cols-1 md:grid-cols-2 flex-grow p-4 gap-4 bg-gray-50 dark:bg-gray-900 rounded-xl`}> {/* Changed outer background for contrast */}
+            <div className={`grid grid-cols-1 md:grid-cols-2 flex-grow p-4 gap-4 bg-gray-50 dark:bg-gray-900 rounded-xl`}>
                 {/* Next Deadline Card */}
-                <div className={`rounded-lg p-1 flex flex-col items-center border border-transparent`}> {/* Removed direct background, border for inner card */}
+                <div className={`rounded-lg p-1 flex flex-col items-center border border-transparent`}>
                     {nextDeadline ? (
                         <SingleTimeAlertCard
                             type="deadline"
@@ -165,7 +176,7 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                             pulseColorClass="bg-pink-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
-                            alertData={{ type: 'deadline', ...nextDeadline }}
+                            alertData={{ type: 'deadline', ...nextDeadline }} // Pass all deadline data
                             t={t}
                         />
                     ) : (
@@ -196,7 +207,7 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                             pulseColorClass="bg-violet-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
-                            alertData={{ type: 'meeting', ...nextMeeting }}
+                            alertData={{ type: 'meeting', ...nextMeeting }} // Pass all meeting data
                             t={t}
                         />
                     ) : (

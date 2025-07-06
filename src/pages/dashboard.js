@@ -1,5 +1,5 @@
 // src/pages/dashboard.js
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'; // Ajout de useRef
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -35,7 +35,7 @@ import {
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '../components/dashboard/modals/DetailsModal'; // Import de la nouvelle modale de détails
+import DetailsModal from '../components/dashboard/modals/DetailsModal'; // Import de la modale de détails
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -172,16 +172,22 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     });
 
     const openModal = useCallback((name, modalData = true) => setModals(prev => {
-        // Réinitialise toutes les modales à false/null sauf si c'est la modale de détails elle-même
+        // Crée un nouvel état où toutes les autres modales sont fermées, sauf celle qu'on ouvre
         const newState = Object.keys(prev).reduce((acc, key) => {
-            acc[key] = (key === name && modalData !== false) ? modalData : null; // 'null' pour les modales de formulaire, 'false' pour les booléens
-            if (key === 'detailsModal' && name !== 'detailsModal') { // Conserver l'état de detailsModal si une autre s'ouvre
-                 acc[key] = { isOpen: false, title: '', content: '' };
+            if (key === name) {
+                // Si c'est la modale que nous ouvrons, lui assigner ses données
+                acc[key] = modalData;
+            } else if (key === 'detailsModal') {
+                // Pour detailsModal, réinitialiser son état à fermé si une autre modal est ouverte
+                acc[key] = { isOpen: false, title: '', content: '' };
+            } else {
+                // Pour les autres modales, les fermer (null ou false selon leur type)
+                acc[key] = (typeof prev[key] === 'boolean' ? false : null);
             }
             return acc;
         }, {});
 
-        // Gérer spécifiquement la modale de détails si elle est ouverte via cette fonction
+        // Cas spécifique où on ouvre la detailsModal
         if (name === 'detailsModal') {
             return {
                 ...newState,
@@ -202,7 +208,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     })), []);
 
 
-    // Fonctions CRUD pour les données locales
+    // Fonctions CRUD pour les données locales (mode invité)
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
     const deleteProject = useCallback((projectId) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).filter(p => p.id !== projectId) })); }, [onUpdateGuestData]);
@@ -248,8 +254,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const handleAddInvoice = useCallback((newInvoice) => { onUpdateGuestData(prev => ({ ...prev, invoices: [...(prev.invoices || []), { ...newInvoice, id: `inv-${Date.now()}` }] })); }, [onUpdateGuestData]);
 
     // Refs pour les composants pouvant basculer en plein écran
-    const flowLiveMessagesRef = useRef(null); // Initialisé à null
-    const ganttChartPlanningRef = useRef(null); // Initialisé à null
+    const flowLiveMessagesRef = useRef(null);
+    const ganttChartPlanningRef = useRef(null);
 
     const handleFlowLiveMessagesFullscreen = useCallback(() => {
         if (flowLiveMessagesRef.current && flowLiveMessagesRef.current.toggleFullScreen) {
@@ -267,7 +273,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, []);
 
-    // Calcul des statistiques
+    // Calcul des statistiques pour le DashboardHeader
     const stats = useMemo(() => {
         const now = new Date();
 
@@ -300,7 +306,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         let content = '';
 
         if (alertItem.type === 'deadline') {
-            title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title}`); // Utiliser name pour projets, title pour tâches
+            title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title}`);
             const deadlineDate = parseISO(alertItem.deadline);
             content = `${t('project_task', 'Tâche/Projet')} : ${alertItem.name || alertItem.title}\n` +
                       `${t('client', 'Client')} : ${alertItem.client || t('not_specified', 'Non spécifié')}\n` +
@@ -311,7 +317,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             const meetingDateTime = parseISO(alertItem.dateTime);
             content = `${t('subject', 'Sujet')} : ${alertItem.title}\n` +
                       `${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `${t('location', 'Lieu')} : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
+                      `${t('lieu', 'Lieu')} : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
                       `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
         }
 
