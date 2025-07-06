@@ -1,7 +1,7 @@
 // src/components/dashboard/TodoList.js
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import TaskItem from './TaskItem'; // Assuming TaskItem component
+import { TaskItem } from './TaskItem';
 import { DashboardCard } from './DashboardCard'; // Make sure DashboardCard is imported
 import { useTheme } from '../../context/ThemeContext';
 

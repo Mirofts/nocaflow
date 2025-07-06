@@ -51,54 +51,59 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     // Initialisation et synchronisation des données locales
     const [localData, setLocalData] = useState(() => {
-        let initialValue = { // Assurer une structure de base pour initialValue
-            tasks: [],
-            messages: [],
-            meetings: [],
-            projects: [],
-            staffMembers: [],
-            clients: [],
-            ganttTasks: [],
-            invoices: [],
+        let initialValue = {
+            tasks: [], messages: [], meetings: [], projects: [],
+            staffMembers: [], clients: [], ganttTasks: [], invoices: [],
             notes: '',
             user: { displayName: initialGuestNameSSR, photoURL: '/images/avatarguest.jpg' },
-            ...initialMockData // Fusionner avec mockData, qui pourrait écraser certains champs
         };
 
-        if (typeof window !== 'undefined') {
-            const savedData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
-            // Fusionner initialValue, savedData, puis initialMockData pour l'ordre de priorité
-            initialValue = {
-                ...initialValue, // Base avec tableaux vides et defaults
-                ...savedData,    // Données sauvegardées écrasent la base
-                ...initialMockData // Mock data peut encore écraser si présente ici
-            };
-            const savedGuestName = localStorage.getItem('nocaflow_guest_name');
-            if (savedGuestName) {
-                initialValue.user.displayName = savedGuestName;
+        const USE_LOCAL_STORAGE_FOR_GUEST = false; // Temporarily disabled, set to true once #130 is resolved
+
+        if (typeof window !== 'undefined' && USE_LOCAL_STORAGE_FOR_GUEST) {
+            try {
+                const savedData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
+                initialValue = {
+                    ...initialValue,
+                    ...savedData
+                };
+                const savedGuestName = localStorage.getItem('nocaflow_guest_name');
+                if (savedGuestName) {
+                    initialValue.user.displayName = savedGuestName;
+                }
+            } catch (e) {
+                console.error("Failed to parse guest data from localStorage, using initial mock data.", e);
+                localStorage.removeItem('nocaflow_guest_data');
+                localStorage.removeItem('nocaflow_guest_name');
             }
         }
+        initialValue = { ...initialValue, ...initialMockData };
 
-        // Assurer que toutes les collections sont bien des tableaux après toutes les fusions
         initialValue.tasks = Array.isArray(initialValue.tasks) ? initialValue.tasks : [];
         initialValue.messages = Array.isArray(initialValue.messages) ? initialValue.messages : [];
         initialValue.meetings = Array.isArray(initialValue.meetings) ? initialValue.meetings : [];
         initialValue.projects = Array.isArray(initialValue.projects) ? initialValue.projects : [];
         initialValue.staffMembers = Array.isArray(initialValue.staffMembers) ? initialValue.staffMembers : [];
         initialValue.clients = Array.isArray(initialValue.clients) ? initialValue.clients : [];
-        initialValue.ganttTasks = Array.isArray(initialValue.ganttTasks) ? initialValue.ganttTasks : []; // Correction possible: initialValue.planningTasks -> initialValue.ganttTasks
+        initialValue.ganttTasks = Array.isArray(initialValue.ganttTasks) ? initialValue.ganttTasks : [];
         initialValue.invoices = Array.isArray(initialValue.invoices) ? initialValue.invoices : [];
-        initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : initialMockData.notes || '';
-        initialValue.user = initialValue.user || {}; // S'assurer que user est un objet
+        initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : '';
+        initialValue.user = initialValue.user || {};
 
         return initialValue;
     });
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && isGuestMode) {
-            localStorage.setItem('nocaflow_guest_data', JSON.stringify(localData));
-            if (localData.user?.displayName !== guestName) {
-                setGuestName(localData.user?.displayName || initialGuestNameSSR);
+        const USE_LOCAL_STORAGE_FOR_GUEST = false; // Temporarily disabled, set to true once #130 is resolved
+
+        if (typeof window !== 'undefined' && isGuestMode && USE_LOCAL_STORAGE_FOR_GUEST) {
+            try {
+                localStorage.setItem('nocaflow_guest_data', JSON.stringify(localData));
+                if (localData.user?.displayName !== guestName) {
+                    localStorage.setItem('nocaflow_guest_name', localData.user?.displayName || initialGuestNameSSR);
+                }
+            } catch (e) {
+                console.error("Failed to save guest data to localStorage.", e);
             }
         }
     }, [localData, isGuestMode, guestName, initialGuestNameSSR]);
@@ -108,7 +113,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             const newData = typeof updater === 'function' ? updater(prevLocalData) : updater;
             const sanitizedData = { ...newData };
 
-            // Assurer que toutes les collections restent des tableaux lors de la mise à jour
             sanitizedData.tasks = Array.isArray(sanitizedData.tasks) ? sanitizedData.tasks : [];
             sanitizedData.messages = Array.isArray(sanitizedData.messages) ? sanitizedData.messages : [];
             sanitizedData.meetings = Array.isArray(sanitizedData.meetings) ? sanitizedData.meetings : [];
@@ -163,7 +167,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             };
         }
 
-        // Assurer que toutes les collections sont des tableaux ici aussi pour les props
         currentData.messages = Array.isArray(currentData.messages) ? currentData.messages : [];
         currentData.meetings = Array.isArray(currentData.meetings) ? currentData.meetings : [];
         currentData.projects = Array.isArray(currentData.projects) ? currentData.projects : [];
@@ -178,12 +181,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
 
     // Gestionnaire d'état des modales (état simplifié)
-    const [activeModal, setActiveModal] = useState(null); // 'taskEdit', 'detailsModal', 'calculator', etc.
-    const [modalProps, setModalProps] = useState(null); // Données spécifiques pour la modale ouverte (renommé pour clarté)
+    const [activeModal, setActiveModal] = useState(null);
+    const [modalProps, setModalProps] = useState(null);
 
-    const openModal = useCallback((name, props = true) => {
+    const openModal = useCallback((name, props = {}) => { // Default props to an empty object
         setActiveModal(name);
-        setModalProps(props); // Utiliser setModalProps
+        setModalProps(props);
     }, []);
 
     const closeModal = useCallback(() => {
@@ -290,16 +293,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         let content = '';
 
         if (alertItem.type === 'deadline') {
-            title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title}`);
+            title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title || ''}`); // Ensure default empty string
             const deadlineDate = parseISO(alertItem.deadline);
-            content = `${t('project_task', 'Tâche/Projet')} : ${alertItem.name || alertItem.title}\n` +
+            content = `${t('project_task', 'Tâche/Projet')} : ${alertItem.name || alertItem.title || ''}\n` +
                       `${t('client', 'Client')} : ${alertItem.client || t('not_specified', 'Non spécifié')}\n` +
                       `${t('date', 'Date')} : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
                       `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
         } else if (alertItem.type === 'meeting') {
-            title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title}`);
+            title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title || ''}`); // Ensure default empty string
             const meetingDateTime = parseISO(alertItem.dateTime);
-            content = `${t('subject', 'Sujet')} : ${alertItem.title}\n` +
+            content = `${t('subject', 'Sujet')} : ${alertItem.title || ''}\n` +
                       `${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
                       `${t('location', 'Lieu')} : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
                       `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
@@ -358,18 +361,18 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onLoginClick={onLoginClick}
                                     onRegisterClick={onRegisterClick}
                                     onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
-                                    messages={data.messages || []} // Default to empty array
+                                    messages={data.messages || []}
                                     user={user}
                                     initialMockData={initialMockData}
-                                    availableTeamMembers={data.staffMembers || []} // Default to empty array
+                                    availableTeamMembers={data.staffMembers || []}
                                 />
                             </DashboardCard>
 
                             <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]"/>
                             <Calendar
-                                tasks={data.tasks || []} // Default to empty array
-                                meetings={data.meetings || []} // Default to empty array
-                                projects={data.projects || []} // Default to empty array
+                                tasks={data.tasks || []}
+                                meetings={data.meetings || []}
+                                projects={data.projects || []}
                                 onDayClick={(date, events) => openModal('dayDetails', { date, events })}
                                 t={t}
                                 className="flex-1 h-auto"
@@ -381,16 +384,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
                             {/* Time Alerts (Prochaine Échéance et Prochaine Réunion) */}
                             <TimeAlerts
-                                projects={data.projects || []} // Default to empty array
-                                meetings={data.meetings || []} // Default to empty array
+                                projects={data.projects || []}
+                                meetings={data.meetings || []}
                                 t={t}
                                 lang={lang}
-                                openModal={openModal}
-                                onAlertCardClick={handleOpenAlertDetails}
+                                openModal={openModal} // For the '+' button
+                                onAlertCardClick={handleOpenAlertDetails} // For clicking the card
                             />
 
                             <TodoList
-                                todos={data.tasks || []} // Default to empty array
+                                todos={data.tasks || []}
                                 loading={loadingTodos}
                                 onAdd={addTodo}
                                 onToggle={toggleTodo}
@@ -400,7 +403,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 className="flex-1 h-auto"
                             />
                             <Projects
-                                projects={data.projects || []} // Default to empty array
+                                projects={data.projects || []}
                                 t={t}
                                 onAddProject={addProject}
                                 onEditProject={editProject}
@@ -424,10 +427,10 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             >
                                 <GanttChartPlanning
                                     ref={ganttChartPlanningRef}
-                                    initialTasks={data.ganttTasks || []} // Default to empty array
+                                    initialTasks={data.ganttTasks || []}
                                     t={t}
-                                    staffMembers={data.staffMembers || []} // Default to empty array
-                                    clients={data.clients || []} // Default to empty array
+                                    staffMembers={data.staffMembers || []}
+                                    clients={data.clients || []}
                                     onSaveTask={handleSaveGanttTask}
                                 />
                             </DashboardCard>
@@ -436,7 +439,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         {/* Team Management & Client Management (full width or 2 columns below Gantt) */}
                         <div className="col-span-12 lg:col-span-6">
                             <TeamManagement
-                                members={data.staffMembers || []} // Default to empty array
+                                members={data.staffMembers || []}
                                 onAddMember={() => openModal('teamMember', { mode: 'add' })}
                                 onEditMember={(member) => openModal('teamMember', { mode: 'edit', member })}
                                 onDeleteMember={deleteStaffMember}
@@ -449,7 +452,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                         <div className="col-span-12 lg:col-span-6">
                             <ClientManagement
-                                clients={data.clients || []} // Default to empty array
+                                clients={data.clients || []}
                                 onAddClient={() => openModal('clientForm', { mode: 'add' })}
                                 onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })}
                                 onDeleteClient={deleteClient}
@@ -500,36 +503,36 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     activeModal === 'project' && <ProjectFormModal t={t} onSave={addProject} isGuest={isGuestMode} onClose={closeModal} />
                 )}
 
-                {activeModal === 'invoiceForm' && <InvoiceFormModal t={t} isGuest={isGuestMode} client={modalProps.client} onAdd={handleAddInvoice} onClose={closeModal} />}
-                {activeModal === 'invoiceList' && <InvoiceListModal t={t} invoices={modalProps.client ? (data.invoices || []).filter(inv => inv.client === modalProps.client.name) : (data.invoices || [])} onClose={closeModal} />}
+                {activeModal === 'invoiceForm' && modalProps && <InvoiceFormModal t={t} isGuest={isGuestMode} client={modalProps.client} onAdd={handleAddInvoice} onClose={closeModal} />}
+                {activeModal === 'invoiceList' && modalProps && <InvoiceListModal t={t} invoices={modalProps.client ? (data.invoices || []).filter(inv => inv.client === modalProps.client.name) : (data.invoices || [])} onClose={closeModal} />}
 
-                {activeModal === 'teamMember' && <TeamMemberModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
-                {activeModal === 'quickChat' && <QuickChatModal t={t} member={modalProps} onClose={closeModal} />}
-                {activeModal === 'assignTaskProjectDeadline' && (
+                {activeModal === 'teamMember' && modalProps && <TeamMemberModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
+                {activeModal === 'quickChat' && modalProps && <QuickChatModal t={t} member={modalProps} onClose={closeModal} />}
+                {activeModal === 'assignTaskProjectDeadline' && modalProps && (
                     <AssignTaskProjectDeadlineModal
                         t={t}
                         member={modalProps}
                         onClose={closeModal}
-                        allStaffMembers={data.staffMembers || []} // Default to empty array
+                        allStaffMembers={data.staffMembers || []}
                         userUid={userUid}
                         currentUserName={user?.displayName || 'Moi'}
                         onAddTask={addTodo}
                     />
                 )}
 
-                {activeModal === 'clientForm' && <ClientFormModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
+                {activeModal === 'clientForm' && modalProps && <ClientFormModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
 
-                {activeModal === 'ganttTaskForm' && (
+                {activeModal === 'ganttTaskForm' && modalProps && (
                     <GanttTaskFormModal
                         t={t}
                         initialData={modalProps}
                         onSave={handleSaveGanttTask}
                         onClose={closeModal}
-                        allStaffMembers={data.staffMembers || []} // Default to empty array
-                        allClients={data.clients || []} // Default to empty array
+                        allStaffMembers={data.staffMembers || []}
+                        allClients={data.clients || []}
                     />
                 )}
-                {activeModal === 'googleDriveLink' && (
+                {activeModal === 'googleDriveLink' && modalProps && (
                     <GoogleDriveLinkModal
                         t={t}
                         projectId={modalProps}
@@ -544,12 +547,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {activeModal === 'calculator' && <CalculatorModal t={t} onClose={closeModal} />}
 
                 {/* Modale de détails pour les alertes (Deadlines et Meetings) */}
-                {activeModal === 'detailsModal' && (
+                {activeModal === 'detailsModal' && modalProps && (
                     <DetailsModal
                         isOpen={true}
                         onClose={closeModal}
-                        title={modalProps.title}
-                        content={modalProps.content}
+                        title={modalProps.title || ""} // Ensure default empty string
+                        content={modalProps.content || ""} // Ensure default empty string
                     />
                 )}
             </AnimatePresence>

@@ -4,20 +4,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-// import { initialMockData } from '../../../lib/mockData'; // Non utilisé directement ici
+// import { initialMockData } from '../../../lib/mockData'; // Déjà géré via les props
 import { db, auth, storage } from '../../../lib/firebase';
-// AJOUT DE addDoc manquant
 import { collection, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, serverTimestamp, arrayUnion, writeBatch, addDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { format, isToday, isYesterday, isSameWeek, isSameDay, isSameYear, parseISO, isValid /* subDays n'est pas utilisé */ } from 'date-fns';
+import { format, isToday, isYesterday, isSameWeek, isSameDay, isSameYear, parseISO, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 // IMPORTS CORRIGÉS DES COMPOSANTS ENFANTS :
 import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
 import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
 import FlowLiveMessagesInput from './FlowLiveMessagesInput';
-import NewDiscussionModal from './modals/NewDiscussionModal';
-// import { AssignTaskProjectDeadlineModal } from '../modals/modals'; // N'est pas utilisé directement dans ce fichier, mais par la prop onOpenAddTaskFromChat
+import NewDiscussionModal from './modals/NewDiscussionModal'; // Assurez-vous que ce chemin est correct
+// import { AssignTaskProjectDeadlineModal } from '../modals/modals'; // N'est pas utilisé directement dans ce fichier
+
+// IMPORT MANQUANT : useFullScreen
+import { useFullScreen } from '../../../hooks/useFullScreen'; // <-- AJOUTÉ
+
+// IMPORT DES CHAT HOOKS
+import { useChatLogic } from '../../../hooks/useChatLogic'; // <-- RÉACTIVÉ
+import { useChatActions } from '../../../hooks/useChatActions'; // <-- RÉACTIVÉ
+
 
 // Définir la liste complète des emojis dans une constante
 const ALL_EMOJIS = [
@@ -25,75 +32,142 @@ const ALL_EMOJIS = [
 ];
 
 // Définir le composant principal FlowLiveMessages
-const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddTaskFromChat, availableTeamMembers }, ref) => {
-    const { currentUser: user } = useAuth();
+const FlowLiveMessages = forwardRef(({
+    onLoginClick,
+    onRegisterClick,
+    onOpenAddTaskFromChat,
+    availableTeamMembers, // Reçu de dashboard.js
+    messages: messagesProp, // Renommé pour éviter conflit avec l'état interne
+    user, // Reçu de dashboard.js
+    initialMockData, // Reçu de dashboard.js (pour compatibilité useChatLogic)
+}, ref) => {
+    const { currentUser: authUser } = useAuth(); // Renommé pour éviter conflit avec la prop
     const { isDarkMode } = useTheme();
     const { t, i18n } = useTranslation('common');
 
-    const isGuestMode = !user || user.uid === 'guest_noca_flow';
-    const currentFirebaseUid = user?.uid || (isGuestMode ? 'guest_noca_flow' : null);
-    const currentUserName = user?.displayName || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : 'Moi');
+    const currentUser = user || authUser; // Utiliser la prop user si définie, sinon authUser
+    const isGuestMode = !currentUser || currentUser.uid === 'guest_noca_flow';
+    const currentFirebaseUid = currentUser?.uid || (isGuestMode ? 'guest_noca_flow' : null);
+    const currentUserName = currentUser?.displayName || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : 'Moi');
 
-    const [activeConversationId, setActiveConversationId] = useState(null);
-    // Stocker l'objet complet du partenaire ou du groupe actif
-    const [activeConversationInfo, setActiveConversationInfo] = useState({
-        partner: null, // Pour les conversations 1-1
-        isGroup: false,
-        participants: [],
-        name: ''
-    });
 
-    const [conversations, setConversations] = useState([]);
-    const [messages, setMessages] = useState([]);
-    const [filteredMessages, setFilteredMessages] = useState([]); // Garde cette state pour la recherche
-    const [newMessage, setNewMessage] = useState('');
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const [showNewDiscussionModal, setShowNewDiscussionModal] = useState(false);
-    const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null);
-    const [internalAvailableTeamMembers, setInternalAvailableTeamMembers] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+    // -------------------------------------------------------------------------
+    // RÉACTIVATION DES HOOKS DE GESTION DE CHAT
+    // useChatLogic gère la plupart des états relatifs aux conversations et messages filtrés
+    const {
+        conversations,
+        selectedConversationId,
+        filteredMessages,
+        setSelectedConversationId,
+        setConversations,
+        setMessages, // setMessages interne du hook
+        isNewDiscussionModalOpen,
+        setIsNewDiscussionModalOpen,
+        newDiscussionModalInitialContact,
+        setNewDiscussionModalInitialContact,
+        activeSearchQuery,
+        setActiveSearchQuery
+    } = useChatLogic(currentUser, initialMockData, messagesProp); // Passe messagesProp au hook
 
-    const chatPanelRef = useRef(null);
-    const fileInputRef = useRef(null);
-    const emojiButtonRef = useRef(null);
-    const containerRef = useRef(null);
-    const [isFullScreen, setIsFullScreen] = useState(false);
+    // useChatActions gère les fonctions d'envoi et d'action des messages
+    const {
+        sendMessage,
+        startNewConversation,
+        // addMessageToConversation n'est pas exposé ici, car utilisé en interne par sendMessage
+        handleMessageAction, // Pour actions comme assigner tâche
+        handleFileUpload // Pour l'envoi de fichiers
+    } = useChatActions(currentUser, conversations, setConversations, setMessages); // setMessages du hook
 
+
+    // --- GESTION DU PLEIN ÉCRAN ---
+    const chatContainerRef = useRef(null); // Ref pour le conteneur principal du chat pour le plein écran
+    const { isFullScreen, toggleFullScreen } = useFullScreen(chatContainerRef); // Utiliser le hook useFullScreen
+
+
+    // Exposed to parent component for fullscreen toggle
     useImperativeHandle(ref, () => ({
-        toggleFullScreen: () => {
-            if (containerRef.current) {
-                if (!document.fullscreenElement) {
-                    containerRef.current.requestFullscreen().catch(err => {
-                        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-                    });
-                } else {
-                    document.exitFullscreen();
-                }
-            }
-        }
+        toggleFullScreen: toggleFullScreen
     }));
 
+    // Synchronise les messages passés en prop avec l'état interne du hook useChatLogic
     useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullScreen(!!document.fullscreenElement);
-            // Quand on quitte le plein écran sur mobile, on cache la sidebar si elle était visible
-            if (!document.fullscreenElement && window.innerWidth < 768) {
-                setShowMobileSidebar(false);
-            }
-        };
+        if (messagesProp) {
+            setMessages(messagesProp);
+        }
+    }, [messagesProp, setMessages]);
 
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
-        return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-        };
+    // --- États et refs locaux qui restent dans ce composant ---
+    const [newMessage, setNewMessage] = useState('');
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null);
+    const fileInputRef = useRef(null);
+    const emojiButtonRef = useRef(null);
+
+    // Synchronisation des membres d'équipe disponibles (pour NewDiscussionModal et assignTask)
+    // Cette logique peut être simplifiée si initialMockData.staffMembers est toujours passé.
+    const internalAvailableTeamMembers = useMemo(() => {
+        if (availableTeamMembers && availableTeamMembers.length > 0) {
+            return availableTeamMembers;
+        } else if (isGuestMode && initialMockData?.staffMembers) { // Accès sécurisé
+            return initialMockData.staffMembers;
+        }
+        return [];
+    }, [availableTeamMembers, isGuestMode, initialMockData]);
+
+
+    // --- Fonctions locales pour l'envoi de messages et gestion de fichiers (si non gérées par useChatActions) ---
+    // Si useChatActions gère déjà ces fonctions, ces wrappers ne sont pas nécessaires.
+    // L'erreur précédente venait du fait que `addDoc` était directement utilisé,
+    // mais dans la version actuelle de useChatActions (qui a évolué),
+    // `sendMessage` et `handleFileUpload` y sont gérés.
+    // Je vais m'assurer que les appels ici utilisent les fonctions de useChatActions.
+
+
+    const handleSendNormalMessage = useCallback(async () => {
+        if (!currentFirebaseUid) { handleLoginPrompt(); return; }
+        await sendMessage(newMessage, selectedConversationId, currentFirebaseUid, false);
+        setNewMessage('');
+    }, [newMessage, selectedConversationId, currentFirebaseUid, sendMessage, handleLoginPrompt]);
+
+    const handleSendEphemeralMessage = useCallback(async () => {
+        if (!currentFirebaseUid) { handleLoginPrompt(); return; }
+        await sendMessage(newMessage, selectedConversationId, currentFirebaseUid, true);
+        setNewMessage('');
+    }, [newMessage, selectedConversationId, currentFirebaseUid, sendMessage, handleLoginPrompt]);
+
+    const handleAttachNormalFile = useCallback(() => {
+        if (!currentFirebaseUid) { handleLoginPrompt(); return; }
+        if (fileInputRef.current) {
+            fileInputRef.current.onchange = (e) => {
+                handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, false);
+                e.target.value = null; // Clear the input
+            };
+            fileInputRef.current.click();
+        }
+    }, [fileInputRef, handleFileUpload, selectedConversationId, currentFirebaseUid, handleLoginPrompt]);
+
+    const handleAttachEphemeralFile = useCallback(() => {
+        if (!currentFirebaseUid) { handleLoginPrompt(); return; }
+        if (fileInputRef.current) {
+            fileInputRef.current.onchange = (e) => {
+                handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, true);
+                e.target.value = null; // Clear the input
+            };
+            fileInputRef.current.click();
+        }
+    }, [fileInputRef, handleFileUpload, selectedConversationId, currentFirebaseUid, handleLoginPrompt]);
+
+    const handleEmoticonClick = useCallback((emoji) => {
+        setNewMessage(prev => prev + emoji);
+    }, []);
+
+    const openEphemeralImagePreview = useCallback(async (fileURL, messageId) => {
+        setEphemeralImagePreview({ url: fileURL, messageId: messageId });
+    }, []);
+
+    const closeEphemeralImagePreview = useCallback(() => {
+        setEphemeralImagePreview(null);
     }, []);
 
     const handleLoginPrompt = useCallback(() => {
@@ -101,11 +175,17 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         onLoginClick && onLoginClick();
     }, [t, onLoginClick]);
 
+
+    // Reste de la logique de Firebase (déjà présente dans votre code)
+    // C'est cette logique qui interagit directement avec Firestore pour récupérer les conversations et messages
+    // et qui a été coupée dans la version précédente.
+    // Je la restaure ici, en l'adaptant pour utiliser les setters des hooks de chat
+    // et les données de `currentUser`.
+
     const formatMessageTimeDisplay = useCallback((timestamp) => {
         if (!timestamp) return '';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        // Utilise la locale courante de i18n
-        const currentLocale = i18n.language === 'fr' ? fr : undefined; // Ajoutez d'autres locales si nécessaire
+        const currentLocale = i18n.language === 'fr' ? fr : undefined;
 
         if (isToday(date)) return format(date, 'HH:mm');
         if (isYesterday(date)) return t('yesterday', 'Hier') + format(date, ' HH:mm');
@@ -128,31 +208,39 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         }
     }, [currentFirebaseUid, db]);
 
+
+    // Effect for fetching conversations from Firestore
     useEffect(() => {
-        if (!currentFirebaseUid) {
+        if (!currentFirebaseUid || !db) { // Ensure db is initialized
             setConversations([]);
             return;
         }
 
-        const q = query(collection(db, 'conversations'), orderBy('lastMessageTime', 'desc'));
+        // Query conversations where currentFirebaseUid is a participant
+        const q = query(
+            collection(db, 'conversations'),
+            where('participants', 'array-contains', currentFirebaseUid), // Filter conversations by participant
+            orderBy('lastMessageTime', 'desc')
+        );
+
         const unsubscribe = onSnapshot(q, async (snapshot) => {
             const convs = await Promise.all(snapshot.docs.map(async d => {
                 const data = d.data();
                 let displayName = data.name || t('new_conversation_default', 'Nouvelle Conversation');
                 let photoURL = '';
                 let isGroup = false;
-                let participantsDetails = []; // Pour stocker les objets participants complets
+                let participantsDetails = [];
 
                 if (data.participants && data.participants.length > 0) {
                     const participantUids = data.participants;
 
-                    // Fetch details for all participants
                     const userDetailsPromises = participantUids.map(uid =>
                         getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
-                            .then(snap => snap.docs[0]?.data() || { uid: uid, displayName: t('unknown_user', 'Utilisateur'), photoURL: '/images/default-avatar.png' })
+                            .then(snap => snap.docs[0]?.data() || { uid: uid, displayName: t('unknown_user', 'Utilisateur'), photoURL: '/images/default-avatar.png', isOnline: false })
                     );
                     participantsDetails = await Promise.all(userDetailsPromises);
 
+                    // Determine conversation name and photo for 1-1 chats vs groups
                     if (data.participants.length > 2 || (data.participants.length === 2 && !data.participants.includes(currentFirebaseUid))) {
                         isGroup = true;
                         if (!data.name) {
@@ -164,15 +252,17 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                         const partnerDetail = participantsDetails.find(p => p.uid !== currentFirebaseUid);
                         if (partnerDetail) {
                             displayName = partnerDetail.displayName || t('unknown_user', 'Utilisateur');
-                            photoURL = partnerDetail.photoURL || '/images/default-avatar.png';
+                            photoURL = partnerDetail.photoURL || '/images/default-avatar.jpg';
                         }
                     } else if (data.participants.length === 1 && data.participants.includes(currentFirebaseUid)) {
                         displayName = t('guest_you', 'TOI');
-                        photoURL = user?.photoURL || '/images/default-avatar.png';
+                        photoURL = currentUser?.photoURL || '/images/default-avatar.jpg'; // Use currentUser.photoURL here
                     }
                 }
 
-                const unreadCount = (data.lastMessageReadBy || []).includes(currentFirebaseUid) ? 0 : 1; // Simplified unread logic
+                // Calculate unread count (this needs more robust logic usually, e.g. last read timestamp)
+                // For simplicity, using a flag if last message was read by current user
+                const unreadCount = (data.lastMessageReadBy || []).includes(currentFirebaseUid) ? 0 : 1;
 
                 return {
                     id: d.id,
@@ -182,124 +272,71 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                     isGroup: isGroup,
                     unread: unreadCount,
                     initials: displayName.charAt(0).toUpperCase(),
-                    participantsDetails: participantsDetails // Ajoutez les détails des participants
+                    participantsDetails: participantsDetails // Store full participant objects
                 };
             }));
             setConversations(convs.sort((a,b) => (b.lastMessageTime?.toMillis() || 0) - (a.lastMessageTime?.toMillis() || 0)));
+
+            // Set default selected conversation if none is active
+            if (!selectedConversationId && convs.length > 0) {
+                setSelectedConversationId(convs[0].id);
+            }
+        }, (error) => {
+            console.error("Error fetching conversations:", error);
+            // Handle permission denied or other errors
         });
 
         return () => unsubscribe();
-    }, [currentFirebaseUid, user, t, db]);
+    }, [currentFirebaseUid, currentUser, t, db, setSelectedConversationId, selectedConversationId]); // Added selectedConversationId to deps
 
+    // Effect for fetching messages of the active conversation
     useEffect(() => {
-        if (!activeConversationId) {
+        if (!selectedConversationId || !db) { // Ensure db is initialized
             setMessages([]);
             return;
         }
 
-        const messagesColRef = collection(db, 'conversations', activeConversationId, 'messages');
+        const messagesColRef = collection(db, 'conversations', selectedConversationId, 'messages');
         const q = query(messagesColRef, orderBy('timestamp'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const newMessages = snapshot.docs.map(d => {
                 const data = d.data();
+                // Find sender details from participantsDetails of the active conversation
+                const activeConv = conversations.find(conv => conv.id === selectedConversationId);
+                const senderDetail = activeConv?.participantsDetails?.find(p => p.uid === data.senderUid);
+
                 const senderName = (data.senderUid === currentFirebaseUid)
                     ? currentUserName
-                    : (activeConversationInfo.participants.find(p => p.uid === data.senderUid)?.displayName || t('unknown_user', 'Utilisateur'));
+                    : (senderDetail?.displayName || t('unknown_user', 'Utilisateur'));
 
                 return {
                     id: d.id,
                     ...data,
                     displayTime: formatMessageTimeDisplay(data.timestamp),
                     status: (data.readBy || []).includes(currentFirebaseUid) ? 'read' : 'sent',
-                    from: senderName // Utilise le nom du participant trouvé
+                    from: senderName,
+                    senderPhotoURL: senderDetail?.photoURL || '/images/default-avatar.jpg', // Add senderPhotoURL here
+                    senderName: senderName // Add senderName here, useful for display component
                 };
             });
             setMessages(newMessages);
-            const unreadMessageIds = snapshot.docs.filter(d => !(d.data().readBy || []).includes(currentFirebaseUid)).map(d => d.id);
+
+            const unreadMessageIds = snapshot.docs.filter(d => !(d.data().readBy || []).includes(currentFirebaseUid) && d.data().senderUid !== currentFirebaseUid).map(d => d.id);
             if (unreadMessageIds.length > 0) {
-                markMessagesAsRead(activeConversationId, unreadMessageIds);
+                markMessagesAsRead(selectedConversationId, unreadMessageIds);
             }
+        }, (error) => {
+            console.error("Error fetching messages:", error);
+            // Handle permission denied or other errors
         });
 
         return () => unsubscribe();
-    }, [activeConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, db, activeConversationInfo.participants]);
-
-    useEffect(() => {
-        if (chatPanelRef.current) {
-            chatPanelRef.current.scrollTop = chatPanelRef.current.scrollHeight;
-        }
-    }, [messages]);
-
-    useEffect(() => {
-        setFilteredMessages(messages.filter(msg =>
-            msg.content.toLowerCase().includes(searchTerm.toLowerCase())
-        ));
-    }, [searchTerm, messages]);
-
-    // Synchronisation des membres d'équipe disponibles (pour NewDiscussionModal et assignTask)
-    useEffect(() => {
-        if (availableTeamMembers && availableTeamMembers.length > 0) {
-            setInternalAvailableTeamMembers(availableTeamMembers);
-        } else if (!user || user.uid === 'guest_noca_flow') {
-            // En mode invité, utilisez des mock data si aucune n'est fournie via props
-            setInternalAvailableTeamMembers(initialMockData.staffMembers || []);
-        } else {
-            // Pour les utilisateurs connectés sans teamMembers (si non géré par une API réelle)
-            setInternalAvailableTeamMembers([]);
-        }
-    }, [availableTeamMembers, user]);
+    }, [selectedConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, db, conversations]); // Added conversations to dependencies
 
 
-    // Hooks d'action de chat
-    const handleSendMessage = useCallback(async (isEphemeral = false) => {
-        if (!user) { handleLoginPrompt(); return; }
-        if (newMessage.trim() === '' || !activeConversationId || !currentFirebaseUid) {
-            if (!activeConversationId) alert(t('select_or_create_conversation', "Veuillez sélectionner une conversation ou en créer une nouvelle."));
-            return;
-        }
-        const messagePayload = { content: newMessage.trim(), senderUid: currentFirebaseUid, timestamp: serverTimestamp(), type: 'text', isEphemeral: isEphemeral, duration: isEphemeral ? (5 * 60 * 1000) : null, readBy: [currentFirebaseUid] };
-        try {
-            const messagesColRef = collection(db, 'conversations', activeConversationId, 'messages');
-            await addDoc(messagesColRef, messagePayload); // Correction: addDoc était manquant
-            const convRef = doc(db, 'conversations', activeConversationId);
-            await updateDoc(convRef, { lastMessage: newMessage.trim(), lastMessageTime: serverTimestamp() });
-            setNewMessage('');
-        } catch (e) { console.error("Erreur lors de l'envoi du message : ", e); alert(t('send_message_failed', "Échec de l'envoi du message. Vérifiez la console pour plus de détails.")); }
-    }, [newMessage, activeConversationId, currentFirebaseUid, t, user, handleLoginPrompt, db]);
-
-    const handleFileUpload = useCallback(async (event, isEphemeral = false) => {
-        if (!user) { handleLoginPrompt(); return; }
-        if (!activeConversationId || !currentFirebaseUid) { alert(t('select_conv_and_login', "Veuillez sélectionner une conversation et être connecté.")); return; }
-        const file = event.target.files[0];
-        if (!file) return;
-        if (!file.type.startsWith('image/') && !file.type.startsWith('application/pdf')) { alert(t('unsupported_file_type', "Seules les images (PNG, JPEG, GIF) et les PDF sont autorisés pour le moment.")); event.target.value = null; return; }
-
-        setNewMessage(t('uploading_file', 'Téléchargement du fichier...'));
-        try {
-            const storageFileRef = ref(storage, `chat_files/${activeConversationId}/${currentFirebaseUid}/${file.name}_${Date.now()}`);
-            const snapshot = await uploadBytes(storageFileRef, file);
-            const fileURL = await getDownloadURL(snapshot.ref);
-            const messagePayload = { content: file.name, senderUid: currentFirebaseUid, timestamp: serverTimestamp(), type: file.type.startsWith('image/') ? 'image' : 'file', fileURL: fileURL, isEphemeral: isEphemeral, duration: isEphemeral ? (5 * 60 * 1000) : null, readBy: [currentFirebaseUid] };
-            const messagesColRef = collection(db, 'conversations', activeConversationId, 'messages');
-            await addDoc(messagesColRef, messagePayload); // Correction: addDoc était manquant
-            const convRef = doc(db, 'conversations', activeConversationId);
-            await updateDoc(convRef, { lastMessage: `Fichier: ${file.name}`, lastMessageTime: serverTimestamp() });
-            setNewMessage(''); event.target.value = null;
-        } catch (e) { console.error("Erreur lors du téléchargement du fichier : ", e); alert(t('upload_file_failed', "Échec du téléchargement du fichier. Vérifiez la console.")); setNewMessage(''); event.target.value = null; }
-    }, [activeConversationId, currentFirebaseUid, t, user, handleLoginPrompt, db, storage]);
-
-    const handleEmoticonClick = useCallback((emoji) => { setNewMessage(prev => prev + emoji); }, []);
-    const handleSendNormalMessage = useCallback(() => { handleSendMessage(false); }, [handleSendMessage]);
-    const handleSendEphemeralMessage = useCallback(() => { handleSendMessage(true); }, [handleSendMessage]);
-    const handleAttachNormalFile = useCallback(() => { if (!user) { handleLoginPrompt(); return; } if (fileInputRef.current) { fileInputRef.current.onchange = (e) => handleFileUpload(e, false); fileInputRef.current.click(); } }, [fileInputRef, handleFileUpload, handleLoginPrompt, user]);
-    const handleAttachEphemeralFile = useCallback(() => { if (!user) { handleLoginPrompt(); return; } if (fileInputRef.current) { fileInputRef.current.onchange = (e) => handleFileUpload(e, true); fileInputRef.current.click(); } }, [fileInputRef, handleFileUpload, handleLoginPrompt, user]);
-    const openEphemeralImagePreview = useCallback(async (fileURL, messageId) => { setEphemeralImagePreview({ url: fileURL, messageId: messageId }); }, [setEphemeralImagePreview]);
-    const closeEphemeralImagePreview = useCallback(() => { setEphemeralImagePreview(null); }, []);
-
-
-    // --- Logique de création de nouvelle discussion ---
+    // --- Logique de création de nouvelle discussion (ajustée pour être réutilisée) ---
     const handleCreateNewDiscussion = useCallback(async ({ name, email, selectedUids, showNewContact }) => {
-        if (!user) {
+        if (!currentUser) { // Use currentUser prop/state
             alert(t('login_to_create_discussion', 'Veuillez vous connecter pour créer une discussion.'));
             return;
         }
@@ -314,8 +351,7 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
 
             const newContactUid = `simulated-uid-${Date.now()}`;
             participantUids.add(newContactUid);
-            // Ajouter le nouveau contact à internalAvailableTeamMembers pour qu'il soit disponible dans la liste
-            setInternalAvailableTeamMembers(prev => [...prev, { firebaseUid: newContactUid, name: name, email: email, initials: name.charAt(0).toUpperCase(), color: 'bg-' + ['yellow', 'green', 'blue', 'red', 'purple'][Math.floor(Math.random() * 5)] + '-500' }]);
+            setInternalAvailableTeamMembers(prev => [...prev, { uid: newContactUid, displayName: name, email: email, photoURL: '/images/default-avatar.jpg', initials: name.charAt(0).toUpperCase() }]);
 
         } else {
             if (selectedUids.length === 0) {
@@ -326,7 +362,6 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         }
 
         const sortedParticipantUids = Array.from(participantUids).sort();
-        let conversationName = name.trim();
 
         // Vérifier si une conversation avec exactement les mêmes participants existe déjà
         const existingConvsQuery = query(collection(db, 'conversations'), where('participants', '==', sortedParticipantUids));
@@ -335,25 +370,20 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         if (!existingConvsSnapshot.empty) {
             const existingConvData = existingConvsSnapshot.docs[0].data();
             const existingConvId = existingConvsSnapshot.docs[0].id;
-            setActiveConversationId(existingConvId);
-            setActiveConversationInfo({
-                partner: existingConvData.participantsDetails?.find(p => p.uid !== currentFirebaseUid) || null,
-                isGroup: existingConvData.participants.length > 2,
-                participants: existingConvData.participantsDetails || [],
-                name: existingConvData.name || t('existing_conversation', 'Conversation Existante')
-            });
+            setSelectedConversationId(existingConvId);
+            // Mettre à jour activeConversationInfo si nécessaire (géré par setSelectedConversationId si le hook est bien fait)
             setShowNewDiscussionModal(false);
             console.log("Existing conversation found:", existingConvId);
             return;
         }
 
-        // Déterminer le nom de la conversation si non fourni
-        if (!conversationName && sortedParticipantUids.length <= 2) { // 1-1 chat
+        let conversationName = name?.trim() || ''; // Use optional chaining
+        if (!conversationName && sortedParticipantUids.length === 2) { // 1-1 chat
             const otherParticipantUid = sortedParticipantUids.find(uid => uid !== currentFirebaseUid);
             if (otherParticipantUid) {
                 const partnerDocSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', otherParticipantUid)));
                 conversationName = partnerDocSnap.docs[0]?.data()?.displayName || t('new_conversation_default', 'Nouvelle Conversation');
-            } else { // Self-chat (if allowed)
+            } else {
                 conversationName = t('new_conversation_default', 'Nouvelle Conversation');
             }
         } else if (!conversationName && sortedParticipantUids.length > 2) { // Group chat
@@ -361,17 +391,15 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
         }
 
         try {
-            // Récupérer les détails complets des participants pour la nouvelle conversation
             const allParticipantsDetailsPromises = sortedParticipantUids.map(uid =>
                 getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
-                    .then(snap => snap.docs[0]?.data() || { uid: uid, displayName: t('unknown_user', 'Utilisateur'), photoURL: '/images/default-avatar.png' })
+                    .then(snap => snap.docs[0]?.data() || { uid: uid, displayName: t('unknown_user', 'Utilisateur'), photoURL: '/images/default-avatar.jpg', isOnline: false })
             );
             const allParticipantsDetails = await Promise.all(allParticipantsDetailsPromises);
 
-
             const newConvRef = await addDoc(collection(db, 'conversations'), {
                 participants: sortedParticipantUids,
-                participantsDetails: allParticipantsDetails, // Sauvegarder les détails pour un accès plus facile
+                participantsDetails: allParticipantsDetails,
                 createdAt: serverTimestamp(),
                 lastMessage: t('conversation_start_message', 'Début de la conversation'),
                 lastMessageTime: serverTimestamp(),
@@ -379,38 +407,47 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                 isGroup: sortedParticipantUids.length > 2,
                 lastMessageReadBy: [currentFirebaseUid]
             });
-            setActiveConversationId(newConvRef.id);
-            setActiveConversationInfo({
-                partner: allParticipantsDetails.find(p => p.uid !== currentFirebaseUid) || null,
+            setSelectedConversationId(newConvRef.id);
+            // Mettre à jour conversations state immédiatement pour la réactivité
+            setConversations(prev => [{
+                id: newConvRef.id,
+                participants: sortedParticipantUids,
+                participantsDetails: allParticipantsDetails,
+                createdAt: new Date(), // Use local date for immediate display
+                lastMessage: t('conversation_start_message', 'Début de la conversation'),
+                lastMessageTime: new Date(),
+                name: conversationName,
                 isGroup: sortedParticipantUids.length > 2,
-                participants: allParticipantsDetails,
-                name: conversationName
-            });
+                lastMessageReadBy: [currentFirebaseUid],
+                photoURL: sortedParticipantUids.length === 2 ? allParticipantsDetails.find(p => p.uid !== currentFirebaseUid)?.photoURL || '/images/default-avatar.jpg' : null,
+                initials: conversationName.charAt(0).toUpperCase(),
+                unread: 0 // New conversations start read
+            }, ...prev]);
+
             setShowNewDiscussionModal(false);
+            setNewMessage(''); // Clear message input
             console.log("New conversation created:", newConvRef.id);
         } catch (error) {
             console.error("Error creating new discussion:", error);
             alert(t('create_discussion_failed', 'Échec de la création de la discussion. Vérifiez les règles de sécurité Firestore et la console.'));
         }
-    }, [currentFirebaseUid, user, t, db]);
+    }, [currentFirebaseUid, currentUser, t, db, setSelectedConversationId, setConversations, sendMessage]); // Added sendMessage to deps
 
     // Gérer la sélection d'une conversation depuis la sidebar
     const handleSelectConversation = useCallback((conv) => {
-        setActiveConversationId(conv.id);
-        setActiveConversationInfo({
-            partner: conv.participantsDetails?.find(p => p.uid !== currentFirebaseUid) || null,
-            isGroup: conv.isGroup,
-            participants: conv.participantsDetails || [],
-            name: conv.name
-        });
+        setSelectedConversationId(conv.id);
+        // ActiveConversationInfo est maintenant géré par useChatLogic, si vous en avez besoin ici,
+        // vous pouvez la dériver de l'état `conversations` et `selectedConversationId`
+        // ou l'ajouter au retour de useChatLogic si elle y est gérée.
         if (window.innerWidth < 768) {
             setShowMobileSidebar(false); // Cache la sidebar sur mobile après sélection
         }
-    }, [currentFirebaseUid]);
+    }, [setSelectedConversationId]);
 
 
+    // Rendu du composant FlowLiveMessages
     return (
-        <div ref={containerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : ''}`}>
+        <div ref={chatContainerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : ''}`}>
             {isGuestMode && (
                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-40 text-white text-center p-4">
                     <p className="text-xl font-semibold mb-4">{t('access_restricted', 'Accès Restreint.')}</p>
@@ -428,23 +465,25 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
 
             {/* Sidebar (liste des conversations) */}
             <FlowLiveMessagesSidebar
-                conversations={conversations}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                activeConversationId={activeConversationId}
-                handleSelectConversation={handleSelectConversation} // Utilisez la fonction unifiée
-                setShowNewDiscussionModal={setShowNewDiscussionModal}
+                conversations={conversations || []}
+                searchTerm={activeSearchQuery} // Utilise activeSearchQuery du hook
+                setSearchTerm={setActiveSearchQuery} // Utilise setActiveSearchQuery du hook
+                activeConversationId={selectedConversationId}
+                handleSelectConversation={handleSelectConversation} // Fonction pour sélectionner la conv
+                setShowNewDiscussionModal={setIsNewDiscussionModalOpen} // Utilise setter du hook
                 currentUserName={currentUserName}
-                showMobileSidebar={showMobileSidebar}
-                setShowMobileSidebar={setShowMobileSidebar}
+                // showMobileSidebar est géré par la logique responsive locale de ce composant
+                showMobileSidebar={isFullScreen ? true : showMobileSidebar} // Show sidebar in fullscreen if desired, else local state
+                setShowMobileSidebar={setShowMobileSidebar} // Pass setShowMobileSidebar setter
                 isFullScreen={isFullScreen}
                 t={t}
                 isDarkMode={isDarkMode}
+                handleSelectUserOnMobile={handleSelectUserOnMobile} // Pass through
             />
 
             {/* Chat Panel (messages et input) */}
             <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'}`}>
-                {activeConversationId ? (
+                {selectedConversationId ? (
                     <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
                         {/* Bouton de retour visible uniquement sur les petits écrans quand la sidebar est cachée */}
                         {!showMobileSidebar && (
@@ -454,11 +493,10 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                         )}
                         <div className="flex items-center">
                             <h3 className="text-lg font-semibold text-color-text-primary mr-2">
-                                {activeConversationInfo.name || (activeConversationInfo.isGroup ? t('group_chat_default', 'Discussion de groupe') : activeConversationInfo.partner?.displayName || t('new_conversation_default', 'Nouvelle Conversation'))}
+                                {/* Afficher le nom de la conversation active ou du partenaire */}
+                                {conversations.find(c => c.id === selectedConversationId)?.name || t('new_conversation_default', 'Nouvelle Conversation')}
                             </h3>
-                            {activeConversationInfo.isGroup && <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>{t('group', 'Groupe')}</span>}
-                            {/* Optionnel: Indicateur Chiffré si applicable */}
-                            {/* <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 ml-2">{t('encrypted', 'Chiffré')}</span> */}
+                            {conversations.find(c => c.id === selectedConversationId)?.isGroup && <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>{t('group', 'Groupe')}</span>}
                         </div>
                         <div className="flex items-center gap-2">
                             {/* Boutons d'action pour le chat */}
@@ -468,18 +506,20 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                             <button
                                 className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
                                 title={t('task', 'Tâche')}
-                                onClick={() => onOpenAddTaskFromChat({
-                                    member: activeConversationInfo.isGroup ? null : activeConversationInfo.partner, // Si c'est un groupe, pas de 'member' unique
-                                    conversationParticipants: activeConversationInfo.participants,
-                                    currentFirebaseUid,
-                                    currentUserName,
-                                    isFromChat: true
-                                })}
+                                onClick={() => {
+                                    const activeConv = conversations.find(c => c.id === selectedConversationId);
+                                    onOpenAddTaskFromChat({
+                                        member: activeConv?.isGroup ? null : activeConv?.participantsDetails?.find(p => p.uid !== currentFirebaseUid),
+                                        conversationParticipants: activeConv?.participantsDetails || [],
+                                        currentFirebaseUid,
+                                        currentUserName,
+                                        isFromChat: true
+                                    });
+                                }}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
                             </button>
                             <button className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`} title={t('rename_contact', 'Renommer le contact')}>
-                                {/* Icône temporaire, à remplacer par une icône de renommage */}
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
                             </button>
                             <button className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-red-400 hover:text-white' : 'hover:bg-red-100 text-red-500 hover:text-red-600'}`} title={t('block_contact', 'Bloquer le contact')}>
@@ -495,11 +535,11 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
 
                 {/* Zone d'affichage des messages */}
                 <FlowLiveMessagesDisplay
-                    messages={filteredMessages}
-                    chatPanelRef={chatPanelRef}
-                    currentFirebaseUid={currentFirebaseUid}
-                    activeConversationId={activeConversationId}
-                    activeConversationInfo={activeConversationInfo} 
+                    messages={filteredMessages || []}
+                    // chatPanelRef={chatPanelRef} // chatPanelRef est géré en interne par FlowLiveMessagesDisplay maintenant
+                    currentUser={currentUser}
+                    selectedConversationId={selectedConversationId} // Passer pour contexte d'affichage
+                    activeConversationInfo={conversations.find(c => c.id === selectedConversationId) || {}} // Passer les infos de la conversation active
                     openEphemeralImagePreview={openEphemeralImagePreview}
                     t={t}
                     isDarkMode={isDarkMode}
@@ -512,25 +552,27 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
                     handleSendNormalMessage={handleSendNormalMessage}
                     handleAttachNormalFile={handleAttachNormalFile}
                     handleEmoticonClick={handleEmoticonClick}
-                    emojis={ALL_EMOJIS} // Use the predefined constant
+                    emojis={ALL_EMOJIS}
                     showEmojiPicker={showEmojiPicker}
                     setShowEmojiPicker={setShowEmojiPicker}
                     emojiButtonRef={emojiButtonRef}
-                    fileInputRef={fileInputRef} // Pass forwardRef for file input
+                    fileInputRef={fileInputRef}
                     isDarkMode={isDarkMode}
                     t={t}
-                    activeConversationId={activeConversationId} // S'assure que l'input est désactivé si pas de conversation
-                    isGuestMode={isGuestMode} // S'assure que l'input est désactivé en mode invité
+                    activeConversationId={selectedConversationId} // Ensure input is disabled if no conversation selected
+                    isGuestMode={isGuestMode} // Ensure input is disabled in guest mode
+                    handleSendEphemeralMessage={handleSendEphemeralMessage} // Pass the ephemeral message handler
+                    handleAttachEphemeralFile={handleAttachEphemeralFile} // Pass the ephemeral file handler
                 />
             </div>
 
             {/* Modale de création/sélection de discussion */}
             <AnimatePresence>
-                {showNewDiscussionModal && (
+                {isNewDiscussionModalOpen && (
                     <NewDiscussionModal
-                        showModal={showNewDiscussionModal}
-                        onClose={() => setShowNewDiscussionModal(false)}
-                        onCreate={handleCreateNewDiscussion}
+                        showModal={isNewDiscussionModalOpen} // Prop pour la visibilité de la modale
+                        onClose={() => setIsNewDiscussionModalOpen(false)} // Pour fermer la modale
+                        onCreate={handleCreateNewDiscussion} // Fonction pour créer une nouvelle discussion
                         internalAvailableTeamMembers={internalAvailableTeamMembers}
                         currentFirebaseUid={currentFirebaseUid}
                         currentUserName={currentUserName}
@@ -556,7 +598,6 @@ const FlowLiveMessages = forwardRef(({ onLoginClick, onRegisterClick, onOpenAddT
     );
 });
 
-// N'oubliez pas d'exporter le composant principal FlowLiveMessages
-FlowLiveMessages.displayName = 'FlowLiveMessages'; // Ajouté pour React.forwardRef
+FlowLiveMessages.displayName = 'FlowLiveMessages';
 
 export default FlowLiveMessages;

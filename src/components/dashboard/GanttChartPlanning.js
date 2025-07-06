@@ -6,8 +6,8 @@ import { motion } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import GanttTaskFormModal from './modals/GanttTaskFormModal';
 
-// Importez les bibliothèques xlsx et file-saver
-import * as XLSX from 'xlsx';
+// Importez les bibliothèques ExcelJS et file-saver
+import ExcelJS from 'exceljs'; // Importez ExcelJS
 import { saveAs } from 'file-saver';
 
 
@@ -30,8 +30,8 @@ const isLightColor = (colorValue) => ['amber', 'cyan', 'green', 'teal', 'orange'
 
 const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients, onSaveTask, className = '' }, ref) => {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const containerRef = React.useRef(null); // Ref for the scrollable container
-    const chartAreaRef = React.useRef(null); // Ref for the actual chart content to fullscreen
+    const containerRef = React.useRef(null);
+    const chartAreaRef = React.useRef(null);
     const { isDarkMode } = useTheme();
 
     const [localTasks, setLocalTasks] = useState(initialTasks);
@@ -78,7 +78,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const getTaskBarStyle = useCallback((task) => {
         const parseDateUTC = (dateStr) => {
             const parts = dateStr.split('-');
-            return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])); // mois = 0-indexed
+            return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
         };
 
         const taskStart = task.startDate ? parseDateUTC(task.startDate) : null;
@@ -123,89 +123,81 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const handleCellClick = useCallback((date, personName) => {
         if (personName) {
             const formattedDate = format(date, 'yyyy-MM-dd');
-            console.log(`Cell clicked: Date ${formattedDate}, Person ${personName}. Preparing modal for new task.`);
             setModalData({
                 startDate: formattedDate,
                 endDate: formattedDate,
                 person: personName,
-                title: '', // Ensure title is initialized
-                color: 'blue' // Ensure a default color is set
+                title: '',
+                color: 'blue'
             });
             setShowModal(true);
         }
     }, []);
 
     const handleModalSave = useCallback((task) => {
-        console.log("handleModalSave (in GanttChartPlanning) triggered onSaveTask with:", task);
-        onSaveTask(task); // IMPORTANT: Pass the task up to dashboard.js to update the main state
+        onSaveTask(task);
         setShowModal(false);
     }, [onSaveTask]);
 
-    // Fonction pour l'exportation Excel améliorée
-    const handleExportToExcel = useCallback(() => {
-        const header = [
-            "ID Tâche",
-            "Titre de la tâche",
-            "Personne assignée",
-            "Client", // Si pertinent, ajoutez une colonne pour le client
-            "Date de début",
-            "Date de fin",
-            "Durée (jours)",
-            "Statut", // Si vous avez un statut pour les tâches
-            "Couleur (pour info)",
-            "Description"
+    // Nouvelle fonction pour l'exportation Excel avec ExcelJS
+    const handleExportToExcel = useCallback(async () => {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Tâches du planning");
+
+        // Définir les colonnes avec des en-têtes et des largeurs
+        worksheet.columns = [
+            { header: "ID Tâche", key: "id", width: 10 },
+            { header: "Titre de la tâche", key: "title", width: 30 },
+            { header: "Personne assignée", key: "person", width: 20 },
+            { header: "Client", key: "client", width: 20 },
+            { header: "Date de début", key: "startDate", width: 15, style: { numFmt: 'dd/mm/yyyy' } },
+            { header: "Date de fin", key: "endDate", width: 15, style: { numFmt: 'dd/mm/yyyy' } },
+            { header: "Durée (jours)", key: "duration", width: 15 },
+            { header: "Statut", key: "status", width: 15 },
+            { header: "Couleur", key: "color", width: 15 },
+            { header: "Description", key: "description", width: 40 }
         ];
 
-        const dataForExport = localTasks.map(task => {
+        // Ajouter les données
+        localTasks.forEach(task => {
             const duration = task.startDate && task.endDate
-                ? differenceInDays(new Date(task.endDate), new Date(task.startDate)) + 1
+                ? differenceInDays(parseISO(task.endDate), parseISO(task.startDate)) + 1
                 : 0;
-            return [
-                task.id || 'N/A', // Assurez-vous d'avoir un ID si possible
-                task.title,
-                task.person,
-                task.client || 'N/A', // Assurez-vous que task.client existe si vous l'utilisez
-                task.startDate ? format(new Date(task.startDate), 'dd/MM/yyyy') : '',
-                task.endDate ? format(new Date(task.endDate), 'dd/MM/yyyy') : '',
-                duration,
-                task.status || 'Non défini', // Exemple de champ status
-                task.color,
-                task.description || ''
-            ];
+            worksheet.addRow({
+                id: task.id || 'N/A',
+                title: task.title,
+                person: task.person,
+                client: task.client || 'N/A',
+                startDate: task.startDate ? parseISO(task.startDate) : null, // ExcelJS préfère les objets Date
+                endDate: task.endDate ? parseISO(task.endDate) : null,     // ExcelJS préfère les objets Date
+                duration: duration,
+                status: task.status || 'Non défini',
+                color: task.color,
+                description: task.description || ''
+            });
         });
 
-        // Créez une nouvelle feuille de calcul avec les en-têtes et les données
-        const ws = XLSX.utils.aoa_to_sheet([header, ...dataForExport]);
+        // Appliquer un style aux en-têtes (optionnel, mais pro)
+        worksheet.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; // Texte blanc
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF4F46E5' } // Couleur indigo foncée (similaire au thème)
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
 
-        // Optionnel: Définir les largeurs de colonne pour une meilleure lisibilité
-        const wscols = [
-            { wch: 8 }, // ID Tâche
-            { wch: 30 }, // Titre de la tâche
-            { wch: 20 }, // Personne assignée
-            { wch: 20 }, // Client
-            { wch: 15 }, // Date de début
-            { wch: 15 }, // Date de fin
-            { wch: 10 }, // Durée (jours)
-            { wch: 15 }, // Statut
-            { wch: 15 }, // Couleur (pour info)
-            { wch: 40 }  // Description
-        ];
-        ws['!cols'] = wscols;
+        // Écrire le fichier et déclencher le téléchargement
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `Planning_Gantt_Donnees_${format(currentDate, 'yyyyMMdd')}.xlsx`);
 
-        // Créer un classeur et ajouter la feuille
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Tâches du planning");
-
-        // Télécharger le fichier
-        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
-        saveAs(data, `Planning_Gantt_Donnees_${format(currentDate, 'yyyyMMdd')}.xlsx`);
     }, [localTasks, currentDate]);
 
 
     return (
         <div className={`relative flex flex-col h-full ${className}`}>
-            {/* Month Navigation and Add Task button - NOW CONTROLLED BY THIS COMPONENT */}
             <div className="flex items-center justify-center p-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-20 sticky top-0">
                 <button
                     onClick={handlePrevMonth}
@@ -226,13 +218,12 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 </button>
                 <button
                     onClick={() => {
-                        console.log("Add Task button clicked. Opening modal for new task.");
-                        setModalData({ // Initialize all fields for a new task
+                        setModalData({
                             startDate: format(currentDate, 'yyyy-MM-dd'),
                             endDate: format(currentDate, 'yyyy-MM-dd'),
                             person: '',
                             title: '',
-                            color: 'blue' // Default color
+                            color: 'blue'
                         });
                         setShowModal(true);
                     }}
@@ -242,7 +233,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <span>{t('add_task', 'Ajouter une tâche')}</span>
                 </button>
 
-                {/* Nouveau bouton "Exporter en XLS" */}
+                {/* Bouton "Exporter en XLS" */}
                 <button
                     onClick={handleExportToExcel}
                     className="ml-2 bg-green-600 text-white font-semibold py-1 px-3 rounded-lg shadow-md hover:bg-green-700 transition-colors flex items-center space-x-1 text-sm"
@@ -252,10 +243,9 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                 </button>
             </div>
 
-            <div className="overflow-auto flex-grow" ref={containerRef}> {/* This div handles the main scrolling */}
-                <div className="relative" ref={chartAreaRef} style={{ minWidth: `${192 + (totalDaysInViewSpan * 40)}px` }}> {/* This is the element that will go fullscreen */}
-                    {/* Date Header Row */}
-                   <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-900 z-30">
+            <div className="overflow-auto flex-grow" ref={containerRef}>
+                <div className="relative" ref={chartAreaRef} style={{ minWidth: `${192 + (totalDaysInViewSpan * 40)}px` }}>
+                    <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-900 z-30">
                         <div className="w-48 p-2 font-bold text-sm text-gray-700 dark:text-gray-200 flex-shrink-0">
                             {t('team_member', 'Personne / Client')}
                         </div>
@@ -272,9 +262,8 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                         ))}
                     </div>
 
-                    {/* Task Rows */}
                     {allPeople.map((person, idx) => (
-                        <div key={idx} className="flex relative border-b border-gray-200 dark:border-gray-700 last:border-b-0" style={{ minHeight: '40px' }}> {/* Added minHeight for consistent row height */}
+                        <div key={idx} className="flex relative border-b border-gray-200 dark:border-gray-700 last:border-b-0" style={{ minHeight: '40px' }}>
                             <div className="w-48 p-2 text-sm truncate bg-white dark:bg-gray-800 sticky left-0 z-5 border-r border-gray-200 dark:border-gray-700 flex items-center">
                                 {person}
                             </div>
@@ -283,29 +272,24 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                                     key={j}
                                     className={`flex-1 min-w-[40px] h-10 border-l border-gray-100 dark:border-gray-700 cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-gray-700/30
                                                 ${isSameDay(day, new Date()) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
-                                                ${isWeekend(day) && !isSameDay(day, new Date()) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`} // Apply weekend/today background directly here
+                                                ${isWeekend(day) && !isSameDay(day, new Date()) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`}
                                     onClick={() => handleCellClick(day, person)}
                                 />
                             ))}
 
-                            {/* Render tasks for the current person */}
                             {localTasks
-                                .filter(task => task.person === person) // Filter tasks for the current person
-                                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate)) // Sort to ensure consistent stacking
+                                .filter(task => task.person === person)
+                                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
                                 .map((task, taskIdx) => {
-                                    const rowHeight = 40; // Height of each row
-                                    const taskOffsetWithinRow = taskIdx * 6; // Small vertical offset for stacking
-                                    // You can adjust '6' to control the overlap amount.
-                                    // If you want no overlap, you'd need a more complex layout
-                                    // that calculates available vertical space for each task,
-                                    // or a fixed height per task bar and dynamically increase row height.
+                                    const rowHeight = 40;
+                                    const taskOffsetWithinRow = taskIdx * 6;
 
                                     return (
                                         <motion.div
                                             key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
                                             className={`absolute h-6 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
                                                         ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
-                                            style={{ ...getTaskBarStyle(task), top: `${taskOffsetWithinRow + 8}px` }} /* Adjusted top for stacking and vertical alignment */
+                                            style={{ ...getTaskBarStyle(task), top: `${taskOffsetWithinRow + 8}px` }}
                                             whileHover={{ scale: 1.02, zIndex: 12 }}
                                             onClick={(e) => {
                                                 e.stopPropagation();

@@ -102,7 +102,7 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
             className={`relative flex flex-col items-center justify-between p-4 rounded-lg shadow-lg cursor-pointer h-full transition-colors duration-200 ${cardBgClass}`}
             whileHover={{ scale: 1.02, boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.15)" }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => onCardClick(alertData)}
+            onClick={() => onCardClick(alertData || {})} // Assurer que alertData est un objet
         >
             <div className="flex justify-between items-center w-full mb-3">
                 <div className={`flex items-center justify-center p-2 rounded-full ${pulseColorClass} bg-opacity-30`}>
@@ -124,8 +124,9 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
             <p className={`text-center text-xl font-extrabold ${timeLeft.overdue ? 'text-red-500' : (isUrgent ? 'text-orange-500' : (isDarkMode ? 'text-white' : 'text-gray-900'))} mb-2`}>
                 {displayTime}
             </p>
+            {/* Added null/undefined checks for alertData properties */}
             <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-                {alertData.name || alertData.title}
+                {(alertData?.name || alertData?.title) || t('no_name', 'Nom inconnu')} {/* Use optional chaining and fallback */}
             </p>
 
             <div className={`w-full h-2 rounded-full ${gaugeTrackColorClass} mt-auto overflow-hidden`}>
@@ -145,13 +146,17 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
 
 
 const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }) => {
-    const nextDeadline = projects
+    // Ensuring projects and meetings are always arrays for filter/sort operations
+    const safeProjects = projects || [];
+    const safeMeetings = meetings || [];
+
+    const nextDeadline = safeProjects
         .filter(p => p.deadline && isValid(parseISO(p.deadline)) && new Date(p.deadline) > new Date())
         .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0];
 
-    const nextMeeting = meetings
-        .filter(meetingItem => meetingItem.dateTime && isValid(parseISO(meetingItem.dateTime)) && new Date(meetingItem.dateTime) > new Date()) // <-- Correction ici: 'm' -> 'meetingItem'
-        .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime))[0]; // <-- Correction ici: 'a.dateTime' et 'b.dateTime'
+    const nextMeeting = safeMeetings
+        .filter(meetingItem => meetingItem.dateTime && isValid(parseISO(meetingItem.dateTime)) && new Date(meetingItem.dateTime) > new Date())
+        .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime))[0];
 
     return (
         <DashboardCard
@@ -169,12 +174,12 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                         <SingleTimeAlertCard
                             type="deadline"
                             title={t('next_deadline', 'Prochaine Échéance')}
-                            dateTime={nextDeadline.deadline}
+                            dateTime={nextDeadline.deadline} // This should be guaranteed valid from filter
                             icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>}
                             pulseColorClass="bg-pink-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
-                            alertData={{ type: 'deadline', ...nextDeadline }}
+                            alertData={{ type: 'deadline', ...nextDeadline }} // Pass all deadline data
                             t={t}
                         />
                     ) : (
@@ -200,7 +205,7 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                         <SingleTimeAlertCard
                             type="meeting"
                             title={t('next_meeting', 'Prochaine Réunion')}
-                            dateTime={nextMeeting.dateTime}
+                            dateTime={nextMeeting.dateTime} // This should be guaranteed valid from filter
                             icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>}
                             pulseColorClass="bg-violet-500"
                             openCreateModal={openModal}
