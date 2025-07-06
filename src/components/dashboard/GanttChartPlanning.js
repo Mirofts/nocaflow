@@ -221,29 +221,30 @@ return {
 ))}
      
 {localTasks.map((task) => {
-    const rowHeight = 40;
-    const rowIndex = allPeople.findIndex(p => p === task.person);
-    if (rowIndex === -1) return null;
+  const rowHeight = 40;
+  const rowIndex = allPeople.findIndex(p => p === task.person);
+  if (rowIndex === -1) return null;
 
-    const taskTop = 2 + rowIndex * rowHeight;
+  const taskTop = rowIndex * rowHeight + 2;
 
-    return (
-        <motion.div
-            key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
-            className={`absolute h-6 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
-                        ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
-            style={{ ...getTaskBarStyle(task), top: `${taskTop}px` }}
-            whileHover={{ scale: 1.02, zIndex: 12 }}
-            onClick={(e) => {
-                e.stopPropagation();
-                setModalData(task);
-                setShowModal(true);
-            }}
-        >
-            {task.title}
-        </motion.div>
-    );
+  return (
+    <motion.div
+      key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
+      className={`absolute h-6 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
+                  ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
+      style={{ ...getTaskBarStyle(task), top: `${taskTop}px` }}
+      whileHover={{ scale: 1.02, zIndex: 12 }}
+      onClick={(e) => {
+        e.stopPropagation();
+        setModalData(task);
+        setShowModal(true);
+      }}
+    >
+      {task.title}
+    </motion.div>
+  );
 })}
+
 
 
                         </div>
