@@ -35,7 +35,7 @@ import {
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '../components/dashboard/modals/DetailsModal'; // Import de la modale de détails
+import DetailsModal from '../components/dashboard/modals/DetailsModal';
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -49,7 +49,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
 
-    // Initialisation et synchronisation des données locales
     const [localData, setLocalData] = useState(() => {
         let initialValue = initialMockData;
 
@@ -65,7 +64,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             }
         }
 
-        // S'assurer que toutes les collections sont des tableaux
         initialValue.tasks = Array.isArray(initialValue.tasks) ? initialValue.tasks : [];
         initialValue.messages = Array.isArray(initialValue.messages) ? initialValue.messages : [];
         initialValue.meetings = Array.isArray(initialValue.meetings) ? initialValue.meetings : [];
@@ -161,33 +159,27 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [isGuestMode, localData, todos, guestName, user]);
 
 
-    // Gestionnaire d'état des modales
     const [modals, setModals] = useState({
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
         calculator: false,
-        detailsModal: { isOpen: false, title: '', content: '' }, // État pour la modale de détails
+        detailsModal: { isOpen: false, title: '', content: '' },
     });
 
     const openModal = useCallback((name, modalData = true) => setModals(prev => {
-        // Crée un nouvel état où toutes les autres modales sont fermées, sauf celle qu'on ouvre
         const newState = Object.keys(prev).reduce((acc, key) => {
             if (key === name) {
-                // Si c'est la modale que nous ouvrons, lui assigner ses données
                 acc[key] = modalData;
             } else if (key === 'detailsModal') {
-                // Pour detailsModal, réinitialiser son état à fermé si une autre modal est ouverte
                 acc[key] = { isOpen: false, title: '', content: '' };
             } else {
-                // Pour les autres modales, les fermer (null ou false selon leur type)
                 acc[key] = (typeof prev[key] === 'boolean' ? false : null);
             }
             return acc;
         }, {});
 
-        // Cas spécifique où on ouvre la detailsModal
         if (name === 'detailsModal') {
             return {
                 ...newState,
@@ -204,7 +196,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
         calculator: false,
-        detailsModal: { isOpen: false, title: '', content: '' }, // Réinitialise la modale de détails
+        detailsModal: { isOpen: false, title: '', content: '' },
     })), []);
 
 
@@ -317,7 +309,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             const meetingDateTime = parseISO(alertItem.dateTime);
             content = `${t('subject', 'Sujet')} : ${alertItem.title}\n` +
                       `${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `${t('lieu', 'Lieu')} : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
+                      `${t('location', 'Lieu')} : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
                       `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
         }
 
@@ -354,25 +346,15 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         onOpenCalculator={handleOpenCalculatorModal}
                     />
 
-                    {/* TimeAlerts component with new onAlertCardClick prop */}
-                    <TimeAlerts
-                        projects={data.projects} // Contient les échéances des projets
-                        meetings={data.meetings} // Contient les réunions
-                        t={t}
-                        lang={lang}
-                        openModal={openModal} // Pour le bouton '+' dans TimeAlerts
-                        onAlertCardClick={handleOpenAlertDetails} // Pour le clic sur la carte elle-même
-                    />
-
                     <div className="grid grid-cols-12 gap-6">
-
+                        {/* LEFT COLUMN: Flow Live Messages */}
                         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
                             <DashboardCard
                                 icon={
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                                 }
                                 title={t('flow_messages_title', 'Flow Live Messages')}
-                                className="flex-1 min-h-[500px]"
+                                className="flex-1 min-h-[500px]" // Ajustez la hauteur si nécessaire
                                 onFullscreenClick={handleFlowLiveMessagesFullscreen}
                                 t={t}
                                 noContentPadding={true}
@@ -403,7 +385,18 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             <InvoicesSummary invoices={data.invoices} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="flex-1 min-h-[350px]"/>
                         </div>
 
+                        {/* RIGHT COLUMN: Time Alerts, TodoList, Projects */}
                         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+                            {/* Time Alerts (Prochaine Échéance et Prochaine Réunion) */}
+                            <TimeAlerts
+                                projects={data.projects}
+                                meetings={data.meetings}
+                                t={t}
+                                lang={lang}
+                                openModal={openModal} // Pour le bouton '+'
+                                onAlertCardClick={handleOpenAlertDetails} // Pour le clic sur la carte
+                            />
+
                             <TodoList
                                 todos={data.tasks}
                                 loading={loadingTodos}
@@ -412,7 +405,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEdit={(task) => openModal('taskEdit', task)}
                                 onDelete={deleteTodo}
                                 t={t}
-                                className="flex-1 h-auto"
+                                className="flex-1 h-auto" // Ajustez la hauteur si nécessaire
                             />
                             <Projects
                                 projects={data.projects}
@@ -421,10 +414,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEditProject={editProject}
                                 onDeleteProject={deleteProject}
                                 onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)}
-                                className="flex-1 min-h-[598px]"
+                                className="flex-1 min-h-[598px]" // Ajustez la hauteur si nécessaire
                             />
                         </div>
 
+                        {/* Gantt Chart Section (full width) */}
                         <div className="col-span-12">
                             <DashboardCard
                                 title={t('gantt_chart_title', 'Planning Gantt')}
@@ -447,6 +441,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             </DashboardCard>
                         </div>
 
+                        {/* Team Management & Client Management (full width or 2 columns below Gantt) */}
                         <div className="col-span-12 lg:col-span-6">
                             <TeamManagement
                                 members={data.staffMembers}
