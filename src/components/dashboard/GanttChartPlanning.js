@@ -94,16 +94,16 @@ const getTaskBarStyle = useCallback((task) => {
     const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
     const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
 
-    const left = (startOffsetDays / totalDaysInViewSpan) * 100;
-    const width = (durationDays / totalDaysInViewSpan) * 100;
+const dayWidthPx = 40; // car tu as `min-w-[40px]` sur chaque jour
 
-    console.log(`TASK "${task.title}" → start: ${taskStart.toISOString()}, end: ${taskEnd.toISOString()}, effectiveStart: ${effectiveStartDate.toISOString()}, effectiveEnd: ${effectiveEndDate.toISOString()}, viewStart: ${viewStartDate.toISOString()}`);
-    console.log(`→ OFFSET left: ${left.toFixed(2)}%  —  WIDTH: ${width.toFixed(2)}%`);
+const left = startOffsetDays * dayWidthPx;
+const width = durationDays * dayWidthPx;
 
-    return {
-        left: `${left}%`,
-        width: `${width}%`
-    };
+return {
+  left: `${left}px`,
+  width: `${width}px`
+};
+
 }, [viewStartDate, viewEndDate, totalDaysInViewSpan]);
 
 
