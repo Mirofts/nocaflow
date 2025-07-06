@@ -29,11 +29,11 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     const chartAreaRef = React.useRef(null); // Ref for the actual chart content to fullscreen
     const { isDarkMode } = useTheme();
 
-const [localTasks, setLocalTasks] = useState(initialTasks);
+    const [localTasks, setLocalTasks] = useState(initialTasks);
 
-useEffect(() => {
-    setLocalTasks(initialTasks);
-}, [initialTasks]);
+    useEffect(() => {
+        setLocalTasks(initialTasks);
+    }, [initialTasks]);
 
     const [showModal, setShowModal] = useState(false);
     const [modalData, setModalData] = useState({});
@@ -62,7 +62,7 @@ useEffect(() => {
     const daysInView = useMemo(() => {
         const start = startOfMonth(currentDate);
         const end = endOfMonth(currentDate);
-return eachDayOfInterval({ start, end }).map(startOfDay);
+        return eachDayOfInterval({ start, end }).map(startOfDay);
     }, [currentDate]);
 
     const viewStartDate = useMemo(() => startOfDay(daysInView[0]), [daysInView]);
@@ -70,42 +70,40 @@ return eachDayOfInterval({ start, end }).map(startOfDay);
 
     const totalDaysInViewSpan = useMemo(() => differenceInDays(viewEndDate, viewStartDate) + 1, [viewStartDate, viewEndDate]);
 
-const getTaskBarStyle = useCallback((task) => {
-    const parseDateUTC = (dateStr) => {
-        const parts = dateStr.split('-');
-        return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])); // mois = 0-indexed
-    };
+    const getTaskBarStyle = useCallback((task) => {
+        const parseDateUTC = (dateStr) => {
+            const parts = dateStr.split('-');
+            return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])); // mois = 0-indexed
+        };
 
-    const taskStart = task.startDate ? parseDateUTC(task.startDate) : null;
-    const taskEnd = task.endDate ? parseDateUTC(task.endDate) : null;
+        const taskStart = task.startDate ? parseDateUTC(task.startDate) : null;
+        const taskEnd = task.endDate ? parseDateUTC(task.endDate) : null;
 
-    if (!taskStart || !taskEnd || isNaN(taskStart) || isNaN(taskEnd)) {
-        console.error(`Task "${task.title}" (ID: ${task.id || 'new'}) has invalid dates.`);
-        return { display: 'none' };
-    }
+        if (!taskStart || !taskEnd || isNaN(taskStart) || isNaN(taskEnd)) {
+            console.error(`Task "${task.title}" (ID: ${task.id || 'new'}) has invalid dates.`);
+            return { display: 'none' };
+        }
 
-    const effectiveStartDate = taskStart < viewStartDate ? viewStartDate : taskStart;
-    const effectiveEndDate = taskEnd > viewEndDate ? viewEndDate : taskEnd;
+        const effectiveStartDate = taskStart < viewStartDate ? viewStartDate : taskStart;
+        const effectiveEndDate = taskEnd > viewEndDate ? viewEndDate : taskEnd;
 
-    if (effectiveStartDate > effectiveEndDate || taskEnd < viewStartDate || taskStart > viewEndDate) {
-        return { display: 'none' };
-    }
+        if (effectiveStartDate > effectiveEndDate || taskEnd < viewStartDate || taskStart > viewEndDate) {
+            return { display: 'none' };
+        }
 
-    const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
-    const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
+        const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
+        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
 
-const dayWidthPx = 40;
-const left = 192 + startOffsetDays * dayWidthPx;
-const width = durationDays * dayWidthPx;
+        const dayWidthPx = 40;
+        const left = 192 + startOffsetDays * dayWidthPx;
+        const width = durationDays * dayWidthPx;
 
-return {
-  left: `${left}px`,
-  width: `${width}px`
-};
+        return {
+            left: `${left}px`,
+            width: `${width}px`
+        };
 
-}, [viewStartDate, viewEndDate, totalDaysInViewSpan]);
-
-
+    }, [viewStartDate, viewEndDate, totalDaysInViewSpan]);
 
     const handlePrevMonth = useCallback(() => setCurrentDate(prev => subMonths(prev, 1)), []);
     const handleNextMonth = useCallback(() => setCurrentDate(prev => addMonths(prev, 1)), []);
@@ -137,7 +135,6 @@ return {
         onSaveTask(task); // IMPORTANT: Pass the task up to dashboard.js to update the main state
         setShowModal(false);
     }, [onSaveTask]);
-
 
     return (
         <div className={`relative flex flex-col h-full ${className}`}>
@@ -183,7 +180,8 @@ return {
             <div className="overflow-auto flex-grow" ref={containerRef}> {/* This div handles the main scrolling */}
                 <div className="relative" ref={chartAreaRef} style={{ minWidth: `${192 + (totalDaysInViewSpan * 40)}px` }}> {/* This is the element that will go fullscreen */}
                     {/* Date Header Row */}
-                   <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-900 sticky top-[48px] z-30">
+                    {/* Removed sticky top-[48px] to eliminate the gap and make it touch the month row */}
+                    <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-900 z-30">
                         <div className="w-48 p-2 font-bold text-sm text-gray-700 dark:text-gray-200 flex-shrink-0">
                             {t('team_member', 'Personne / Client')}
                         </div>
@@ -202,7 +200,7 @@ return {
 
                     {/* Task Rows */}
                     {allPeople.map((person, idx) => (
-                        <div key={idx} className="flex relative border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                        <div key={idx} className="flex relative border-b border-gray-200 dark:border-gray-700 last:border-b-0" style={{ minHeight: '40px' }}> {/* Added minHeight for consistent row height */}
                             <div className="w-48 p-2 text-sm truncate bg-white dark:bg-gray-800 sticky left-0 z-5 border-r border-gray-200 dark:border-gray-700 flex items-center">
                                 {person}
                             </div>
@@ -215,33 +213,36 @@ return {
                                     onClick={() => handleCellClick(day, person)}
                                 />
                             ))}
-     
-{localTasks.map((task) => {
-    const rowHeight = 40;
-    const rowIndex = allPeople.findIndex(p => p === task.person);
-    if (rowIndex === -1) return null;
 
-    const taskTop = 2 + rowIndex * rowHeight;
+                            {/* Render tasks for the current person */}
+                            {localTasks
+                                .filter(task => task.person === person) // Filter tasks for the current person
+                                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate)) // Sort to ensure consistent stacking
+                                .map((task, taskIdx) => {
+                                    const rowHeight = 40; // Height of each row
+                                    const taskOffsetWithinRow = taskIdx * 6; // Small vertical offset for stacking
+                                    // You can adjust '6' to control the overlap amount.
+                                    // If you want no overlap, you'd need a more complex layout
+                                    // that calculates available vertical space for each task,
+                                    // or a fixed height per task bar and dynamically increase row height.
 
-    return (
-        <motion.div
-            key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
-            className={`absolute h-6 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
-                        ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
-            style={{ ...getTaskBarStyle(task), top: `${taskTop}px` }}
-            whileHover={{ scale: 1.02, zIndex: 12 }}
-            onClick={(e) => {
-                e.stopPropagation();
-                setModalData(task);
-                setShowModal(true);
-            }}
-        >
-            {task.title}
-        </motion.div>
-    );
-})}
-
-
+                                    return (
+                                        <motion.div
+                                            key={task.id || `temp-${task.person}-${task.title}-${task.startDate}`}
+                                            className={`absolute h-6 rounded-md px-2 text-xs font-medium flex items-center shadow-lg cursor-pointer transition-all duration-300 ease-out whitespace-nowrap overflow-hidden z-10
+                                                        ${GanttColorsMap[task.color] || 'bg-blue-500'} ${isLightColor(task.color) ? 'text-gray-900' : 'text-white'}`}
+                                            style={{ ...getTaskBarStyle(task), top: `${taskOffsetWithinRow + 8}px` }} /* Adjusted top for stacking and vertical alignment */
+                                            whileHover={{ scale: 1.02, zIndex: 12 }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setModalData(task);
+                                                setShowModal(true);
+                                            }}
+                                        >
+                                            {task.title}
+                                        </motion.div>
+                                    );
+                                })}
                         </div>
                     ))}
                 </div>
