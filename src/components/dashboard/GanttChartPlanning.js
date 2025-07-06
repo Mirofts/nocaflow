@@ -70,39 +70,42 @@ return eachDayOfInterval({ start, end }).map(startOfDay);
 
     const totalDaysInViewSpan = useMemo(() => differenceInDays(viewEndDate, viewStartDate) + 1, [viewStartDate, viewEndDate]);
 
-    const getTaskBarStyle = useCallback((task) => {
-        const taskStartDateStr = task.startDate ? String(task.startDate) : '';
-        const taskEndDateStr = task.endDate ? String(task.endDate) : '';
+const getTaskBarStyle = useCallback((task) => {
+    const parseDateUTC = (dateStr) => {
+        const parts = dateStr.split('-');
+        return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])); // mois = 0-indexed
+    };
 
-        const taskStart = isValid(parseISO(taskStartDateStr)) ? startOfDay(parseISO(taskStartDateStr)) : null;
-        const taskEnd = isValid(parseISO(taskEndDateStr)) ? startOfDay(parseISO(taskEndDateStr)) : null;
+    const taskStart = task.startDate ? parseDateUTC(task.startDate) : null;
+    const taskEnd = task.endDate ? parseDateUTC(task.endDate) : null;
 
-        if (!taskStart || !taskEnd) {
-            console.error(`Task "${task.title}" (ID: ${task.id || 'new'}) has invalid dates: Start "${task.startDate}" (parsed: ${taskStart}), End "${task.endDate}" (parsed: ${taskEnd}). Hiding task.`);
-            return { display: 'none' };
-        }
+    if (!taskStart || !taskEnd || isNaN(taskStart) || isNaN(taskEnd)) {
+        console.error(`Task "${task.title}" (ID: ${task.id || 'new'}) has invalid dates.`);
+        return { display: 'none' };
+    }
 
-        const effectiveStartDate = taskStart < viewStartDate ? viewStartDate : taskStart;
-        const effectiveEndDate = taskEnd > viewEndDate ? viewEndDate : taskEnd;
-        
-        if (effectiveStartDate > effectiveEndDate || taskEnd < viewStartDate || taskStart > viewEndDate) {
-            return { display: 'none' };
-        }
+    const effectiveStartDate = taskStart < viewStartDate ? viewStartDate : taskStart;
+    const effectiveEndDate = taskEnd > viewEndDate ? viewEndDate : taskEnd;
 
-        const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
-        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
+    if (effectiveStartDate > effectiveEndDate || taskEnd < viewStartDate || taskStart > viewEndDate) {
+        return { display: 'none' };
+    }
 
-        const left = (startOffsetDays / totalDaysInViewSpan) * 100;
-        const width = (durationDays / totalDaysInViewSpan) * 100;
-        
-  console.log(`TASK "${task.title}" → start: ${taskStart}, end: ${taskEnd}, effectiveStart: ${effectiveStartDate}, effectiveEnd: ${effectiveEndDate}, viewStart: ${viewStartDate}`);
-  console.log(`→ OFFSET left: ${left.toFixed(2)}%  —  WIDTH: ${width.toFixed(2)}%`);
+    const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
+    const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
 
-        return {
-            left: `${left}%`,
-            width: `${width}%`
-        };
-    }, [viewStartDate, viewEndDate, totalDaysInViewSpan]);
+    const left = (startOffsetDays / totalDaysInViewSpan) * 100;
+    const width = (durationDays / totalDaysInViewSpan) * 100;
+
+    console.log(`TASK "${task.title}" → start: ${taskStart.toISOString()}, end: ${taskEnd.toISOString()}, effectiveStart: ${effectiveStartDate.toISOString()}, effectiveEnd: ${effectiveEndDate.toISOString()}, viewStart: ${viewStartDate.toISOString()}`);
+    console.log(`→ OFFSET left: ${left.toFixed(2)}%  —  WIDTH: ${width.toFixed(2)}%`);
+
+    return {
+        left: `${left}%`,
+        width: `${width}%`
+    };
+}, [viewStartDate, viewEndDate, totalDaysInViewSpan]);
+
 
 
     const handlePrevMonth = useCallback(() => setCurrentDate(prev => subMonths(prev, 1)), []);
