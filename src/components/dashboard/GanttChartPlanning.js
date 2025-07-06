@@ -4,10 +4,10 @@ import { DashboardCard } from './DashboardCard';
 // Ensure all necessary date-fns functions are imported
 import { format, eachDayOfInterval, isSameDay, addDays, startOfMonth, endOfMonth, getDay, isWeekend, differenceInDays, isValid, parseISO, subMonths, addMonths, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
+import GanttTaskFormModal from './modals/GanttTaskFormModal';
 
-// Couleurs pour le Gantt Chart (doivent correspondre à celles définies dans modals.js pour la sélection)
 const GanttColorsMap = {
     pink: 'bg-pink-500',
     red: 'bg-red-500',
@@ -19,23 +19,21 @@ const GanttColorsMap = {
     gray: 'bg-gray-500',
 };
 
-// Helper function to determine if text should be dark based on background color
-const isLightColor = (colorValue) => {
-    return ['amber', 'cyan', 'green'].includes(colorValue);
-};
+const isLightColor = (colorValue) => ['amber', 'cyan', 'green'].includes(colorValue);
 
 const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients, onAddTask, onSave, className = '', noContentPadding = false }, ref) => {
-    // Utiliser directement initialTasks comme source de vérité, car il est mis à jour par le parent (dashboard.js)
-    // const [tasks, setTasks] = useState(initialTasks); // Supprimé, on utilise initialTasks directement
-    const [currentDate, setCurrentDate] = useState(new Date()); // Represents the month currently displayed
+    const [currentDate, setCurrentDate] = useState(new Date());
     const containerRef = React.useRef(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const { isDarkMode } = useTheme();
 
-    // L'useEffect pour setTasks n'est plus nécessaire si initialTasks est la source unique
-    // useEffect(() => {
-    //     setTasks(initialTasks);
-    // }, [initialTasks]);
+    const [localTasks, setLocalTasks] = useState(initialTasks);
+    const [showModal, setShowModal] = useState(false);
+    const [modalData, setModalData] = useState({});
+
+    useEffect(() => {
+        setLocalTasks(initialTasks);
+    }, [initialTasks]);
 
     useImperativeHandle(ref, () => ({
         toggleFullScreen: () => {
@@ -52,9 +50,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
     }));
 
     useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullScreen(!!document.fullscreenElement);
-        };
+        const handleFullscreenChange = () => setIsFullScreen(!!document.fullscreenElement);
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -69,225 +65,114 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         };
     }, []);
 
-    // Memoize the days in view for the current month - DECLARE THIS FIRST
     const daysInView = useMemo(() => {
         const start = startOfMonth(currentDate);
         const end = endOfMonth(currentDate);
         return eachDayOfInterval({ start, end });
     }, [currentDate]);
 
-    // Now, define viewStartDate and viewEndDate using daysInView
-    const viewStartDate = daysInView[0];
-    const viewEndDate = daysInView[daysInView.length - 1];
+    const viewStartDate = useMemo(() => startOfDay(daysInView[0]), [daysInView]);
+    const viewEndDate = useMemo(() => startOfDay(daysInView[daysInView.length - 1]), [daysInView]);
 
-    // Normalize view start/end dates to start of local day for consistent comparison
-    const viewStartDateNormalized = useMemo(() => startOfDay(viewStartDate), [viewStartDate]);
-    const viewEndDateNormalized = useMemo(() => startOfDay(viewEndDate), [viewEndDate]);
+    const totalDaysInMonth = daysInView.length;
 
-    const totalDaysInMonth = daysInView.length; // This remains correct
-
-    // Function to calculate style for each task bar accurately
     const getTaskBarStyle = useCallback((task) => {
-        // Parse dates from task and normalize to start of local day
-        // Assurez-vous que les dates sont valides après parseISO
         const taskStart = isValid(parseISO(task.startDate)) ? startOfDay(parseISO(task.startDate)) : null;
         const taskEnd = isValid(parseISO(task.endDate)) ? startOfDay(parseISO(task.endDate)) : null;
-        
-        if (!taskStart || !taskEnd) { // Si les dates ne sont pas valides, masquer la tâche
-            return { display: 'none' };
-        }
+        if (!taskStart || !taskEnd) return { display: 'none' };
 
-        // Clip task duration to the current view boundaries (also normalized)
-        const effectiveStartDate = taskStart < viewStartDateNormalized ? viewStartDateNormalized : taskStart;
-        const effectiveEndDate = taskEnd > viewEndDateNormalized ? viewEndDateNormalized : taskEnd;
+        const effectiveStartDate = taskStart < viewStartDate ? viewStartDate : taskStart;
+        const effectiveEndDate = taskEnd > viewEndDate ? viewEndDate : taskEnd;
+        if (effectiveStartDate > effectiveEndDate) return { display: 'none' };
 
-        // If the clipped task is entirely outside the view, hide it
-        if (effectiveStartDate > effectiveEndDate || effectiveStartDate > viewEndDateNormalized || effectiveEndDate < viewStartDateNormalized) {
-            return { display: 'none' };
-        }
-        
-        // Calculate position relative to the current month's start date (normalized)
-        const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDateNormalized);
-        // Calculate duration: count includes both start and end day.
-        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1; 
+        const startOffsetDays = differenceInDays(effectiveStartDate, viewStartDate);
+        const durationDays = differenceInDays(effectiveEndDate, effectiveStartDate) + 1;
 
         const left = (startOffsetDays / totalDaysInMonth) * 100;
         const width = (durationDays / totalDaysInMonth) * 100;
-
-        // Clamp width to ensure it doesn't exceed the row and avoids overflow issues
-        const clampedWidth = Math.min(width, 100 - left);
-
         return {
             left: `${left}%`,
-            width: `${clampedWidth}%`,
+            width: `${Math.min(width, 100 - left)}%`
         };
-    }, [viewStartDateNormalized, viewEndDateNormalized, totalDaysInMonth]);
+    }, [viewStartDate, viewEndDate, totalDaysInMonth]);
 
+    const handlePrevMonth = useCallback(() => setCurrentDate(prev => subMonths(prev, 1)), []);
+    const handleNextMonth = useCallback(() => setCurrentDate(prev => addMonths(prev, 1)), []);
 
-    // Month navigation handlers
-    const handlePrevMonth = useCallback(() => {
-        setCurrentDate(prev => subMonths(prev, 1)); // Go to previous month
-    }, []);
-
-    const handleNextMonth = useCallback(() => {
-        setCurrentDate(prev => addMonths(prev, 1)); // Go to next month
-    }, []);
-
-    // Prepare all unique people (staff + clients + any unique people from tasks)
     const allPeople = useMemo(() => {
-        const staffNames = Array.isArray(staffMembers) ? staffMembers.map(m => m.name) : [];
-        const clientNames = Array.isArray(clients) ? clients.map(c => c.name) : [];
-        const taskPeople = Array.isArray(initialTasks) ? initialTasks.map(t => t.person).filter(Boolean) : [];
-        const uniquePeople = [...new Set([...staffNames, ...clientNames, ...taskPeople])];
-        return uniquePeople.sort();
-    }, [staffMembers, clients, initialTasks]);
+        const staffNames = staffMembers?.map(m => m.name) || [];
+        const clientNames = clients?.map(c => c.name) || [];
+        const taskPeople = localTasks?.map(t => t.person).filter(Boolean) || [];
+        return [...new Set([...staffNames, ...clientNames, ...taskPeople])].sort();
+    }, [staffMembers, clients, localTasks]);
 
-    // Handle cell click to add a new task
     const handleCellClick = useCallback((date, personName) => {
-        // Only open modal if a person is associated with the row
         if (personName) {
             const formattedDate = format(date, 'yyyy-MM-dd');
-            onAddTask({
+            setModalData({
                 startDate: formattedDate,
                 endDate: formattedDate,
-                person: personName
+                person: personName,
             });
+            setShowModal(true);
         }
-    }, [onAddTask]);
+    }, []);
 
+    const handleModalSave = (task) => {
+        setLocalTasks(prev => [...prev, task]);
+        setShowModal(false);
+    };
 
     return (
-        <DashboardCard
-            icon={
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 11h10"/><path d="M7 15h10"/></svg>
-            }
-            title={t('gantt_planning_title', 'Planification des Tâches d\'Équipe')}
-            className={`relative flex flex-col ${className} ${isFullScreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}
-            // Le noContentPadding=true du DashboardCard s'applique au div de contenu,
-            // mais nous voulons que le tableau scrollable prenne tout l'espace et le bouton soit fixe en bas
-            noContentPadding={true} // Maintenu pour la carte elle-même
-        >
-            {/* Header with Month Navigation */}
-            <div className={`flex items-center justify-between p-4 flex-shrink-0 ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'} border-b ${isDarkMode ? 'border-slate-700' : 'border-gray-200'}`}>
-                <motion.button
-                    onClick={handlePrevMonth}
-                    className={`p-2 rounded-full transition-colors text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                </motion.button>
-                <h3 className="text-lg font-bold text-color-text-primary flex-grow text-center">
-                    {format(currentDate, 'MMMM yyyy', { locale: fr })} {/* CORRECTED: format to 'MMMM yyyy' */}
-                </h3>
-                <motion.button
-                    onClick={handleNextMonth}
-                    className={`p-2 rounded-full transition-colors text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                </motion.button>
+        <div className={`relative flex flex-col ${className}`}>            
+            <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 p-2 border-b border-gray-200 dark:border-gray-700 flex justify-end">
+                <button onClick={() => setShowModal(true)} className="bg-blue-600 text-white font-semibold py-2 px-4 rounded hover:bg-blue-700">
+                    ➕ {t('add_task', 'Ajouter une tâche')}
+                </button>
             </div>
 
-            {/* Main Planning Area - now flex-grow and overflow is here */}
-            {/* Ce div DOIT avoir flex-grow pour pousser le bouton vers le bas s'il y a de l'espace */}
-            <div className={`flex flex-col flex-1 overflow-auto custom-scrollbar`} ref={containerRef}>
-                {/* Fixed Header Row for Days */}
-                <div className={`grid gap-px sticky top-0 z-10`} style={{ gridTemplateColumns: `minmax(150px, 0.5fr) repeat(${totalDaysInMonth}, minmax(0, 1fr))` }}>
-                    <div className={`p-2 font-bold text-sm ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-color-bg-secondary text-color-text-primary'} sticky left-0 z-20 border-b border-color-border-primary`}>
-                        {t('team_member', 'Membre / Client')}
+            <div className="overflow-auto" ref={containerRef}>
+                <div className="min-w-[1000px]">
+                    <div className="flex border-b">
+                        <div className="w-40 p-2 font-bold text-sm">{t('team_member', 'Personne')}</div>
+                        {daysInView.map((day, i) => (
+                            <div key={i} className="flex-1 text-center text-xs p-2">
+                                {format(day, 'dd/MM', { locale: fr })}
+                            </div>
+                        ))}
                     </div>
-                    {daysInView.map((day, index) => {
-                        const isWeekendDay = isWeekend(day);
-                        return (
-                            <div
-                                key={index}
-                                className={`p-2 text-center text-xs font-semibold border-b border-color-border-primary ${
-                                    isWeekendDay ? (isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-gray-100 text-gray-400') : (isDarkMode ? 'bg-gray-700 text-white' : 'bg-color-bg-secondary text-color-text-primary')
-                                } ${isSameDay(day, new Date()) ? (isDarkMode ? 'bg-pink-500/20 text-pink-300' : 'bg-violet-200 text-violet-800') : ''}`}
-                            >
-                                {format(day, 'dd', { locale: fr })}
-                                <br />
-                                {format(day, 'EEE', { locale: fr }).charAt(0).toUpperCase()}
-                            </div>
-                        );
-                    })}
-                </div>
 
-                {/* Task Rows for each person */}
-                {allPeople.length > 0 ? (
-                    allPeople.map((person, pIndex) => (
-                        <div key={pIndex} className="grid gap-px relative" style={{ gridTemplateColumns: `minmax(150px, 0.5fr) repeat(${totalDaysInMonth}, minmax(0, 1fr))` }}>
-                            <div className={`h-12 p-2 font-medium text-sm flex items-center ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-color-bg-primary text-color-text-primary'} sticky left-0 z-10 border-b border-color-border-primary`}>
-                                <span className="truncate">{person}</span>
-                            </div>
-                            {daysInView.map((day, dIndex) => (
-                                <div
-                                    key={`${pIndex}-${dIndex}`}
-                                    className={`h-12 p-2 border-b border-color-border-primary ${
-                                        isWeekend(day) ? (isDarkMode ? 'bg-slate-800' : 'bg-gray-50') : (isDarkMode ? 'bg-gray-800' : 'bg-color-bg-primary')
-                                    } ${isSameDay(day, new Date()) ? (isDarkMode ? 'bg-pink-500/10' : 'bg-violet-100') : ''}`}
-                                    onClick={() => handleCellClick(day, person)} // Add onClick here
-                                ></div>
+                    {allPeople.map((person, idx) => (
+                        <div key={idx} className="flex relative border-b">
+                            <div className="w-40 p-2 text-sm truncate">{person}</div>
+                            {daysInView.map((day, j) => (
+                                <div key={j} className="flex-1 h-12 border-l hover:bg-blue-50" onClick={() => handleCellClick(day, person)} />
                             ))}
-                            {/* Les tâches sont filtrées et mappées ici */}
-                            {initialTasks // Utilise initialTasks directement
-                                .filter(task => task.person === person)
-                                .map((task, tIndex) => {
-                                    const barStyle = getTaskBarStyle(task);
-                                    const barColorClass = GanttColorsMap[task.color] || GanttColorsMap.blue;
-                                    const textColorClass = isLightColor(task.color) ? 'text-black' : 'text-white';
-
-                                    // Assurez-vous que la tâche a un ID unique, sinon utilisez l'index de fallback
-                                    const taskKey = task.id || `task-${person}-${tIndex}`;
-
-                                    return (
-                                        <motion.div
-                                            key={taskKey} // Utiliser une clé robuste
-                                            className={`absolute h-8 rounded-full px-2 text-xs font-semibold flex items-center shadow-md cursor-pointer ${barColorClass} ${textColorClass} ${task.completed ? 'opacity-50' : ''}`}
-                                            style={{
-                                                ...barStyle,
-                                                top: `${10 + (tIndex % 2) * 20}%`, // Adjust top for stacking, should be relative to row height
-                                                zIndex: 20
-                                            }}
-                                            whileHover={{ scale: 1.03, boxShadow: '0 0 10px rgba(0,0,0,0.3)' }}
-                                            title={`${task.title} (${format(parseISO(task.startDate), 'dd/MM', { locale: fr })} - ${format(parseISO(task.endDate), 'dd/MM', { locale: fr })})`}
-                                            onClick={() => onAddTask(task)}
-                                        >
-                                            <span className="truncate">{task.title}</span>
-                                        </motion.div>
-                                    );
-                                })}
+                            {localTasks.filter(t => t.person === person).map((task, tIdx) => (
+                                <div
+                                    key={task.id || `${person}-${tIdx}`}
+                                    className={`absolute h-6 top-1 rounded px-2 text-xs font-semibold flex items-center shadow-md ${GanttColorsMap[task.color] || 'bg-blue-400'} ${isLightColor(task.color) ? 'text-black' : 'text-white'}`}
+                                    style={getTaskBarStyle(task)}
+                                >
+                                    {task.title}
+                                </div>
+                            ))}
                         </div>
-                    ))
-                ) : (
-                    <div className="col-span-full text-center text-slate-500 py-10">
-                        {t('no_gantt_tasks', 'Aucune tâche de planification à afficher.')}
-                    </div>
-                )}
-                {/* Ensure empty space is filled if no people/tasks */}
-                {allPeople.length === 0 && (
-                    <div className="flex-grow flex items-center justify-center text-slate-500">
-                        {t('no_team_members_or_clients', 'Ajoutez des membres d\'équipe ou des clients pour commencer la planification.')}
-                    </div>
-                )}
+                    ))}
+                </div>
             </div>
 
-            {/* Add Task Button - moved outside the scrollable area but still within DashboardCard */}
-            {/* Ce div ne doit PAS être dans la zone de défilement (flex-grow) */}
-            <div className={`p-4 border-t border-color-border-primary flex-shrink-0 ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
-                <motion.button
-                    onClick={() => onAddTask({})}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg main-action-button"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
-                    {t('add_gantt_task', 'Ajouter une tâche au Planning')}
-                </motion.button>
-            </div>
-        </DashboardCard>
+            {showModal && (
+                <GanttTaskFormModal
+                    initialData={modalData}
+                    onSave={handleModalSave}
+                    onClose={() => setShowModal(false)}
+                    allStaffMembers={staffMembers}
+                    allClients={clients}
+                    t={t}
+                />
+            )}
+        </div>
     );
 });
 
