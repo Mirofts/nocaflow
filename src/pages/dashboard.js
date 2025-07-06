@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../context/Auth/AuthContext'; // Corrected import path for AuthContext
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '../lib/mockData';
