@@ -62,7 +62,7 @@ useEffect(() => {
     const daysInView = useMemo(() => {
         const start = startOfMonth(currentDate);
         const end = endOfMonth(currentDate);
-        return eachDayOfInterval({ start, end });
+return eachDayOfInterval({ start, end }).map(startOfDay);
     }, [currentDate]);
 
     const viewStartDate = useMemo(() => startOfDay(daysInView[0]), [daysInView]);
@@ -95,8 +95,8 @@ useEffect(() => {
         const left = (startOffsetDays / totalDaysInViewSpan) * 100;
         const width = (durationDays / totalDaysInViewSpan) * 100;
         
-        // Final debug log for a task's style
-        // console.log(`Calculated style for "${task.title}" (ID: ${task.id || 'new'}): Left: ${left.toFixed(2)}%, Width: ${width.toFixed(2)}%`);
+  console.log(`TASK "${task.title}" → start: ${taskStart}, end: ${taskEnd}, effectiveStart: ${effectiveStartDate}, effectiveEnd: ${effectiveEndDate}, viewStart: ${viewStartDate}`);
+  console.log(`→ OFFSET left: ${left.toFixed(2)}%  —  WIDTH: ${width.toFixed(2)}%`);
 
         return {
             left: `${left}%`,
