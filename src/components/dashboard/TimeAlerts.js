@@ -1,5 +1,5 @@
 // src/components/dashboard/TimeAlerts.js
-import React, { useState, useEffect, useCallback, useRef } from 'react'; // Importer useRef
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { format, differenceInMinutes, parseISO, isValid, differenceInMilliseconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -14,18 +14,18 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
     const targetDate = parseISO(dateTime);
 
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: false });
-    const isMounted = useRef(false); // <-- Nouveau ref pour suivre l'état de montage
+    const isMounted = useRef(false);
 
     useEffect(() => {
-        isMounted.current = true; // Le composant est monté
+        isMounted.current = true;
         return () => {
-            isMounted.current = false; // Le composant va être démonté
+            isMounted.current = false;
         };
-    }, []); // S'exécute une seule fois au montage/démontage
+    }, []);
 
     useEffect(() => {
         if (!isValid(targetDate)) {
-            if (isMounted.current) { // Vérifier si monté avant la mise à jour
+            if (isMounted.current) {
                 setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: true });
             }
             return;
@@ -40,7 +40,7 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
             }
 
             const totalSeconds = Math.floor(differenceMs / 1000);
-            const days = Math.floor(totalSeconds / (3600 * 24)); // Correction d'une petite erreur de calcul
+            const days = Math.floor(totalSeconds / (3600 * 24));
             const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
             const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
@@ -50,7 +50,7 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
         };
 
         const updateCountdown = () => {
-            if (isMounted.current) { // <-- Vérifier si le composant est toujours monté
+            if (isMounted.current) {
                 setTimeLeft(calculateTimeLeft());
             }
         };
@@ -59,7 +59,7 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
         const timer = setInterval(updateCountdown, 1000);
 
         return () => clearInterval(timer);
-    }, [dateTime, targetDate, type]); // Dépendances inchangées
+    }, [dateTime, targetDate, type]);
 
     const displayTime = timeLeft.overdue
         ? t('overdue', 'Passée')
@@ -150,8 +150,8 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
         .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0];
 
     const nextMeeting = meetings
-        .filter(m => m.dateTime && isValid(parseISO(m.dateTime)) && new Date(m.dateTime) > new Date())
-        .sort((a, b) => new Date(m.dateTime) - new Date(b.dateTime))[0];
+        .filter(meetingItem => meetingItem.dateTime && isValid(parseISO(meetingItem.dateTime)) && new Date(meetingItem.dateTime) > new Date()) // <-- Correction ici: 'm' -> 'meetingItem'
+        .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime))[0]; // <-- Correction ici: 'a.dateTime' et 'b.dateTime'
 
     return (
         <DashboardCard
