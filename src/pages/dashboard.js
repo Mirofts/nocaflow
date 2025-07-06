@@ -35,7 +35,7 @@ import {
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '../components/dashboard/modals/DetailsModal';
+import DetailsModal from '../components/dashboard/modals/DetailsModal'; // Import de la modale de détails
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -159,50 +159,22 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [isGuestMode, localData, todos, guestName, user]);
 
 
-    const [modals, setModals] = useState({
-        taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
-        meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
-        quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
-        ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
-        calculator: false,
-        detailsModal: { isOpen: false, title: '', content: '' },
-    });
+    // Gestionnaire d'état des modales (état simplifié)
+    const [activeModal, setActiveModal] = useState(null); // 'taskEdit', 'detailsModal', 'calculator', etc.
+    const [modalData, setModalData] = useState(null); // Données spécifiques pour la modale ouverte
 
-    const openModal = useCallback((name, modalData = true) => {
-        setModals(prev => {
-            const newState = Object.fromEntries(
-                Object.entries(prev).map(([key, value]) => {
-                    if (key === name) {
-                        return [key, modalData];
-                    } else if (key === 'detailsModal') {
-                        return [key, { isOpen: false, title: '', content: '' }];
-                    } else {
-                        return [key, typeof value === 'boolean' ? false : null];
-                    }
-                })
-            );
+    const openModal = useCallback((name, data = true) => {
+        setActiveModal(name);
+        setModalData(data);
+    }, []);
 
-            if (name === 'detailsModal') {
-                return {
-                    ...newState,
-                    detailsModal: { isOpen: true, title: modalData.title, content: modalData.content }
-                };
-            }
-            return newState;
-        });
+    const closeModal = useCallback(() => {
+        setActiveModal(null);
+        setModalData(null);
     }, []);
 
 
-    const closeModal = useCallback(() => setModals({
-        taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
-        meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
-        quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
-        ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
-        calculator: false,
-        detailsModal: { isOpen: false, title: '', content: '' },
-    }), []);
-
-
+    // Fonctions CRUD pour les données locales (mode invité)
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
     const deleteProject = useCallback((projectId) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).filter(p => p.id !== projectId) })); }, [onUpdateGuestData]);
@@ -278,7 +250,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return {
             messages: messages.length,
             tasks: tasks.filter(task => !task.completed).length,
-            meetings: meetings.filter(meeting => new Date(meeting.dateTime) > now).length, // <-- Variable renommée de 'm' à 'meeting'
+            meetings: meetings.filter(meetingItem => new Date(meetingItem.dateTime) > now).length,
         };
     }, [data]);
 
@@ -407,7 +379,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEdit={(task) => openModal('taskEdit', task)}
                                 onDelete={deleteTodo}
                                 t={t}
-                                className="flex-1 h-auto"
+                                className="flex-1 h-auto" // Ajustez la hauteur si nécessaire
                             />
                             <Projects
                                 projects={data.projects}
@@ -416,7 +388,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEditProject={editProject}
                                 onDeleteProject={deleteProject}
                                 onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)}
-                                className="flex-1 min-h-[598px]"
+                                className="flex-1 min-h-[598px]" // Ajustez la hauteur si nécessaire
                             />
                         </div>
 
@@ -474,11 +446,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             </div>
 
             <AnimatePresence>
-                {modals.taskEdit && <TaskEditModal t={t} task={modals.taskEdit} onSave={editTodo} onClose={closeModal} />}
-                {modals.dayDetails && <DayDetailsModal t={t} data={modals.dayDetails} onAddTask={(date) => openModal('quickTask', date)} onClose={closeModal} />}
-                {modals.quickTask && <QuickAddTaskModal t={t} date={modals.quickTask} onSave={addTodo} onClose={closeModal} />}
+                {activeModal === 'taskEdit' && <TaskEditModal t={t} task={modalData} onSave={editTodo} onClose={closeModal} />}
+                {activeModal === 'dayDetails' && <DayDetailsModal t={t} data={modalData} onAddTask={(date) => openModal('quickTask', date)} onClose={closeModal} />}
+                {activeModal === 'quickTask' && <QuickAddTaskModal t={t} date={modalData} onSave={addTodo} onClose={closeModal} />}
 
-                {modals.guestName && isGuestMode && (
+                {activeModal === 'guestName' && isGuestMode && (
                     <GuestNameEditModal
                         currentName={guestName}
                         onSave={onUpdateGuestName}
@@ -486,14 +458,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         t={t}
                     />
                 )}
-                {modals.userNameEdit && !isGuestMode && (
+                {activeModal === 'userNameEdit' && !isGuestMode && (
                     <UserNameEditModal
                         currentUser={user}
                         onClose={closeModal}
                         t={t}
                     />
                 )}
-                {modals.avatar && (
+                {activeModal === 'avatar' && (
                     <AvatarEditModal
                         user={user}
                         onClose={closeModal}
@@ -502,22 +474,22 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         t={t}
                     />
                 )}
-                {modals.meeting && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
-                {modals.project && modals.project.mode === 'edit' ? (
-                    <ProjectFormModal t={t} initialData={modals.project.project} onSave={editProject} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />
+                {activeModal === 'meeting' && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
+                {activeModal === 'project' && modalData && modalData.mode === 'edit' ? (
+                    <ProjectFormModal t={t} initialData={modalData.project} onSave={editProject} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />
                 ) : (
-                    modals.project && <ProjectFormModal t={t} onSave={addProject} isGuest={isGuestMode} onClose={closeModal} />
+                    activeModal === 'project' && <ProjectFormModal t={t} onSave={addProject} isGuest={isGuestMode} onClose={closeModal} />
                 )}
 
-                {modals.invoiceForm && <InvoiceFormModal t={t} isGuest={isGuestMode} client={modals.invoiceForm.client} onAdd={handleAddInvoice} onClose={closeModal} />}
-                {modals.invoiceList && <InvoiceListModal t={t} invoices={modals.invoiceList.client ? (data.invoices || []).filter(inv => inv.client === modals.invoiceList.client.name) : (data.invoices || [])} onClose={closeModal} />}
+                {activeModal === 'invoiceForm' && <InvoiceFormModal t={t} isGuest={isGuestMode} client={modalData.client} onAdd={handleAddInvoice} onClose={closeModal} />}
+                {activeModal === 'invoiceList' && <InvoiceListModal t={t} invoices={modalData.client ? (data.invoices || []).filter(inv => inv.client === modalData.client.name) : (data.invoices || [])} onClose={closeModal} />}
 
-                {modals.teamMember && <TeamMemberModal t={t} {...modals.teamMember} onSave={modals.teamMember.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
-                {modals.quickChat && <QuickChatModal t={t} member={modals.quickChat} onClose={closeModal} />}
-                {modals.assignTaskProjectDeadline && (
+                {activeModal === 'teamMember' && <TeamMemberModal t={t} {...modalData} onSave={modalData.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
+                {activeModal === 'quickChat' && <QuickChatModal t={t} member={modalData} onClose={closeModal} />}
+                {activeModal === 'assignTaskProjectDeadline' && (
                     <AssignTaskProjectDeadlineModal
                         t={t}
-                        member={modals.assignTaskProjectDeadline}
+                        member={modalData}
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers}
                         userUid={userUid}
@@ -526,39 +498,39 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     />
                 )}
 
-                {modals.clientForm && <ClientFormModal t={t} {...modals.clientForm} onSave={modals.clientForm.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
+                {activeModal === 'clientForm' && <ClientFormModal t={t} {...modalData} onSave={modalData.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
 
-                {modals.ganttTaskForm && (
+                {activeModal === 'ganttTaskForm' && (
                     <GanttTaskFormModal
                         t={t}
-                        initialData={modals.ganttTaskForm}
+                        initialData={modalData}
                         onSave={handleSaveGanttTask}
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers}
                         allClients={data.clients}
                     />
                 )}
-                {modals.googleDriveLink && (
+                {activeModal === 'googleDriveLink' && (
                     <GoogleDriveLinkModal
                         t={t}
-                        projectId={modals.googleDriveLink}
+                        projectId={modalData}
                         onSave={updateProjectGoogleDriveLink}
                         onClose={closeModal}
                     />
                 )}
 
-                {modals.addDeadline && <AddDeadlineModal t={t} onSave={handleAddDeadline} onClose={closeModal} />}
-                {modals.addMeeting && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
+                {activeModal === 'addDeadline' && <AddDeadlineModal t={t} onSave={handleAddDeadline} onClose={closeModal} />}
+                {activeModal === 'addMeeting' && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
 
-                {modals.calculator && <CalculatorModal t={t} onClose={closeModal} />}
+                {activeModal === 'calculator' && <CalculatorModal t={t} onClose={closeModal} />}
 
                 {/* Modale de détails pour les alertes (Deadlines et Meetings) */}
-                {modals.detailsModal.isOpen && (
+                {activeModal === 'detailsModal' && (
                     <DetailsModal
-                        isOpen={modals.detailsModal.isOpen}
-                        onClose={() => setModals(prev => ({ ...prev, detailsModal: { ...prev.detailsModal, isOpen: false } }))}
-                        title={modals.detailsModal.title}
-                        content={modals.detailsModal.content}
+                        isOpen={true} // isOpen est toujours true ici car la modale est active
+                        onClose={closeModal}
+                        title={modalData.title}
+                        content={modalData.content}
                     />
                 )}
             </AnimatePresence>
