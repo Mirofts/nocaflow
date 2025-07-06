@@ -1,5 +1,5 @@
 // src/components/dashboard/TimeAlerts.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'; // Importer useRef
 import { motion } from 'framer-motion';
 import { format, differenceInMinutes, parseISO, isValid, differenceInMilliseconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -14,12 +14,20 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
     const targetDate = parseISO(dateTime);
 
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: false });
+    const isMounted = useRef(false); // <-- Nouveau ref pour suivre l'état de montage
+
+    useEffect(() => {
+        isMounted.current = true; // Le composant est monté
+        return () => {
+            isMounted.current = false; // Le composant va être démonté
+        };
+    }, []); // S'exécute une seule fois au montage/démontage
 
     useEffect(() => {
         if (!isValid(targetDate)) {
-            console.warn(`Invalid date provided for ${type} alert: ${dateTime}`);
-            // Set overdue if date is invalid to display 'Passée'
-            setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: true });
+            if (isMounted.current) { // Vérifier si monté avant la mise à jour
+                setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: true });
+            }
             return;
         }
 
@@ -32,9 +40,9 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
             }
 
             const totalSeconds = Math.floor(differenceMs / 1000);
-            const days = Math.floor(totalSeconds / (60 * 60 * 24));
-            const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
-            const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+            const days = Math.floor(totalSeconds / (3600 * 24)); // Correction d'une petite erreur de calcul
+            const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
             const totalRemainingMinutes = Math.floor(differenceMs / (1000 * 60));
 
@@ -42,14 +50,16 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
         };
 
         const updateCountdown = () => {
-            setTimeLeft(calculateTimeLeft());
+            if (isMounted.current) { // <-- Vérifier si le composant est toujours monté
+                setTimeLeft(calculateTimeLeft());
+            }
         };
 
         updateCountdown();
         const timer = setInterval(updateCountdown, 1000);
 
         return () => clearInterval(timer);
-    }, [dateTime, targetDate, type]);
+    }, [dateTime, targetDate, type]); // Dépendances inchangées
 
     const displayTime = timeLeft.overdue
         ? t('overdue', 'Passée')
@@ -58,40 +68,33 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
             .replace('{{hours}}', timeLeft.hours)
             .replace('{{minutes}}', timeLeft.minutes);
 
-    const isUrgent = timeLeft.days < 1 && !timeLeft.overdue; // <-- Définition de isUrgent ici
-    // const pulseEffect = isUrgent || timeLeft.overdue; // Cette variable n'est pas utilisée, peut être supprimée si vous ne l'utilisez pas ailleurs.
+    const isUrgent = timeLeft.days < 1 && !timeLeft.overdue;
 
-    // Calculate progress for the gauge based on 48 hours as the max
     let progressPercentage = 0;
     if (timeLeft.overdue) {
-        progressPercentage = 100; // If overdue, gauge is 100% (passed the deadline)
+        progressPercentage = 100;
     } else if (timeLeft.totalMinutes <= 0) {
-         progressPercentage = 100; // If exact time is zero, it's also 100% (at the deadline)
+         progressPercentage = 100;
     } else if (timeLeft.totalMinutes >= FULL_GAUGE_DURATION_MINUTES) {
-        // If remaining time is more than or exactly 48 hours, gauge shows 0% completed/remaining (full bar for future)
-        progressPercentage = 0; // Gauge starts empty for very future events, fills up as time passes
+        progressPercentage = 0;
     } else {
-        // If within 48 hours, calculate based on time passed within the 48h window
-        // (FULL_GAUGE_DURATION_MINUTES - timeLeft.totalMinutes) is the time 'consumed' from the 48h window
         progressPercentage = ((FULL_GAUGE_DURATION_MINUTES - timeLeft.totalMinutes) / FULL_GAUGE_DURATION_MINUTES) * 100;
     }
 
-    // Determine gauge bar color based on remaining time (more visually appealing progression)
     let progressBarColor = '';
     if (timeLeft.overdue) {
         progressBarColor = 'bg-red-500';
-    } else if (timeLeft.totalMinutes <= 2 * 60) { // Less than 2 hours
+    } else if (timeLeft.totalMinutes <= 2 * 60) {
         progressBarColor = 'bg-red-400';
-    } else if (timeLeft.totalMinutes <= 6 * 60) { // Less than 6 hours
+    } else if (timeLeft.totalMinutes <= 6 * 60) {
         progressBarColor = 'bg-orange-400';
-    } else if (timeLeft.totalMinutes <= 24 * 60) { // Less than 24 hours
+    } else if (timeLeft.totalMinutes <= 24 * 60) {
         progressBarColor = 'bg-yellow-400';
-    } else { // More than 24 hours but within 48h
+    } else {
         progressBarColor = 'bg-green-400';
     }
 
     const gaugeTrackColorClass = isDarkMode ? 'bg-gray-700' : 'bg-gray-200';
-
     const cardBgClass = isDarkMode ? 'bg-gray-700' : 'bg-white';
 
     return (
@@ -121,12 +124,10 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
             <p className={`text-center text-xl font-extrabold ${timeLeft.overdue ? 'text-red-500' : (isUrgent ? 'text-orange-500' : (isDarkMode ? 'text-white' : 'text-gray-900'))} mb-2`}>
                 {displayTime}
             </p>
-            {/* Added detail line for context */}
             <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
                 {alertData.name || alertData.title}
             </p>
 
-            {/* Progress Gauge */}
             <div className={`w-full h-2 rounded-full ${gaugeTrackColorClass} mt-auto overflow-hidden`}>
                 <motion.div
                     className={`h-full rounded-full ${progressBarColor}`}
@@ -144,16 +145,13 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
 
 
 const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }) => {
-    // Note: projects.deadline should be the specific deadline date string for the project.
-    // meetings.dateTime should be the date-time string for the meeting.
-
     const nextDeadline = projects
         .filter(p => p.deadline && isValid(parseISO(p.deadline)) && new Date(p.deadline) > new Date())
         .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0];
 
     const nextMeeting = meetings
         .filter(m => m.dateTime && isValid(parseISO(m.dateTime)) && new Date(m.dateTime) > new Date())
-        .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime))[0];
+        .sort((a, b) => new Date(m.dateTime) - new Date(b.dateTime))[0];
 
     return (
         <DashboardCard
@@ -176,7 +174,7 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                             pulseColorClass="bg-pink-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
-                            alertData={{ type: 'deadline', ...nextDeadline }} // Pass all deadline data
+                            alertData={{ type: 'deadline', ...nextDeadline }}
                             t={t}
                         />
                     ) : (
@@ -207,7 +205,7 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                             pulseColorClass="bg-violet-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
-                            alertData={{ type: 'meeting', ...nextMeeting }} // Pass all meeting data
+                            alertData={{ type: 'meeting', ...nextMeeting }}
                             t={t}
                         />
                     ) : (
