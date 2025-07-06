@@ -141,26 +141,65 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
         setShowModal(false);
     }, [onSaveTask]);
 
-    // Nouvelle fonction pour l'exportation Excel
+    // Fonction pour l'exportation Excel améliorée
     const handleExportToExcel = useCallback(() => {
-        const dataForExport = localTasks.map(task => ({
-            "Titre de la tâche": task.title,
-            "Personne assignée": task.person,
-            "Date de début": task.startDate,
-            "Date de fin": task.endDate,
-            "Description": task.description || '', // Ajoutez d'autres champs si nécessaire
-            "Couleur": task.color,
-            // Ajoutez ici d'autres propriétés de tâche que vous souhaitez exporter
-        }));
+        const header = [
+            "ID Tâche",
+            "Titre de la tâche",
+            "Personne assignée",
+            "Client", // Si pertinent, ajoutez une colonne pour le client
+            "Date de début",
+            "Date de fin",
+            "Durée (jours)",
+            "Statut", // Si vous avez un statut pour les tâches
+            "Couleur (pour info)",
+            "Description"
+        ];
 
-        const ws = XLSX.utils.json_to_sheet(dataForExport);
+        const dataForExport = localTasks.map(task => {
+            const duration = task.startDate && task.endDate
+                ? differenceInDays(new Date(task.endDate), new Date(task.startDate)) + 1
+                : 0;
+            return [
+                task.id || 'N/A', // Assurez-vous d'avoir un ID si possible
+                task.title,
+                task.person,
+                task.client || 'N/A', // Assurez-vous que task.client existe si vous l'utilisez
+                task.startDate ? format(new Date(task.startDate), 'dd/MM/yyyy') : '',
+                task.endDate ? format(new Date(task.endDate), 'dd/MM/yyyy') : '',
+                duration,
+                task.status || 'Non défini', // Exemple de champ status
+                task.color,
+                task.description || ''
+            ];
+        });
+
+        // Créez une nouvelle feuille de calcul avec les en-têtes et les données
+        const ws = XLSX.utils.aoa_to_sheet([header, ...dataForExport]);
+
+        // Optionnel: Définir les largeurs de colonne pour une meilleure lisibilité
+        const wscols = [
+            { wch: 8 }, // ID Tâche
+            { wch: 30 }, // Titre de la tâche
+            { wch: 20 }, // Personne assignée
+            { wch: 20 }, // Client
+            { wch: 15 }, // Date de début
+            { wch: 15 }, // Date de fin
+            { wch: 10 }, // Durée (jours)
+            { wch: 15 }, // Statut
+            { wch: 15 }, // Couleur (pour info)
+            { wch: 40 }  // Description
+        ];
+        ws['!cols'] = wscols;
+
+        // Créer un classeur et ajouter la feuille
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Tâches Gantt");
+        XLSX.utils.book_append_sheet(wb, ws, "Tâches du planning");
 
-        // Créez le fichier Excel et déclenchez le téléchargement
+        // Télécharger le fichier
         const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
-        saveAs(data, `Gantt_Planning_${format(currentDate, 'yyyyMMdd')}.xlsx`);
+        saveAs(data, `Planning_Gantt_Donnees_${format(currentDate, 'yyyyMMdd')}.xlsx`);
     }, [localTasks, currentDate]);
 
 
@@ -176,7 +215,6 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
                 <span className="text-sm font-semibold text-gray-800 dark:text-white mx-2">
-                    {/* FIX: Correct date-fns format string here */}
                     {format(currentDate, 'MMMM', { locale: fr })}
                 </span>
                 <button
@@ -253,7 +291,7 @@ const GanttChartPlanning = forwardRef(({ initialTasks, t, staffMembers, clients,
                             {/* Render tasks for the current person */}
                             {localTasks
                                 .filter(task => task.person === person) // Filter tasks for the current person
-                                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate)) // Corrected: removed extra 'new'
+                                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate)) // Sort to ensure consistent stacking
                                 .map((task, taskIdx) => {
                                     const rowHeight = 40; // Height of each row
                                     const taskOffsetWithinRow = taskIdx * 6; // Small vertical offset for stacking
