@@ -203,14 +203,19 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const updateClient = useCallback((updatedClient) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).map(c => c.id === updatedClient.id ? updatedClient : c) })); }, [onUpdateGuestData]);
     const deleteClient = useCallback((clientId) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).filter(c => c.id !== clientId) })); }, [onUpdateGuestData]);
 
-    // Handle Gantt task saving: ensures it matches the expected model for GanttChartPlanning
+    // This is the single source of truth for saving Gantt tasks
     const handleSaveGanttTask = useCallback((taskData) => {
-        onUpdateGuestData(prev => ({
-            ...prev,
-            ganttTasks: taskData.id // If taskData already has an ID, it's an update
+        onUpdateGuestData(prev => {
+            console.log("handleSaveGanttTask in dashboard.js called with:", taskData);
+            const updatedGanttTasks = taskData.id
                 ? (prev.ganttTasks || []).map(task => task.id === taskData.id ? taskData : task)
-                : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }] // Otherwise, it's a new task, generate a unique ID
-        }));
+                : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }];
+            console.log("Updated ganttTasks in dashboard.js state:", updatedGanttTasks);
+            return {
+                ...prev,
+                ganttTasks: updatedGanttTasks
+            };
+        });
     }, [onUpdateGuestData]);
 
     const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { id: `meeting-${Date.now()}`, title: newMeeting.title, dateTime: newMeeting.dateTime, attendees: newMeeting.attendees, timezone: newMeeting.timezone, sendEmail: newMeeting.sendEmail, googleMeetLink: newMeeting.googleMeetLink || 'https://meet.google.com/new', createdAt: new Date().toISOString() }] })); }, [onUpdateGuestData]);
@@ -229,10 +234,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, []);
 
     const handleGanttChartPlanningFullscreen = useCallback(() => {
+        console.log("handleGanttChartPlanningFullscreen called. Ref:", ganttChartPlanningRef.current);
         if (ganttChartPlanningRef.current && ganttChartPlanningRef.current.toggleFullScreen) {
             ganttChartPlanningRef.current.toggleFullScreen();
         } else {
-            console.warn('Gantt Chart Planning Fullscreen function not available yet.');
+            console.warn('Gantt Chart Planning Fullscreen function not available via ref.');
         }
     }, []);
 
@@ -302,7 +308,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
                             <DashboardCard
                                 icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                                 }
                                 title={t('flow_messages_title', 'Flow Live Messages')}
                                 className="flex-1 min-h-[500px]"
@@ -376,10 +382,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     t={t}
                                     staffMembers={data.staffMembers}
                                     clients={data.clients}
-                                    // Removed onAddTask and onSave props from GanttChartPlanning,
-                                    // as the modal is now self-contained within GanttChartPlanning
-                                    // and calls handleModalSave, which updates local state,
-                                    // and the external handleSaveGanttTask (via openModal) handles persistence.
+                                    onSaveTask={handleSaveGanttTask} // Pass the main save handler down
                                 />
                             </DashboardCard>
                         </div>
@@ -468,17 +471,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                 {modals.clientForm && <ClientFormModal t={t} {...modals.clientForm} onSave={modals.clientForm.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
 
-                {/* The GanttTaskFormModal is called from within GanttChartPlanning now,
-                    but its onSave function (handleModalSave in GanttChartPlanning)
-                    needs to trigger the handleSaveGanttTask in THIS dashboard.js
-                    to update the main 'data' state and persist changes.
-                    The current setup for handleModalSave in GanttChartPlanning
-                    directly updates its local state. This is okay for immediate feedback,
-                    but for persistence, it should also call a prop (e.g., onPersistTask)
-                    that maps to handleSaveGanttTask in dashboard.js.
-                    Let's update GanttChartPlanning's handleModalSave to ALSO trigger a prop function.
-                    This requires passing `onSave` prop to GanttChartPlanning as well.
-                */}
                 {modals.ganttTaskForm && (
                     <GanttTaskFormModal
                         t={t}
