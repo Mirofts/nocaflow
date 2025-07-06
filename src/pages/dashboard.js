@@ -35,7 +35,7 @@ import {
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '../components/dashboard/modals/DetailsModal';
+import DetailsModal from '../components/dashboard/modals/DetailsModal'; // Import de la modale de détails
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -51,27 +51,13 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     // Initialisation et synchronisation des données locales
     const [localData, setLocalData] = useState(() => {
-        let initialValue = { // Assurer une structure de base pour initialValue
-            tasks: [],
-            messages: [],
-            meetings: [],
-            projects: [],
-            staffMembers: [],
-            clients: [],
-            ganttTasks: [],
-            invoices: [],
-            notes: '',
-            user: { displayName: initialGuestNameSSR, photoURL: '/images/avatarguest.jpg' },
-            ...initialMockData // Fusionner avec mockData, qui pourrait écraser certains champs
-        };
+        let initialValue = initialMockData;
 
         if (typeof window !== 'undefined') {
             const savedData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
-            // Fusionner initialValue, savedData, puis initialMockData pour l'ordre de priorité
             initialValue = {
-                ...initialValue, // Base avec tableaux vides et defaults
-                ...savedData,    // Données sauvegardées écrasent la base
-                ...initialMockData // Mock data peut encore écraser si présente ici
+                ...initialMockData,
+                ...savedData
             };
             const savedGuestName = localStorage.getItem('nocaflow_guest_name');
             if (savedGuestName) {
@@ -79,17 +65,17 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             }
         }
 
-        // Assurer que toutes les collections sont bien des tableaux après toutes les fusions
+        // S'assurer que toutes les collections sont des tableaux
         initialValue.tasks = Array.isArray(initialValue.tasks) ? initialValue.tasks : [];
         initialValue.messages = Array.isArray(initialValue.messages) ? initialValue.messages : [];
         initialValue.meetings = Array.isArray(initialValue.meetings) ? initialValue.meetings : [];
         initialValue.projects = Array.isArray(initialValue.projects) ? initialValue.projects : [];
         initialValue.staffMembers = Array.isArray(initialValue.staffMembers) ? initialValue.staffMembers : [];
         initialValue.clients = Array.isArray(initialValue.clients) ? initialValue.clients : [];
-        initialValue.ganttTasks = Array.isArray(initialValue.ganttTasks) ? initialValue.ganttTasks : []; // Correction possible: initialValue.planningTasks -> initialValue.ganttTasks
+        initialValue.ganttTasks = Array.isArray(initialValue.planningTasks) ? initialValue.planningTasks : [];
         initialValue.invoices = Array.isArray(initialValue.invoices) ? initialValue.invoices : [];
         initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : initialMockData.notes || '';
-        initialValue.user = initialValue.user || {}; // S'assurer que user est un objet
+        initialValue.user = initialValue.user || {};
 
         return initialValue;
     });
@@ -108,7 +94,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             const newData = typeof updater === 'function' ? updater(prevLocalData) : updater;
             const sanitizedData = { ...newData };
 
-            // Assurer que toutes les collections restent des tableaux lors de la mise à jour
             sanitizedData.tasks = Array.isArray(sanitizedData.tasks) ? sanitizedData.tasks : [];
             sanitizedData.messages = Array.isArray(sanitizedData.messages) ? sanitizedData.messages : [];
             sanitizedData.meetings = Array.isArray(sanitizedData.meetings) ? sanitizedData.meetings : [];
@@ -163,7 +148,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             };
         }
 
-        // Assurer que toutes les collections sont des tableaux ici aussi pour les props
         currentData.messages = Array.isArray(currentData.messages) ? currentData.messages : [];
         currentData.meetings = Array.isArray(currentData.meetings) ? currentData.meetings : [];
         currentData.projects = Array.isArray(currentData.projects) ? currentData.projects : [];
@@ -177,19 +161,51 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [isGuestMode, localData, todos, guestName, user]);
 
 
-    // Gestionnaire d'état des modales (état simplifié)
-    const [activeModal, setActiveModal] = useState(null); // 'taskEdit', 'detailsModal', 'calculator', etc.
-    const [modalProps, setModalProps] = useState(null); // Données spécifiques pour la modale ouverte (renommé pour clarté)
+    // Gestionnaire d'état des modales
+    const [modals, setModals] = useState({
+        taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
+        meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
+        quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
+        ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
+        calculator: false,
+        detailsModal: { isOpen: false, title: '', content: '' }, // État pour la modale de détails
+    });
 
-    const openModal = useCallback((name, props = true) => {
-        setActiveModal(name);
-        setModalProps(props); // Utiliser setModalProps
-    }, []);
+    const openModal = useCallback((name, modalData = true) => setModals(prev => {
+        // Crée un nouvel état où toutes les autres modales sont fermées, sauf celle qu'on ouvre
+        const newState = Object.keys(prev).reduce((acc, key) => {
+            if (key === name) {
+                // Si c'est la modale que nous ouvrons, lui assigner ses données
+                acc[key] = modalData;
+            } else if (key === 'detailsModal') {
+                // Pour detailsModal, réinitialiser son état à fermé si une autre modal est ouverte
+                acc[key] = { isOpen: false, title: '', content: '' };
+            } else {
+                // Pour les autres modales, les fermer (null ou false selon leur type)
+                acc[key] = (typeof prev[key] === 'boolean' ? false : null);
+            }
+            return acc;
+        }, {});
 
-    const closeModal = useCallback(() => {
-        setActiveModal(null);
-        setModalProps(null);
-    }, []);
+        // Cas spécifique où on ouvre la detailsModal
+        if (name === 'detailsModal') {
+            return {
+                ...newState,
+                detailsModal: { isOpen: true, title: modalData.title, content: modalData.content }
+            };
+        }
+        return newState;
+    }), []);
+
+
+    const closeModal = useCallback(() => setModals(prev => ({
+        taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
+        meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
+        quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
+        ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
+        calculator: false,
+        detailsModal: { isOpen: false, title: '', content: '' }, // Réinitialise la modale de détails
+    })), []);
 
 
     // Fonctions CRUD pour les données locales (mode invité)
@@ -268,7 +284,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return {
             messages: messages.length,
             tasks: tasks.filter(task => !task.completed).length,
-            meetings: meetings.filter(meetingItem => new Date(meetingItem.dateTime) > now).length,
+            meetings: meetings.filter(m => new Date(m.dateTime) > now).length,
         };
     }, [data]);
 
@@ -301,7 +317,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             const meetingDateTime = parseISO(alertItem.dateTime);
             content = `${t('subject', 'Sujet')} : ${alertItem.title}\n` +
                       `${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `${t('location', 'Lieu')} : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
+                      `${t('lieu', 'Lieu')} : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
                       `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
         }
 
@@ -338,8 +354,18 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         onOpenCalculator={handleOpenCalculatorModal}
                     />
 
+                    {/* TimeAlerts component with new onAlertCardClick prop */}
+                    <TimeAlerts
+                        projects={data.projects} // Contient les échéances des projets
+                        meetings={data.meetings} // Contient les réunions
+                        t={t}
+                        lang={lang}
+                        openModal={openModal} // Pour le bouton '+' dans TimeAlerts
+                        onAlertCardClick={handleOpenAlertDetails} // Pour le clic sur la carte elle-même
+                    />
+
                     <div className="grid grid-cols-12 gap-6">
-                        {/* LEFT COLUMN: Flow Live Messages, Notepad, Calendar, InvoicesSummary */}
+
                         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
                             <DashboardCard
                                 icon={
@@ -358,39 +384,28 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onLoginClick={onLoginClick}
                                     onRegisterClick={onRegisterClick}
                                     onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
-                                    messages={data.messages || []} // Default to empty array
+                                    messages={data.messages}
                                     user={user}
                                     initialMockData={initialMockData}
-                                    availableTeamMembers={data.staffMembers || []} // Default to empty array
+                                    availableTeamMembers={data.staffMembers}
                                 />
                             </DashboardCard>
 
                             <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]"/>
                             <Calendar
-                                tasks={data.tasks || []} // Default to empty array
-                                meetings={data.meetings || []} // Default to empty array
-                                projects={data.projects || []} // Default to empty array
+                                tasks={data.tasks}
+                                meetings={data.meetings}
+                                projects={data.projects}
                                 onDayClick={(date, events) => openModal('dayDetails', { date, events })}
                                 t={t}
                                 className="flex-1 h-auto"
                             />
-                            <InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="flex-1 min-h-[350px]"/>
+                            <InvoicesSummary invoices={data.invoices} openInvoiceForm={() => openModal('invoiceForm')} openInvoiceList={() => openModal('invoiceList', { invoices: data.invoices })} t={t} className="flex-1 min-h-[350px]"/>
                         </div>
 
-                        {/* RIGHT COLUMN: Time Alerts, TodoList, Projects */}
                         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-                            {/* Time Alerts (Prochaine Échéance et Prochaine Réunion) */}
-                            <TimeAlerts
-                                projects={data.projects || []} // Default to empty array
-                                meetings={data.meetings || []} // Default to empty array
-                                t={t}
-                                lang={lang}
-                                openModal={openModal}
-                                onAlertCardClick={handleOpenAlertDetails}
-                            />
-
                             <TodoList
-                                todos={data.tasks || []} // Default to empty array
+                                todos={data.tasks}
                                 loading={loadingTodos}
                                 onAdd={addTodo}
                                 onToggle={toggleTodo}
@@ -400,7 +415,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 className="flex-1 h-auto"
                             />
                             <Projects
-                                projects={data.projects || []} // Default to empty array
+                                projects={data.projects}
                                 t={t}
                                 onAddProject={addProject}
                                 onEditProject={editProject}
@@ -410,7 +425,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             />
                         </div>
 
-                        {/* Gantt Chart Section (full width) */}
                         <div className="col-span-12">
                             <DashboardCard
                                 title={t('gantt_chart_title', 'Planning Gantt')}
@@ -424,19 +438,18 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             >
                                 <GanttChartPlanning
                                     ref={ganttChartPlanningRef}
-                                    initialTasks={data.ganttTasks || []} // Default to empty array
+                                    initialTasks={data.ganttTasks}
                                     t={t}
-                                    staffMembers={data.staffMembers || []} // Default to empty array
-                                    clients={data.clients || []} // Default to empty array
+                                    staffMembers={data.staffMembers}
+                                    clients={data.clients}
                                     onSaveTask={handleSaveGanttTask}
                                 />
                             </DashboardCard>
                         </div>
 
-                        {/* Team Management & Client Management (full width or 2 columns below Gantt) */}
                         <div className="col-span-12 lg:col-span-6">
                             <TeamManagement
-                                members={data.staffMembers || []} // Default to empty array
+                                members={data.staffMembers}
                                 onAddMember={() => openModal('teamMember', { mode: 'add' })}
                                 onEditMember={(member) => openModal('teamMember', { mode: 'edit', member })}
                                 onDeleteMember={deleteStaffMember}
@@ -449,7 +462,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                         <div className="col-span-12 lg:col-span-6">
                             <ClientManagement
-                                clients={data.clients || []} // Default to empty array
+                                clients={data.clients}
                                 onAddClient={() => openModal('clientForm', { mode: 'add' })}
                                 onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })}
                                 onDeleteClient={deleteClient}
@@ -464,12 +477,11 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             </div>
 
             <AnimatePresence>
-                {/* Rendu conditionnel des modales basé sur activeModal */}
-                {activeModal === 'taskEdit' && <TaskEditModal t={t} task={modalProps} onSave={editTodo} onClose={closeModal} />}
-                {activeModal === 'dayDetails' && <DayDetailsModal t={t} data={modalProps} onAddTask={(date) => openModal('quickTask', date)} onClose={closeModal} />}
-                {activeModal === 'quickTask' && <QuickAddTaskModal t={t} date={modalProps} onSave={addTodo} onClose={closeModal} />}
+                {modals.taskEdit && <TaskEditModal t={t} task={modals.taskEdit} onSave={editTodo} onClose={closeModal} />}
+                {modals.dayDetails && <DayDetailsModal t={t} data={modals.dayDetails} onAddTask={(date) => openModal('quickTask', date)} onClose={closeModal} />}
+                {modals.quickTask && <QuickAddTaskModal t={t} date={modals.quickTask} onSave={addTodo} onClose={closeModal} />}
 
-                {activeModal === 'guestName' && isGuestMode && (
+                {modals.guestName && isGuestMode && (
                     <GuestNameEditModal
                         currentName={guestName}
                         onSave={onUpdateGuestName}
@@ -477,14 +489,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         t={t}
                     />
                 )}
-                {activeModal === 'userNameEdit' && !isGuestMode && (
+                {modals.userNameEdit && !isGuestMode && (
                     <UserNameEditModal
                         currentUser={user}
                         onClose={closeModal}
                         t={t}
                     />
                 )}
-                {activeModal === 'avatar' && (
+                {modals.avatar && (
                     <AvatarEditModal
                         user={user}
                         onClose={closeModal}
@@ -493,63 +505,63 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         t={t}
                     />
                 )}
-                {activeModal === 'meeting' && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
-                {activeModal === 'project' && modalProps && modalProps.mode === 'edit' ? (
-                    <ProjectFormModal t={t} initialData={modalProps.project} onSave={editProject} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />
+                {modals.meeting && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
+                {modals.project && modals.project.mode === 'edit' ? (
+                    <ProjectFormModal t={t} initialData={modals.project.project} onSave={editProject} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />
                 ) : (
-                    activeModal === 'project' && <ProjectFormModal t={t} onSave={addProject} isGuest={isGuestMode} onClose={closeModal} />
+                    modals.project && <ProjectFormModal t={t} onSave={addProject} isGuest={isGuestMode} onClose={closeModal} />
                 )}
 
-                {activeModal === 'invoiceForm' && <InvoiceFormModal t={t} isGuest={isGuestMode} client={modalProps.client} onAdd={handleAddInvoice} onClose={closeModal} />}
-                {activeModal === 'invoiceList' && <InvoiceListModal t={t} invoices={modalProps.client ? (data.invoices || []).filter(inv => inv.client === modalProps.client.name) : (data.invoices || [])} onClose={closeModal} />}
+                {modals.invoiceForm && <InvoiceFormModal t={t} isGuest={isGuestMode} client={modals.invoiceForm.client} onAdd={handleAddInvoice} onClose={closeModal} />}
+                {modals.invoiceList && <InvoiceListModal t={t} invoices={modals.invoiceList.client ? (data.invoices || []).filter(inv => inv.client === modals.invoiceList.client.name) : (data.invoices || [])} onClose={closeModal} />}
 
-                {activeModal === 'teamMember' && <TeamMemberModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
-                {activeModal === 'quickChat' && <QuickChatModal t={t} member={modalProps} onClose={closeModal} />}
-                {activeModal === 'assignTaskProjectDeadline' && (
+                {modals.teamMember && <TeamMemberModal t={t} {...modals.teamMember} onSave={modals.teamMember.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
+                {modals.quickChat && <QuickChatModal t={t} member={modals.quickChat} onClose={closeModal} />}
+                {modals.assignTaskProjectDeadline && (
                     <AssignTaskProjectDeadlineModal
                         t={t}
-                        member={modalProps}
+                        member={modals.assignTaskProjectDeadline}
                         onClose={closeModal}
-                        allStaffMembers={data.staffMembers || []} // Default to empty array
+                        allStaffMembers={data.staffMembers}
                         userUid={userUid}
                         currentUserName={user?.displayName || 'Moi'}
                         onAddTask={addTodo}
                     />
                 )}
 
-                {activeModal === 'clientForm' && <ClientFormModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
+                {modals.clientForm && <ClientFormModal t={t} {...modals.clientForm} onSave={modals.clientForm.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
 
-                {activeModal === 'ganttTaskForm' && (
+                {modals.ganttTaskForm && (
                     <GanttTaskFormModal
                         t={t}
-                        initialData={modalProps}
+                        initialData={modals.ganttTaskForm}
                         onSave={handleSaveGanttTask}
                         onClose={closeModal}
-                        allStaffMembers={data.staffMembers || []} // Default to empty array
-                        allClients={data.clients || []} // Default to empty array
+                        allStaffMembers={data.staffMembers}
+                        allClients={data.clients}
                     />
                 )}
-                {activeModal === 'googleDriveLink' && (
+                {modals.googleDriveLink && (
                     <GoogleDriveLinkModal
                         t={t}
-                        projectId={modalProps}
+                        projectId={modals.googleDriveLink}
                         onSave={updateProjectGoogleDriveLink}
                         onClose={closeModal}
                     />
                 )}
 
-                {activeModal === 'addDeadline' && <AddDeadlineModal t={t} onSave={handleAddDeadline} onClose={closeModal} />}
-                {activeModal === 'addMeeting' && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
+                {modals.addDeadline && <AddDeadlineModal t={t} onSave={handleAddDeadline} onClose={closeModal} />}
+                {modals.addMeeting && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
 
-                {activeModal === 'calculator' && <CalculatorModal t={t} onClose={closeModal} />}
+                {modals.calculator && <CalculatorModal t={t} onClose={closeModal} />}
 
                 {/* Modale de détails pour les alertes (Deadlines et Meetings) */}
-                {activeModal === 'detailsModal' && (
+                {modals.detailsModal.isOpen && (
                     <DetailsModal
-                        isOpen={true}
-                        onClose={closeModal}
-                        title={modalProps.title}
-                        content={modalProps.content}
+                        isOpen={modals.detailsModal.isOpen}
+                        onClose={() => setModals(prev => ({ ...prev, detailsModal: { ...prev.detailsModal, isOpen: false } }))}
+                        title={modals.detailsModal.title}
+                        content={modals.detailsModal.content}
                     />
                 )}
             </AnimatePresence>
