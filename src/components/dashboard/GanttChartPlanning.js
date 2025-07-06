@@ -215,9 +215,13 @@ return {
                                     onClick={() => handleCellClick(day, person)}
                                 />
                             ))}
-              {localTasks.filter(t => t.person === person).map((task) => {
+     
+{localTasks.map((task) => {
     const rowHeight = 40;
-    const taskTop = 2 + idx * rowHeight; // Alignement vertical selon la ligne
+    const rowIndex = allPeople.findIndex(p => p === task.person);
+    if (rowIndex === -1) return null;
+
+    const taskTop = 2 + rowIndex * rowHeight;
 
     return (
         <motion.div
@@ -228,7 +232,6 @@ return {
             whileHover={{ scale: 1.02, zIndex: 12 }}
             onClick={(e) => {
                 e.stopPropagation();
-                console.log("Task bar clicked:", task);
                 setModalData(task);
                 setShowModal(true);
             }}
@@ -237,6 +240,7 @@ return {
         </motion.div>
     );
 })}
+
 
                         </div>
                     ))}
