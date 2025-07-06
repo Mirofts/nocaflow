@@ -35,7 +35,7 @@ import {
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '../components/dashboard/modals/DetailsModal'; // Import de la modale de détails
+import DetailsModal from '../components/dashboard/modals/DetailsModal';
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -49,7 +49,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
 
-    // Initialisation et synchronisation des données locales
     const [localData, setLocalData] = useState(() => {
         let initialValue = initialMockData;
 
@@ -65,7 +64,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             }
         }
 
-        // S'assurer que toutes les collections sont des tableaux
         initialValue.tasks = Array.isArray(initialValue.tasks) ? initialValue.tasks : [];
         initialValue.messages = Array.isArray(initialValue.messages) ? initialValue.messages : [];
         initialValue.meetings = Array.isArray(initialValue.meetings) ? initialValue.meetings : [];
@@ -161,36 +159,29 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [isGuestMode, localData, todos, guestName, user]);
 
 
-    // Gestionnaire d'état des modales
     const [modals, setModals] = useState({
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
         calculator: false,
-        detailsModal: { isOpen: false, title: '', content: '' }, // État pour la modale de détails
+        detailsModal: { isOpen: false, title: '', content: '' },
     });
 
-    // Fonction pour ouvrir une modale
     const openModal = useCallback((name, modalData = true) => {
         setModals(prev => {
-            // Créer un nouvel état où toutes les modales sont fermées, sauf celle qui doit être ouverte
             const newState = Object.fromEntries(
                 Object.entries(prev).map(([key, value]) => {
-                    if (key === name) { // Si c'est la modale que nous voulons ouvrir
+                    if (key === name) {
                         return [key, modalData];
                     } else if (key === 'detailsModal') {
-                        // Toujours fermer detailsModal si une autre modal est ouverte,
-                        // mais ne pas modifier son état si c'est la 'detailsModal' elle-même qu'on ouvre
                         return [key, { isOpen: false, title: '', content: '' }];
                     } else {
-                        // Pour les autres modales, les fermer (null ou false selon leur type)
                         return [key, typeof value === 'boolean' ? false : null];
                     }
                 })
             );
 
-            // Cas spécifique où on ouvre la detailsModal
             if (name === 'detailsModal') {
                 return {
                     ...newState,
@@ -202,18 +193,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, []);
 
 
-    // Fonction pour fermer toutes les modales
     const closeModal = useCallback(() => setModals({
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
         calculator: false,
-        detailsModal: { isOpen: false, title: '', content: '' }, // Réinitialise la modale de détails
+        detailsModal: { isOpen: false, title: '', content: '' },
     }), []);
 
 
-    // Fonctions CRUD pour les données locales (mode invité)
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
     const deleteProject = useCallback((projectId) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).filter(p => p.id !== projectId) })); }, [onUpdateGuestData]);
@@ -289,7 +278,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return {
             messages: messages.length,
             tasks: tasks.filter(task => !task.completed).length,
-            meetings: meetings.filter(m => new Date(m.dateTime) > now).length,
+            meetings: meetings.filter(meeting => new Date(meeting.dateTime) > now).length, // <-- Variable renommée de 'm' à 'meeting'
         };
     }, [data]);
 
@@ -364,7 +353,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
                             <DashboardCard
                                 icon={
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                                 }
                                 title={t('flow_messages_title', 'Flow Live Messages')}
                                 className="flex-1 min-h-[500px]"
@@ -418,7 +407,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEdit={(task) => openModal('taskEdit', task)}
                                 onDelete={deleteTodo}
                                 t={t}
-                                className="flex-1 h-auto" // Ajustez la hauteur si nécessaire
+                                className="flex-1 h-auto"
                             />
                             <Projects
                                 projects={data.projects}
@@ -427,7 +416,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onEditProject={editProject}
                                 onDeleteProject={deleteProject}
                                 onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)}
-                                className="flex-1 min-h-[598px]" // Ajustez la hauteur si nécessaire
+                                className="flex-1 min-h-[598px]"
                             />
                         </div>
 
