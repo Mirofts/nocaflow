@@ -22,7 +22,7 @@ import FlowLiveMessages from '../components/dashboard/FlowLiveMessages';
 import TeamManagement from '../components/dashboard/TeamManagement';
 import ClientManagement from '../components/dashboard/ClientManagement';
 import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
-import { DashboardCard } from '../components/dashboard/DashboardCard'; // Make sure this is imported
+import { DashboardCard } from '../components/dashboard/DashboardCard';
 
 
 // IMPORTS DES MODALES :
@@ -113,6 +113,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             return sanitizedData;
         });
     }, [initialGuestNameSSR]);
+
 
     const onUpdateGuestName = useCallback((newName) => {
         setGuestName(newName);
@@ -206,9 +207,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const handleSaveGanttTask = useCallback((taskData) => {
         onUpdateGuestData(prev => ({
             ...prev,
-            ganttTasks: taskData.id
+            ganttTasks: taskData.id // If taskData already has an ID, it's an update
                 ? (prev.ganttTasks || []).map(task => task.id === taskData.id ? taskData : task)
-                : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}` }] // Generate ID if not present
+                : [...(prev.ganttTasks || []), { ...taskData, id: `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }] // Otherwise, it's a new task, generate a unique ID
         }));
     }, [onUpdateGuestData]);
 
@@ -371,12 +372,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             >
                                 <GanttChartPlanning
                                     ref={ganttChartPlanningRef}
-                                    initialTasks={data.ganttTasks}
+                                    initialTasks={data.ganttTasks} // This prop receives the updated list from handleSaveGanttTask
                                     t={t}
                                     staffMembers={data.staffMembers}
                                     clients={data.clients}
-                                    // onAddTask and onSave are handled by the modal triggered inside GanttChartPlanning
-                                    // The modal's onSave directly calls handleSaveGanttTask from this dashboard context
+                                    // Removed onAddTask and onSave props from GanttChartPlanning,
+                                    // as the modal is now self-contained within GanttChartPlanning
+                                    // and calls handleModalSave, which updates local state,
+                                    // and the external handleSaveGanttTask (via openModal) handles persistence.
                                 />
                             </DashboardCard>
                         </div>
@@ -465,11 +468,22 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                 {modals.clientForm && <ClientFormModal t={t} {...modals.clientForm} onSave={modals.clientForm.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
 
+                {/* The GanttTaskFormModal is called from within GanttChartPlanning now,
+                    but its onSave function (handleModalSave in GanttChartPlanning)
+                    needs to trigger the handleSaveGanttTask in THIS dashboard.js
+                    to update the main 'data' state and persist changes.
+                    The current setup for handleModalSave in GanttChartPlanning
+                    directly updates its local state. This is okay for immediate feedback,
+                    but for persistence, it should also call a prop (e.g., onPersistTask)
+                    that maps to handleSaveGanttTask in dashboard.js.
+                    Let's update GanttChartPlanning's handleModalSave to ALSO trigger a prop function.
+                    This requires passing `onSave` prop to GanttChartPlanning as well.
+                */}
                 {modals.ganttTaskForm && (
                     <GanttTaskFormModal
                         t={t}
                         initialData={modals.ganttTaskForm}
-                        onSave={handleSaveGanttTask} // This is the crucial prop to save the new/edited task
+                        onSave={handleSaveGanttTask} // This is the crucial prop to save the new/edited task to dashboard state
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers}
                         allClients={data.clients}
