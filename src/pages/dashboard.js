@@ -1,5 +1,5 @@
 // src/pages/dashboard.js
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'; // Ajout de useRef
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -8,8 +8,8 @@ import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '../lib/mockData';
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { format, parseISO, isValid } from 'date-fns'; // Importez format, parseISO, isValid
-import { fr } from 'date-fns/locale'; // Importez la locale française
+import { format, parseISO, isValid } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 // IMPORTS DES COMPOSANTS DU DASHBOARD :
 import DashboardHeader from '../components/dashboard/DashboardHeader';
@@ -35,7 +35,7 @@ import {
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '../components/dashboard/modals/DetailsModal'; // <-- Importez la nouvelle modale de détails
+import DetailsModal from '../components/dashboard/modals/DetailsModal'; // Import de la nouvelle modale de détails
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -43,16 +43,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const { isDarkMode, toggleTheme } = useTheme();
     const { t } = useTranslation('common');
 
-    console.log('DashboardPage: Start render');
-
     const isGuestMode = !user || user.uid === 'guest_noca_flow';
     const initialGuestNameSSR = 'Visiteur Curieux';
     const userUid = user?.uid;
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
 
+    // Initialisation et synchronisation des données locales
     const [localData, setLocalData] = useState(() => {
-        console.log('DashboardPage: Initializing localData state');
         let initialValue = initialMockData;
 
         if (typeof window !== 'undefined') {
@@ -67,6 +65,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             }
         }
 
+        // S'assurer que toutes les collections sont des tableaux
         initialValue.tasks = Array.isArray(initialValue.tasks) ? initialValue.tasks : [];
         initialValue.messages = Array.isArray(initialValue.messages) ? initialValue.messages : [];
         initialValue.meetings = Array.isArray(initialValue.meetings) ? initialValue.meetings : [];
@@ -78,7 +77,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : initialMockData.notes || '';
         initialValue.user = initialValue.user || {};
 
-        console.log('DashboardPage: Initial localData state value:', initialValue);
         return initialValue;
     });
 
@@ -136,17 +134,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
         useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
-    console.log('DashboardPage: todos from useUserTodos:', todos);
-
-    console.log('DashboardPage: Before data useMemo - localData:', localData);
-    console.log('DashboardPage: Before data useMemo - todos:', todos);
-    console.log('DashboardPage: Before data useMemo - user:', user);
 
     const data = useMemo(() => {
-        console.log('DashboardPage: Inside data useMemo - user:', user);
-        console.log('DashboardPage: Inside data useMemo - localData:', localData);
-        console.log('DashboardPage: Inside data useMemo - todos:', todos);
-
         let currentData = { ...localData };
 
         if (!isGuestMode) {
@@ -168,27 +157,30 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         currentData.invoices = Array.isArray(currentData.invoices) ? currentData.invoices : [];
         currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
 
-
-        console.log('DashboardPage: Data object constructed:', currentData);
         return currentData;
     }, [isGuestMode, localData, todos, guestName, user]);
 
 
+    // Gestionnaire d'état des modales
     const [modals, setModals] = useState({
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
         calculator: false,
-        // Nouveaux états pour la modale de détails des alertes
-        detailsModal: { isOpen: false, title: '', content: '' }, // <-- Ajouté
+        detailsModal: { isOpen: false, title: '', content: '' }, // État pour la modale de détails
     });
 
     const openModal = useCallback((name, modalData = true) => setModals(prev => {
-        const newState = {
-            ...Object.keys(prev).reduce((acc, key) => (acc[key] = false, acc), {}), // Réinitialise toutes les modales à false/null
-            [name]: modalData // Ouvre la modale spécifique
-        };
+        // Réinitialise toutes les modales à false/null sauf si c'est la modale de détails elle-même
+        const newState = Object.keys(prev).reduce((acc, key) => {
+            acc[key] = (key === name && modalData !== false) ? modalData : null; // 'null' pour les modales de formulaire, 'false' pour les booléens
+            if (key === 'detailsModal' && name !== 'detailsModal') { // Conserver l'état de detailsModal si une autre s'ouvre
+                 acc[key] = { isOpen: false, title: '', content: '' };
+            }
+            return acc;
+        }, {});
+
         // Gérer spécifiquement la modale de détails si elle est ouverte via cette fonction
         if (name === 'detailsModal') {
             return {
@@ -199,15 +191,18 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return newState;
     }), []);
 
+
     const closeModal = useCallback(() => setModals(prev => ({
         taskEdit: null, dayDetails: null, quickTask: null, guestName: false, avatar: false,
         meeting: false, project: null, invoiceForm: null, invoiceList: null, teamMember: null,
         quickChat: null, assignTaskProjectDeadline: null, clientForm: null, userNameEdit: false,
         ganttTaskForm: null, googleDriveLink: null, addDeadline: false, addMeeting: false,
         calculator: false,
-        detailsModal: { isOpen: false, title: '', content: '' }, // <-- Réinitialise la modale de détails
+        detailsModal: { isOpen: false, title: '', content: '' }, // Réinitialise la modale de détails
     })), []);
 
+
+    // Fonctions CRUD pour les données locales
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
     const deleteProject = useCallback((projectId) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).filter(p => p.id !== projectId) })); }, [onUpdateGuestData]);
@@ -219,7 +214,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const updateClient = useCallback((updatedClient) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).map(c => c.id === updatedClient.id ? updatedClient : c) })); }, [onUpdateGuestData]);
     const deleteClient = useCallback((clientId) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).filter(c => c.id !== clientId) })); }, [onUpdateGuestData]);
 
-    // This is the single source of truth for saving Gantt tasks
+
     const handleSaveGanttTask = useCallback((taskData) => {
         onUpdateGuestData(prev => {
             const currentTasks = prev.ganttTasks || [];
@@ -229,20 +224,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             let updatedGanttTasks;
 
             if (existingTaskIndex !== -1) {
-                // La tâche existe déjà → mise à jour
                 updatedGanttTasks = currentTasks.map(t =>
                     t.id === taskData.id ? taskData : t
                 );
             } else {
-                // Nouvelle tâche → on lui assigne un ID si besoin
                 const newTask = {
                     ...taskData,
                     id: taskData.id || `gt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
                 };
                 updatedGanttTasks = [...currentTasks, newTask];
             }
-
-            console.log("✅ Tâches Gantt mises à jour :", updatedGanttTasks);
 
             return {
                 ...prev,
@@ -252,12 +243,13 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [onUpdateGuestData]);
 
 
-    const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { id: `meeting-${Date.now()}`, title: newMeeting.title, dateTime: newMeeting.dateTime, attendees: newMeeting.attendees, timezone: newMeeting.timezone, sendEmail: newMeeting.sendEmail, googleMeetLink: newMeeting.googleMeetLink || 'https://meet.google.com/new', createdAt: new Date().toISOString(), description: newMeeting.description || '', location: newMeeting.location || '' }] })); }, [onUpdateGuestData]); // <-- Ajout de description et location
+    const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { id: `meeting-${Date.now()}`, title: newMeeting.title, dateTime: newMeeting.dateTime, attendees: newMeeting.attendees, timezone: newMeeting.timezone, sendEmail: newMeeting.sendEmail, googleMeetLink: newMeeting.googleMeetLink || 'https://meet.google.com/new', createdAt: new Date().toISOString(), description: newMeeting.description || '', location: newMeeting.location || '' }] })); }, [onUpdateGuestData]);
     const handleAddDeadline = useCallback((newDeadline) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { id: `proj-${Date.now()}`, name: newDeadline.title, client: newDeadline.client || 'General', progress: 0, deadline: newDeadline.date, description: newDeadline.description, staff: [], paidAmount: '0 €', nextPayment: 'N/A', totalAmount: 'N/A', createdAt: new Date().toISOString(), googleDriveLink: null }] })); }, [onUpdateGuestData]);
     const handleAddInvoice = useCallback((newInvoice) => { onUpdateGuestData(prev => ({ ...prev, invoices: [...(prev.invoices || []), { ...newInvoice, id: `inv-${Date.now()}` }] })); }, [onUpdateGuestData]);
 
-    const flowLiveMessagesRef = React.useRef();
-    const ganttChartPlanningRef = React.useRef();
+    // Refs pour les composants pouvant basculer en plein écran
+    const flowLiveMessagesRef = useRef(null); // Initialisé à null
+    const ganttChartPlanningRef = useRef(null); // Initialisé à null
 
     const handleFlowLiveMessagesFullscreen = useCallback(() => {
         if (flowLiveMessagesRef.current && flowLiveMessagesRef.current.toggleFullScreen) {
@@ -268,7 +260,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, []);
 
     const handleGanttChartPlanningFullscreen = useCallback(() => {
-        console.log("handleGanttChartPlanningFullscreen called in dashboard.js. Attempting to call ref method.");
         if (ganttChartPlanningRef.current && ganttChartPlanningRef.current.toggleFullScreen) {
             ganttChartPlanningRef.current.toggleFullScreen();
         } else {
@@ -276,9 +267,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, []);
 
-    console.log('DashboardPage: Before stats useMemo - data for stats:', data);
+    // Calcul des statistiques
     const stats = useMemo(() => {
-        console.log('DashboardPage: Inside stats useMemo - data being used:', data);
         const now = new Date();
 
         const messages = data?.messages || [];
@@ -291,7 +281,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             meetings: meetings.filter(m => new Date(m.dateTime) > now).length,
         };
     }, [data]);
-    console.log('DashboardPage: Stats calculated:', stats);
 
     const handleOpenAddTaskFromChat = useCallback((chatData) => {
         openModal('assignTaskProjectDeadline', {
@@ -311,24 +300,21 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         let content = '';
 
         if (alertItem.type === 'deadline') {
-            title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.title}`);
-            // Assurez-vous que alertItem.deadline contient la date de l'échéance du projet
+            title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title}`); // Utiliser name pour projets, title pour tâches
             const deadlineDate = parseISO(alertItem.deadline);
-            content = `Tâche/Projet : ${alertItem.name || alertItem.title}\n` + // Utiliser name pour projets, title pour tâches
-                      `Client : ${alertItem.client || t('not_specified', 'Non spécifié')}\n` +
-                      `Date : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `Description : ${alertItem.description || t('no_description', 'Pas de description.')}`;
+            content = `${t('project_task', 'Tâche/Projet')} : ${alertItem.name || alertItem.title}\n` +
+                      `${t('client', 'Client')} : ${alertItem.client || t('not_specified', 'Non spécifié')}\n` +
+                      `${t('date', 'Date')} : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
+                      `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
         } else if (alertItem.type === 'meeting') {
             title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title}`);
-            // Assurez-vous que alertItem.dateTime contient la date et l'heure de la réunion
             const meetingDateTime = parseISO(alertItem.dateTime);
-            content = `Sujet : ${alertItem.title}\n` +
-                      `Date : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `Lieu : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
-                      `Description : ${alertItem.description || t('no_description', 'Pas de description.')}`;
+            content = `${t('subject', 'Sujet')} : ${alertItem.title}\n` +
+                      `${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
+                      `${t('location', 'Lieu')} : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
+                      `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
         }
 
-        // Ouvrir la modale de détails via la fonction openModal générale
         openModal('detailsModal', { title, content });
     }, [openModal, t]);
 
@@ -364,12 +350,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                     {/* TimeAlerts component with new onAlertCardClick prop */}
                     <TimeAlerts
-                        projects={data.projects} // Contient les échéances
+                        projects={data.projects} // Contient les échéances des projets
                         meetings={data.meetings} // Contient les réunions
                         t={t}
                         lang={lang}
-                        openModal={openModal} // Ceci est pour le bouton '+' pour ajouter
-                        onAlertCardClick={handleOpenAlertDetails} // Ceci est pour le clic sur la carte elle-même
+                        openModal={openModal} // Pour le bouton '+' dans TimeAlerts
+                        onAlertCardClick={handleOpenAlertDetails} // Pour le clic sur la carte elle-même
                     />
 
                     <div className="grid grid-cols-12 gap-6">
@@ -395,7 +381,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     messages={data.messages}
                                     user={user}
                                     initialMockData={initialMockData}
-                                    availableTeamMembers={data.staffMembers} // Assurez-vous que cette prop est bien passée
+                                    availableTeamMembers={data.staffMembers}
                                 />
                             </DashboardCard>
 
@@ -563,7 +549,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                 {modals.calculator && <CalculatorModal t={t} onClose={closeModal} />}
 
-                {/* Modale de détails pour les alertes */}
+                {/* Modale de détails pour les alertes (Deadlines et Meetings) */}
                 {modals.detailsModal.isOpen && (
                     <DetailsModal
                         isOpen={modals.detailsModal.isOpen}
