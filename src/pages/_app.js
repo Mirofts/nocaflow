@@ -1,6 +1,6 @@
 // src/pages/_app.js
 import '../i18next';
-import '@/styles/globals.css';
+import '../styles/globals.css';
 import { appWithTranslation } from 'next-i18next';
 import Head from 'next/head';
 import { AuthContextProvider } from '../context/AuthContext';

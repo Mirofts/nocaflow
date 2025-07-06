@@ -1,111 +1,59 @@
-// src/components/dashboard/FlowLiveMessages/hooks/useChatLogic.js
+// src/hooks/useChatLogic.js
 import { useState, useEffect, useCallback } from 'react';
-import { collection, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, serverTimestamp, arrayUnion, writeBatch } from 'firebase/firestore';
 
-const useChatLogic = ({
-  user,
-  currentFirebaseUid,
-  activeConversationId,
-  setActiveConversationId,
-  setActiveConversationPartner,
-  setActiveConversationIsGroup,
-  setActiveConversationParticipants,
-  currentUserName,
-  activeConversationPartner,
-  searchTerm,
-  setConversations,
-  setMessages,
-  setFilteredMessages,
-  t,
-  formatMessageTimeDisplay,
-  safeToDate,
-  setEphemeralImagePreview,
-  db
-}) => {
-  const [conversationsState, setConversationsState] = useState([]);
-  const [messagesState, setMessagesState] = useState([]);
-  const [filteredMessagesState, setFilteredMessagesState] = useState([]);
-  const [internalAvailableTeamMembers, setInternalAvailableTeamMembersState] = useState([]);
-  const [showMobileSidebar, setShowMobileSidebar] = useState(true);
+export const useChatLogic = (currentUser, initialMockData, messagesProp) => {
+    const [conversations, setConversations] = useState([]);
+    const [selectedConversationId, setSelectedConversationId] = useState(null);
+    const [messages, setMessages] = useState([]); // Internal state for messages, synchronized with messagesProp
+    const [filteredMessages, setFilteredMessages] = useState([]); // Messages displayed based on active conversation
+    const [isNewDiscussionModalOpen, setIsNewDiscussionModalOpen] = useState(false);
+    const [newDiscussionModalInitialContact, setNewDiscussionModalInitialContact] = useState(null);
+    const [activeSearchQuery, setActiveSearchQuery] = useState('');
 
-  const markMessagesAsRead = useCallback(async (conversationId, messageIds) => {
-    if (!currentFirebaseUid || !conversationId || messageIds.length === 0) return;
-    const batch = writeBatch(db);
-    messageIds.forEach(messageId => {
-        const messageRef = doc(db, 'conversations', conversationId, 'messages', messageId);
-        batch.update(messageRef, { readBy: arrayUnion(currentFirebaseUid) });
-    });
-    try {
-        await batch.commit();
-    } catch (e) {
-        console.error("Error marking messages as read:", e);
-    }
-  }, [currentFirebaseUid, db]);
+    // Effect to initialize conversations from mock data or set default selected conversation
+    useEffect(() => {
+        // Ensure initialMockData and its conversations property are arrays
+        const userConversations = initialMockData?.conversations || [];
+        setConversations(userConversations);
 
-  useEffect(() => {
-    if (!user || !user.uid) return;
-    const userStatusRef = doc(db, 'users', user.uid);
-    const setOnline = async () => {
-      try { await updateDoc(userStatusRef, { isOnline: true, lastOnline: serverTimestamp() }, { merge: true }); }
-      catch (e) { console.error("Failed to set user online status:", e); }
+        // Initialize internal messages state with prop messages
+        setMessages(messagesProp || []);
+
+        // Set a default selected conversation if none is active and conversations exist
+        // This logic will run on initial load and when initialMockData or messagesProp change.
+        if (!selectedConversationId && userConversations.length > 0) {
+            setSelectedConversationId(userConversations[0].id);
+        }
+    }, [initialMockData, messagesProp, selectedConversationId]); // Added selectedConversationId to re-evaluate default selection
+
+    // Effect to filter messages based on the selected conversation
+    useEffect(() => {
+        const currentConv = conversations.find(conv => conv.id === selectedConversationId);
+        // Ensure currentConv and its messages are valid before setting
+        if (currentConv) {
+            setFilteredMessages(currentConv.messages || []);
+        } else {
+            setFilteredMessages([]); // Clear filtered messages if no conversation is selected
+        }
+    }, [selectedConversationId, conversations]); // Re-run when selectedConversationId or conversations change
+
+    // Effect to filter conversations based on search query (for the sidebar display)
+    // This logic is actually handled by the FlowLiveMessagesSidebar directly using filteredConversations.
+    // The activeSearchQuery is part of the state, but filtering isn't done here for messages.
+
+    // Return all necessary states and setters for FlowLiveMessages (index.js)
+    return {
+        conversations,
+        selectedConversationId,
+        filteredMessages,
+        setSelectedConversationId,
+        setConversations,
+        setMessages, // setMessages is passed back for sync with messagesProp
+        isNewDiscussionModalOpen,
+        setIsNewDiscussionModalOpen,
+        newDiscussionModalInitialContact,
+        setNewDiscussionModalInitialContact,
+        activeSearchQuery,
+        setActiveSearchQuery
     };
-    const setOffline = async () => {
-      try { await updateDoc(userStatusRef, { isOnline: false, lastOnline: serverTimestamp() }, { merge: true }); }
-      catch (e) { console.error("Failed to set user offline status:", e); }
-    };
-    setOnline();
-    const handleBeforeUnload = () => { setOffline(); };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => { setOffline(); window.removeEventListener('beforeunload', handleBeforeUnload); };
-  }, [user, db]);
-
-  useEffect(() => {
-    if (!currentFirebaseUid) return;
-    const usersColRef = collection(db, 'users');
-    const unsubscribe = onSnapshot(usersColRef, (snapshot) => {
-      const members = snapshot.docs
-        .filter(doc => doc.id !== currentFirebaseUid)
-        .map(doc => ({
-          firebaseUid: doc.id,
-          name: doc.data().displayName || t('user_default', 'Utilisateur'),
-          email: doc.data().email || '',
-          initials: doc.data().displayName?.charAt(0).toUpperCase() || '?',
-          color: 'bg-' + ['yellow', 'green', 'blue', 'red', 'purple'][Math.floor(Math.random() * 5)] + '-500',
-        }));
-        setInternalAvailableTeamMembersState(members);
-    });
-    return () => unsubscribe();
-  }, [currentFirebaseUid, t, db]);
-
-  useEffect(() => {
-    if (!currentFirebaseUid) { setConversationsState([]); return; }
-    console.log("Conversations effect (mock)");
-    setConversationsState([]);
-    return () => {};
-  }, [currentFirebaseUid]);
-
-
-  useEffect(() => {
-    if (!activeConversationId) { setMessagesState([]); return; }
-    console.log("Messages effect (mock)");
-    setMessagesState([]);
-    return () => {};
-  }, [activeConversationId]);
-
-  useEffect(() => {
-    setFilteredMessagesState(messagesState);
-  }, [searchTerm, messagesState]);
-
-
-  return {
-    conversations: conversationsState,
-    internalAvailableTeamMembers: internalAvailableTeamMembersState,
-    messages: messagesState,
-    filteredMessages: filteredMessagesState,
-    showMobileSidebar,
-    setShowMobileSidebar,
-    markMessagesAsRead
-  };
 };
-
-export default useChatLogic;
