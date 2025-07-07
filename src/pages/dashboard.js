@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '../context/ThemeContext'; // Corrected to relative path
+import { useTheme } from '../context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
@@ -46,9 +46,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const isGuestMode = !authUser || authUser.uid === 'guest_noca_flow';
     
     const initialGuestNameSSR = 'Visiteur Curieux';
-    const userUid = authUser?.uid; // Assuré d'être défini ici pour useUserTodos
+    const userUid = authUser?.uid;
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
+    const [isClient, setIsClient] = useState(false); // État pour le rendu côté client
+
+    useEffect(() => {
+        setIsClient(true); // Définit à true après le premier rendu côté client
+    }, []);
 
     const [localData, setLocalData] = useState(() => {
         let initialValue = {
@@ -151,17 +156,15 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return isGuestMode ? (localData.tasks || []) : [];
     }, [isGuestMode, localData.tasks]);
 
-    // DÉPLACEZ CETTE DÉCLARATION AVANT LE useMemo 'data'
     const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
         useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
-
 
     const data = useMemo(() => {
         let currentData = { ...localData };
 
         if (!isGuestMode) {
-            currentData.user = authUser; // Utilisez authUser pour l'utilisateur connecté
-            currentData.tasks = todos; // Maintenant 'todos' est défini
+            currentData.user = authUser;
+            currentData.tasks = todos;
         } else {
             currentData.user = {
                 ...currentData.user,
@@ -178,11 +181,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         currentData.invoices = Array.isArray(currentData.invoices) ? currentData.invoices : [];
         currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
 
-        // Si data.userUid est utilisé ailleurs, il est mieux de le garder dans data
-        currentData.userUid = userUid; // Assurez-vous que c'est le userUid correct de useAuth
-
         return currentData;
-    }, [isGuestMode, localData, todos, guestName, authUser, userUid]); // Ajout de userUid dans les dépendances
+    }, [isGuestMode, localData, todos, guestName, authUser]);
 
 
     const [activeModal, setActiveModal] = useState(null);
@@ -311,7 +311,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         openModal('detailsModal', { title, content });
     }, [openModal, t]);
 
-    // New handler to pass down to FlowLiveMessages
     const handleSelectUserOnMobile = useCallback((conv) => {
         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== authUser?.uid);
         if (otherParticipant) {
@@ -326,7 +325,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         <>
             <Head><title>Dashboard - NocaFLOW</title></Head>
             <div className="min-h-screen w-full dashboard-page-content-padding">
-                {isGuestMode && (
+                {isClient && isGuestMode && ( // Conditionnel au rendu client pour éviter l'hydratation
                     <div className="guest-banner-wrapper">
                         <GuestBanner
                             onRegisterClick={onRegisterClick}
@@ -494,14 +493,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 )}
                 {activeModal === 'userNameEdit' && !isGuestMode && (
                     <UserNameEditModal
-                        currentUser={authUser} // Utiliser authUser ici
+                        currentUser={authUser}
                         onClose={closeModal}
                         t={t}
                     />
                 )}
                 {activeModal === 'avatar' && (
                     <AvatarEditModal
-                        user={authUser} // Utiliser authUser ici
+                        user={authUser}
                         onClose={closeModal}
                         onUpdateGuestAvatar={(newAvatar) => onUpdateGuestData(prev => ({ ...prev, user: { ...prev.user, photoURL: newAvatar } }))}
                         isGuestMode={isGuestMode}
@@ -526,7 +525,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         member={modalProps.member}
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers || []}
-                        userUid={userUid} // userUid est correctement scope ici
+                        userUid={userUid}
                         currentUserName={authUser?.displayName || 'Moi'}
                         onAddTask={addTodo}
                     />

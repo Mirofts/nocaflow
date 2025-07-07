@@ -1,7 +1,7 @@
 // src/components/dashboard/TimeAlerts.js
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { format, differenceInMinutes, parseISO, isValid, differenceInMilliseconds } from 'date-fns';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { format, differenceInMinutes, parseISO, isValid, differenceInMilliseconds, isPast, intervalToDuration, isBefore, isAfter } from 'date-fns'; // Added isAfter
 import { fr } from 'date-fns/locale';
 import { useTheme } from '../../context/ThemeContext';
 import { DashboardCard } from './DashboardCard';
@@ -11,7 +11,7 @@ const FULL_GAUGE_DURATION_MINUTES = 48 * 60; // 48 hours * 60 minutes/hour
 
 const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, openCreateModal, onCardClick, alertData, t }) => {
     const { isDarkMode } = useTheme();
-    const targetDate = parseISO(dateTime);
+    const targetDate = useMemo(() => dateTime ? parseISO(dateTime) : null, [dateTime]); // useMemo for targetDate
 
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: false });
     const isMounted = useRef(false);
@@ -23,43 +23,46 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
         };
     }, []);
 
-    useEffect(() => {
-        if (!isValid(targetDate)) {
-            if (isMounted.current) {
-                setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: true });
-            }
-            return;
+    // Encapsuler calculateTimeLeft et updateCountdown dans useCallback
+    const calculateTimeLeft = useCallback(() => {
+        if (!targetDate || !isValid(targetDate)) {
+            return { days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: true };
         }
 
-        const calculateTimeLeft = () => {
-            const now = new Date();
-            const differenceMs = targetDate.getTime() - now.getTime();
+        const now = new Date();
+        const differenceMs = targetDate.getTime() - now.getTime();
 
-            if (differenceMs <= 0) {
-                return { days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: true };
-            }
+        if (differenceMs <= 0) {
+            return { days: 0, hours: 0, minutes: 0, seconds: 0, totalMinutes: 0, overdue: true };
+        }
 
-            const totalSeconds = Math.floor(differenceMs / 1000);
-            const days = Math.floor(totalSeconds / (3600 * 24));
-            const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-            const totalRemainingMinutes = Math.floor(differenceMs / (1000 * 60));
+        const totalSeconds = Math.floor(differenceMs / 1000);
+        const days = Math.floor(totalSeconds / (3600 * 24));
+        const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        const totalRemainingMinutes = Math.floor(differenceMs / (1000 * 60));
 
-            return { days, hours, minutes, seconds, totalMinutes: totalRemainingMinutes, overdue: false };
-        };
+        return { days, hours, minutes, seconds, totalMinutes: totalRemainingMinutes, overdue: false };
+    }, [targetDate]); // Dépend de targetDate
 
-        const updateCountdown = () => {
-            if (isMounted.current) {
-                setTimeLeft(calculateTimeLeft());
-            }
-        };
+    const updateCountdown = useCallback(() => {
+        if (isMounted.current) {
+            setTimeLeft(calculateTimeLeft());
+        }
+    }, [calculateTimeLeft]); // Dépend de calculateTimeLeft
 
+    useEffect(() => {
+        // Initial call
         updateCountdown();
+
+        // Setup interval
         const timer = setInterval(updateCountdown, 1000);
 
+        // Cleanup function for useEffect
         return () => clearInterval(timer);
-    }, [dateTime, targetDate, type]);
+    }, [updateCountdown]); // Dépend uniquement de updateCountdown
+
 
     const displayTime = timeLeft.overdue
         ? t('overdue', 'Passée')
@@ -120,11 +123,9 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
                 </motion.button>
             </div>
 
-            {/* Changed from text-xl to text-lg */}
             <h4 className={`text-center text-lg font-extrabold mb-2 ${titleTextColorClass}`}>
                 {title}
             </h4>
-            {/* Changed from text-3xl to text-2xl */}
             <p className={`text-center text-2xl font-black ${timeTextColorClass} mb-4 leading-tight`}>
                 {displayTime}
             </p>
@@ -154,13 +155,21 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
     const safeProjects = projects || [];
     const safeMeetings = meetings || [];
 
-    const nextDeadline = safeProjects
-        .filter(p => p.deadline && isValid(parseISO(p.deadline)) && new Date(p.deadline) > new Date())
-        .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0];
+    const nextDeadline = useMemo(() => {
+        const now = new Date();
+        const upcomingDeadlines = safeProjects
+            .filter(p => p.deadline && isValid(parseISO(p.deadline)) && isAfter(parseISO(p.deadline), now))
+            .sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
+        return upcomingDeadlines[0];
+    }, [safeProjects]);
 
-    const nextMeeting = safeMeetings
-        .filter(meetingItem => meetingItem.dateTime && isValid(parseISO(meetingItem.dateTime)) && new Date(meetingItem.dateTime) > new Date())
-        .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime))[0];
+    const nextMeeting = useMemo(() => {
+        const now = new Date();
+        const upcomingMeetings = safeMeetings
+            .filter(m => m.dateTime && isValid(parseISO(m.dateTime)) && isAfter(parseISO(m.dateTime), now))
+            .sort((a, b) => parseISO(a.dateTime).getTime() - parseISO(b.dateTime).getTime());
+        return upcomingMeetings[0];
+    }, [safeMeetings]);
 
     return (
         <DashboardCard

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext'; // Corrected import path for ThemeContext
+import { useTheme } from '@/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { db, auth, storage } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, serverTimestamp, arrayUnion, writeBatch, addDoc, setDoc } from 'firebase/firestore';
@@ -21,6 +21,7 @@ import { useFullScreen } from '@/hooks/useFullScreen';
 import { useChatLogic } from '@/hooks/useChatLogic';
 import { useChatActions } from '@/hooks/useChatActions';
 
+
 const ALL_EMOJIS = [
     '👋', '😀', '🔥', '🚀', '💡', '✅', '✨', '👍', '🎉', '🌟', '💫', '💥', '🚀', '🌈', '☀️', '🌻', '🌺', '🌲', '🌳', '🍂', '🍁', '🍓', '🍋', '🍎', '🍔', '🍕', '🌮', '🍩', '🍦', '☕', '🍵', '🥂', '🍾', '🎉', '🎁', '🎈', '🎂', '🥳', '🏠', '🏢', '💡', '⏰', '📆', '📈', '📊', '🔗', '🔒', '🔑', '📝', '📌', '📎', '📁', '📄', '📊', '📈', '📉', '💰', '💳', '💵', '💸', '📧', '📞', '💬', '🔔', '📣', '💡', '⚙️', '🔨', '🛠️', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳'
 ];
@@ -32,29 +33,56 @@ const FlowLiveMessages = forwardRef(({
     onAddMeeting,
     onAddDeadline,
     availableTeamMembers,
-    messages: messagesProp, // This prop seems unused, as messages are fetched via onSnapshot
+    messages: messagesProp,
     user, // The user prop passed from dashboard.js, which is authUser
     initialMockData,
     handleSelectUserOnMobile
 }, ref) => {
-    const { currentUser: authUser } = useAuth(); // Use authUser from AuthContext for consistency
+    const { currentUser: authUser } = useAuth();
     const { isDarkMode } = useTheme();
     const { t, i18n } = useTranslation('common');
 
-    // Determine the actual current user based on prop and AuthContext
     const currentActiveUser = user || authUser;
     const isGuestMode = !currentActiveUser || currentActiveUser.uid === 'guest_noca_flow';
     const currentFirebaseUid = currentActiveUser?.uid || (isGuestMode ? 'guest_noca_flow' : null);
     const currentUserName = currentActiveUser?.displayName || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : 'Moi');
 
+    // Déclaration des fonctions utilitaires AVANT leurs utilisations dans les useEffects.
+    const formatMessageTimeDisplay = useCallback((timestamp) => {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const currentLocale = i18n.language === 'fr' ? fr : undefined;
+
+        if (isToday(date)) return format(date, 'HH:mm');
+        if (isYesterday(date)) return t('yesterday', 'Hier') + format(date, ' HH:mm');
+        if (isSameWeek(date, new Date())) return format(date, 'EEEE HH:mm', { locale: currentLocale });
+        if (isSameYear(date, new Date())) return format(date, 'dd MMMM', { locale: currentLocale });
+        return format(date, 'dd/MM/yyyy');
+    }, [t, i18n.language]);
+
+    const markMessagesAsRead = useCallback(async (conversationId, messageIds) => {
+        if (!currentFirebaseUid || !conversationId || messageIds.length === 0 || !db) return;
+        const batch = writeBatch(db);
+        messageIds.forEach(messageId => {
+            const messageRef = doc(db, 'conversations', conversationId, 'messages', messageId);
+            batch.update(messageRef, { readBy: arrayUnion(currentFirebaseUid) });
+        });
+        try {
+            await batch.commit();
+        } catch (e) {
+            console.error("Error marking messages as read:", e);
+        }
+    }, [currentFirebaseUid, db]);
+    // FIN des fonctions utilitaires déplacées.
+
 
     const {
         conversations,
         selectedConversationId,
-        filteredMessages, // This is derived from the 'messages' state below
+        filteredMessages,
         setSelectedConversationId,
         setConversations,
-        setMessages: setMessagesFromLogic, // Renamed to avoid conflict with local state
+        setMessages: setMessagesFromLogic,
         isNewDiscussionModalOpen,
         setIsNewDiscussionModalOpen,
         newDiscussionModalInitialContact,
@@ -63,15 +91,14 @@ const FlowLiveMessages = forwardRef(({
         setActiveSearchQuery
     } = useChatLogic(currentActiveUser, initialMockData, messagesProp);
 
-    // Local state for messages fetched from Firestore for the selected conversation
-    const [messages, setMessages] = useState([]); // This state will hold the messages for the *currently selected* conversation
+    const [messages, setMessages] = useState([]);
 
     const {
         sendMessage,
         startNewConversation,
         handleMessageAction,
         handleFileUpload
-    } = useChatActions(currentActiveUser, conversations, setConversations, setMessages); // Pass local setMessages here
+    } = useChatActions(currentActiveUser, conversations, setConversations, setMessages);
 
 
     const chatContainerRef = useRef(null);
@@ -82,10 +109,94 @@ const FlowLiveMessages = forwardRef(({
         toggleFullScreen: toggleFullScreen
     }));
 
-    // This useEffect is now crucial for populating the 'messages' state for the display
+    // Effect for fetching conversations from Firestore
     useEffect(() => {
-        if (!selectedConversationId || !db) {
-            setMessages([]); // Clear messages if no conversation is selected
+        if (!currentFirebaseUid || !db) {
+            setConversations([]);
+            return;
+        }
+
+        const q = query(
+            collection(db, 'conversations'),
+            where('participants', 'array-contains', currentFirebaseUid),
+            orderBy('lastMessageTime', 'desc')
+        );
+
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
+            const convs = await Promise.all(snapshot.docs.map(async d => {
+                const data = d.data();
+                let displayName = '';
+                let photoURL = '';
+                let isGroup = false;
+                let participantsDetails = [];
+
+                if (data.participants && Array.isArray(data.participants) && data.participants.length > 0) {
+                    const participantUids = data.participants;
+
+                    const userDetailsPromises = participantUids.map(uid =>
+                        getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
+                            .then(snap => snap.docs[0]?.data() || { uid: uid, displayName: t('unknown_user', 'Utilisateur'), photoURL: '/images/default-avatar.jpg', isOnline: false })
+                    );
+                    participantsDetails = await Promise.all(userDetailsPromises);
+
+                    if (data.participants.length > 2 || (data.participants.length === 2 && !data.participants.includes(currentFirebaseUid))) {
+                        isGroup = true;
+                        if (!data.name) {
+                            const otherParticipants = participantsDetails.filter(p => p.uid !== currentFirebaseUid);
+                            const participantNames = otherParticipants.map(p => p.displayName).filter(name => name);
+                            displayName = t('group_with', 'Groupe avec') + ` ${participantNames.join(', ')}`;
+                        } else {
+                            displayName = data.name;
+                        }
+                        photoURL = '/images/default-group-avatar.png'; // Avatar par défaut pour les groupes
+                    } else if (data.participants.length === 2 && data.participants.includes(currentFirebaseUid)) {
+                        const partnerDetail = participantsDetails.find(p => p.uid !== currentFirebaseUid);
+                        displayName = partnerDetail?.displayName || t('unknown_user', 'Utilisateur');
+                        photoURL = partnerDetail?.photoURL || '/images/default-avatar.jpg';
+                    } else if (data.participants.length === 1 && data.participants.includes(currentFirebaseUid)) {
+                        displayName = t('guest_you', 'TOI');
+                        photoURL = currentActiveUser?.photoURL || '/images/avatars/avatarguest.jpg'; // Correct path for guest avatar
+                    }
+                } else {
+                    displayName = data.name || t('new_conversation_default', 'Nouvelle Conversation');
+                    photoURL = '/images/default-avatar.jpg';
+                    isGroup = false;
+                    participantsDetails = [];
+                }
+
+                let unreadCount = 0;
+                if (data.lastMessageTime && data.lastMessageReadBy && !data.lastMessageReadBy.includes(currentFirebaseUid)) {
+                    unreadCount = 1;
+                }
+
+                return {
+                    id: d.id,
+                    ...data,
+                    name: displayName,
+                    photoURL: photoURL,
+                    isGroup: isGroup,
+                    unread: unreadCount,
+                    initials: (displayName || 'U').charAt(0).toUpperCase(),
+                    participantsDetails: participantsDetails
+                };
+            }));
+            setConversations(convs.sort((a,b) => (b.lastMessageTime?.toMillis() || 0) - (a.lastMessageTime?.toMillis() || 0)));
+
+            if (!selectedConversationId && convs.length > 0) {
+                setSelectedConversationId(convs[0].id);
+            }
+        }, (error) => {
+            console.error("Error fetching conversations:", error);
+        });
+
+        return () => unsubscribe();
+    }, [currentFirebaseUid, currentActiveUser, t, db, selectedConversationId, setSelectedConversationId]);
+
+
+    // Effect for fetching messages for the selected conversation
+    useEffect(() => {
+        if (!selectedConversationId || !db || conversations.length === 0) {
+            setMessages([]);
             return;
         }
 
@@ -95,10 +206,12 @@ const FlowLiveMessages = forwardRef(({
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const newMessages = snapshot.docs.map(d => {
                 const data = d.data();
-                // Find the active conversation details from the 'conversations' state
-                // This 'conversations' state is populated by the first onSnapshot in this component
                 const activeConv = conversations.find(conv => conv.id === selectedConversationId);
-                const senderDetail = activeConv?.participantsDetails?.find(p => p.uid === data.senderUid);
+                
+                const senderDetail = activeConv?.participantsDetails?.find(p => p.uid === data.senderUid) || {
+                    displayName: t('unknown_user', 'Utilisateur'),
+                    photoURL: '/images/default-avatar.jpg'
+                };
 
                 const senderName = (data.senderUid === currentFirebaseUid)
                     ? currentUserName
@@ -109,25 +222,24 @@ const FlowLiveMessages = forwardRef(({
                     ...data,
                     displayTime: formatMessageTimeDisplay(data.timestamp),
                     status: (data.readBy || []).includes(currentFirebaseUid) ? 'read' : 'sent',
-                    from: senderName, // This 'from' is just for display, not data structure
-                    senderPhotoURL: senderDetail?.photoURL || '/images/default-avatar.jpg',
-                    senderName: senderName // This senderName is used for display
+                    from: senderName,
+                    senderPhotoURL: senderDetail?.photoURL,
+                    senderName: senderName
                 };
             });
-            setMessages(newMessages); // Update the local 'messages' state for display
+            setMessages(newMessages);
 
-            // Mark messages as read
             const unreadMessageIds = snapshot.docs.filter(d => !(d.data().readBy || []).includes(currentFirebaseUid) && d.data().senderUid !== currentFirebaseUid).map(d => d.id);
             if (unreadMessageIds.length > 0) {
                 markMessagesAsRead(selectedConversationId, unreadMessageIds);
             }
         }, (error) => {
             console.error("Error fetching messages for conversation " + selectedConversationId + ":", error);
-            setMessages([]); // Clear messages on error
+            setMessages([]);
         });
 
-        return () => unsubscribe(); // Cleanup function
-    }, [selectedConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, db, conversations]); // Added 'conversations' to dependencies
+        return () => unsubscribe();
+    }, [selectedConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, db, conversations]);
 
 
     const [newMessage, setNewMessage] = useState('');
@@ -221,120 +333,8 @@ const FlowLiveMessages = forwardRef(({
     }, []);
 
 
-    const formatMessageTimeDisplay = useCallback((timestamp) => {
-        if (!timestamp) return '';
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        const currentLocale = i18n.language === 'fr' ? fr : undefined;
-
-        if (isToday(date)) return format(date, 'HH:mm');
-        if (isYesterday(date)) return t('yesterday', 'Hier') + format(date, ' HH:mm');
-        if (isSameWeek(date, new Date())) return format(date, 'EEEE HH:mm', { locale: currentLocale });
-        if (isSameYear(date, new Date())) return format(date, 'dd MMMM', { locale: currentLocale });
-        return format(date, 'dd/MM/yyyy');
-    }, [t, i18n.language]);
-
-    const markMessagesAsRead = useCallback(async (conversationId, messageIds) => {
-        if (!currentFirebaseUid || !conversationId || messageIds.length === 0 || !db) return;
-        const batch = writeBatch(db);
-        messageIds.forEach(messageId => {
-            const messageRef = doc(db, 'conversations', conversationId, 'messages', messageId);
-            batch.update(messageRef, { readBy: arrayUnion(currentFirebaseUid) });
-        });
-        try {
-            await batch.commit();
-        } catch (e) {
-            console.error("Error marking messages as read:", e);
-        }
-    }, [currentFirebaseUid, db]);
-
-
-    // Effect for fetching conversations from Firestore
-    useEffect(() => {
-        if (!currentFirebaseUid || !db) {
-            setConversations([]);
-            return;
-        }
-
-        const q = query(
-            collection(db, 'conversations'),
-            where('participants', 'array-contains', currentFirebaseUid),
-            orderBy('lastMessageTime', 'desc')
-        );
-
-        const unsubscribe = onSnapshot(q, async (snapshot) => {
-            const convs = await Promise.all(snapshot.docs.map(async d => {
-                const data = d.data();
-                let displayName = '';
-                let photoURL = '';
-                let isGroup = false;
-                let participantsDetails = [];
-
-                if (data.participants && Array.isArray(data.participants) && data.participants.length > 0) {
-                    const participantUids = data.participants;
-
-                    const userDetailsPromises = participantUids.map(uid =>
-                        getDocs(query(collection(db, 'users'), where('uid', '==', uid)))
-                            .then(snap => snap.docs[0]?.data() || { uid: uid, displayName: t('unknown_user', 'Utilisateur'), photoURL: '/images/default-avatar.jpg', isOnline: false })
-                    );
-                    participantsDetails = await Promise.all(userDetailsPromises);
-
-                    if (data.participants.length > 2 || (data.participants.length === 2 && !data.participants.includes(currentFirebaseUid))) {
-                        isGroup = true;
-                        if (!data.name) {
-                            const otherParticipants = participantsDetails.filter(p => p.uid !== currentFirebaseUid);
-                            const participantNames = otherParticipants.map(p => p.displayName).filter(name => name);
-                            displayName = t('group_with', 'Groupe avec') + ` ${participantNames.join(', ')}`;
-                        } else {
-                            displayName = data.name;
-                        }
-                        photoURL = '/images/default-group-avatar.png'; // Avatar par défaut pour les groupes
-                    } else if (data.participants.length === 2 && data.participants.includes(currentFirebaseUid)) {
-                        const partnerDetail = participantsDetails.find(p => p.uid !== currentFirebaseUid);
-                        displayName = partnerDetail?.displayName || t('unknown_user', 'Utilisateur');
-                        photoURL = partnerDetail?.photoURL || '/images/default-avatar.jpg';
-                    } else if (data.participants.length === 1 && data.participants.includes(currentFirebaseUid)) {
-                        displayName = t('guest_you', 'TOI');
-                        photoURL = currentActiveUser?.photoURL || '/images/avatars/avatarguest.jpg'; // Correct path for guest avatar
-                    }
-                } else {
-                    displayName = data.name || t('new_conversation_default', 'Nouvelle Conversation');
-                    photoURL = '/images/default-avatar.jpg';
-                    isGroup = false;
-                    participantsDetails = [];
-                }
-
-                let unreadCount = 0;
-                if (data.lastMessageTime && data.lastMessageReadBy && !data.lastMessageReadBy.includes(currentFirebaseUid)) {
-                    unreadCount = 1;
-                }
-
-
-                return {
-                    id: d.id,
-                    ...data,
-                    name: displayName,
-                    photoURL: photoURL,
-                    isGroup: isGroup,
-                    unread: unreadCount,
-                    initials: (displayName || 'U').charAt(0).toUpperCase(),
-                    participantsDetails: participantsDetails
-                };
-            }));
-            setConversations(convs.sort((a,b) => (b.lastMessageTime?.toMillis() || 0) - (a.lastMessageTime?.toMillis() || 0)));
-
-            if (!selectedConversationId && convs.length > 0) {
-                setSelectedConversationId(convs[0].id);
-            }
-        }, (error) => {
-            console.error("Error fetching conversations:", error);
-        });
-
-        return () => unsubscribe();
-    }, [currentFirebaseUid, currentActiveUser, t, db, setSelectedConversationId, selectedConversationId]); // Changed 'currentUser' to 'currentActiveUser' dependency
-
-
     const handleCreateNewDiscussion = useCallback(async ({ name, email, selectedUids, showNewContact }) => {
-        if (!currentActiveUser) { // Use currentActiveUser
+        if (!currentActiveUser) {
             alert(t('login_to_create_discussion', 'Veuillez vous connecter pour créer une discussion.'));
             return;
         }
@@ -389,7 +389,7 @@ const FlowLiveMessages = forwardRef(({
             console.error("Failed to start new conversation:", error);
             alert(t('error_starting_conversation', 'Erreur lors du démarrage de la conversation.'));
         }
-    }, [currentActiveUser, currentFirebaseUid, t, startNewConversation, setIsNewDiscussionModalOpen, setNewMessage, setSelectedConversationId, db]); // Changed 'currentUser' to 'currentActiveUser' dependency
+    }, [currentActiveUser, currentFirebaseUid, t, startNewConversation, setIsNewDiscussionModalOpen, setNewMessage, setSelectedConversationId, db]);
 
 
     const handleSelectConversation = useCallback((convId) => {
@@ -401,7 +401,8 @@ const FlowLiveMessages = forwardRef(({
 
 
     return (
-        <div ref={chatContainerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : ''}`}>
+        // Conteneur principal du chat - Ajout d'une hauteur maximale pour éviter l'étirement
+        <div ref={chatContainerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : 'max-h-[700px]'}`}> {/* max-h-700px ou une autre valeur appropriée */}
             {isGuestMode && (
                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-40 text-white text-center p-4">
                     <p className="text-xl font-semibold mb-4">{t('access_restricted', 'Accès Restreint.')}</p>
@@ -425,14 +426,14 @@ const FlowLiveMessages = forwardRef(({
                 onNewDiscussionClick={() => setIsNewDiscussionModalOpen(true)}
                 activeSearchQuery={activeSearchQuery}
                 setActiveSearchQuery={setActiveSearchQuery}
-                currentUser={currentActiveUser} // Use currentActiveUser here
+                currentUser={currentActiveUser}
                 t={t}
                 isFullScreen={isFullScreen}
                 handleSelectUserOnMobile={handleSelectUserOnMobile}
             />
 
             {/* Chat Panel (messages et input) */}
-            <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'}`}>
+            <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'} min-h-0`}> {/* min-h-0 pour permettre au contenu de flex d'être scrollable */}
                 {selectedConversationId ? (
                     <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
                         {/* Bouton de retour visible uniquement sur les petits écrans quand la sidebar est cachée */}
@@ -499,8 +500,8 @@ const FlowLiveMessages = forwardRef(({
 
                 {/* Zone d'affichage des messages */}
                 <FlowLiveMessagesDisplay
-                    messages={messages || []} // Use the local 'messages' state
-                    currentUser={currentActiveUser} // Use currentActiveUser here
+                    messages={messages || []}
+                    currentUser={currentActiveUser}
                     onMessageAction={handleMessageAction}
                     onOpenAddTaskFromChat={onOpenAddTaskFromChat}
                     availableTeamMembers={internalAvailableTeamMembers}
