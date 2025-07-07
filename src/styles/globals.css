@@ -4,10 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- AJOUTS DEPUIS LES DERNIÈRES DISCUSSIONS --- */
 /* Import de Google Fonts (Poppins et Roboto Mono pour un look moderne et tech) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
+
 
 @layer base {
   /* Reset for HTML and Body to remove default margins/paddings */
@@ -37,15 +37,15 @@
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
     transition: background-color 0.4s ease, color 0.4s ease; /* Transitions plus douces */
-    font-family: 'Inter', sans-serif; /* Garde Inter si c'est votre choix principal */
+    font-family: 'Inter', sans-serif; /* Votre choix actuel, si vous voulez Poppins, changez ici */
     /* Optionnel: pour un design plus "propre", ajuster le line-height global */
     line-height: 1.6;
   }
   
-  /* AJOUT : Si vous voulez que Poppins soit la police principale partout, écrasez ici ou dans le body ci-dessus */
-  body, button, input, select, textarea {
-    font-family: 'Poppins', sans-serif; /* Poppins pour un look plus moderne */
-  }
+  /* Si vous voulez que Poppins soit la police principale partout, décommentez ceci */
+  /* body, button, input, select, textarea {
+    font-family: 'Poppins', sans-serif;
+  } */
 
 
   button, [role="button"], a, input[type="submit"], input[type="checkbox"], .cursor-pointer {
