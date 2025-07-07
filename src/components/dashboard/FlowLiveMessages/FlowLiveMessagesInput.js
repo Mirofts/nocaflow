@@ -11,29 +11,57 @@ const FlowLiveMessagesInput = ({
   showEmojiPicker,
   setShowEmojiPicker,
   emojiButtonRef,
+  fileInputRef, // Added fileInputRef
   isDarkMode,
-  t // <--- Ensure t is destructured from props
+  t,
+  handleSendEphemeralMessage, // New prop for ephemeral messages
+  handleAttachEphemeralFile, // New prop for ephemeral files
+  activeConversationId, // To disable buttons if no conversation is selected
+  isGuestMode // To disable buttons in guest mode
 }) => {
+
+  const isSendDisabled = !activeConversationId || !newMessage.trim();
+  const isAttachDisabled = !activeConversationId;
+
   return (
     <div className="flex items-end p-3 sm:p-4 border-t border-color-border-primary glass-card-input flex-shrink-0 relative">
       <input
         type="file"
-        ref={null} // Ref managed by parent (FlowLiveMessages/index.js)
+        ref={fileInputRef} // Ref is now passed and used here
         className="hidden"
+        accept="image/*,application/pdf" // Specify accepted file types
       />
       <button
         className="text-gray-400 hover:text-purple-500 p-2 rounded"
         onClick={handleAttachNormalFile}
         title={t('attach_file', 'Joindre un fichier')}
+        disabled={isAttachDisabled || isGuestMode}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.2"/></svg>
       </button>
+
+      {/* Ephemeral File Button */}
+      <button
+        className="text-gray-400 hover:text-orange-500 p-2 rounded ml-1"
+        onClick={handleAttachEphemeralFile}
+        title={t('attach_ephemeral_file', 'Joindre un fichier éphémère (disparaît après lecture)')}
+        disabled={isAttachDisabled || isGuestMode}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+            <path d="M14 2v6h6"></path>
+            <circle cx="12" cy="13" r="3"></circle>
+            <path d="M16 11l-4 4-4-4"></path>
+        </svg>
+      </button>
+
       <div className="relative">
         <button
           ref={emojiButtonRef}
           className="text-gray-400 hover:text-purple-500 p-2 rounded"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           title={t('pick_emoji', 'Choisir un emoji')}
+          disabled={isGuestMode}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>
         </button>
@@ -64,23 +92,28 @@ const FlowLiveMessagesInput = ({
         onKeyPress={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSendNormalMessage();
+            if (!isSendDisabled && !isGuestMode) {
+                handleSendNormalMessage();
+            }
           }
         }}
+        disabled={!activeConversationId || isGuestMode}
       />
       {/* Normal Send Button */}
       <button
-        className="main-action-button bg-purple-500 hover:bg-purple-600 text-white p-2 rounded transition-colors duration-200"
+        className={`main-action-button bg-purple-500 hover:bg-purple-600 text-white p-2 rounded transition-colors duration-200 ${isSendDisabled || isGuestMode ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={handleSendNormalMessage}
         title={t('send_message', 'Envoyer le message')}
+        disabled={isSendDisabled || isGuestMode}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg>
       </button>
-      {/* Ephemeral Send Button - Removed direct handler, will pass from parent */}
+      {/* Ephemeral Send Button */}
       <button
-        className="main-action-button bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full transition-colors duration-200 ml-2"
-        onClick={() => { /* Handled in parent via options menu for now */ }}
+        className={`main-action-button bg-orange-500 hover:bg-orange-600 text-white p-2 rounded transition-colors duration-200 ml-2 ${isSendDisabled || isGuestMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+        onClick={handleSendEphemeralMessage}
         title={t('send_ephemeral_message_btn', 'Envoyer le message éphémère')}
+        disabled={isSendDisabled || isGuestMode}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"></circle>

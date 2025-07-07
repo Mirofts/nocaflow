@@ -6,7 +6,7 @@ import { useTheme } from '../../../context/ThemeContext';
 const FlowLiveMessagesSidebar = ({
     conversations,
     selectedConversationId,
-    setSelectedConversationId, // <-- Ensure this is received
+    setSelectedConversationId,
     onNewDiscussionClick,
     activeSearchQuery,
     setActiveSearchQuery,
@@ -21,32 +21,21 @@ const FlowLiveMessagesSidebar = ({
 
     const filteredConversations = useMemo(() => {
         if (!activeSearchQuery) {
-            return conversations; // conversations should be an array here
+            return conversations;
         }
         return conversations.filter(conv =>
             (conv.name?.toLowerCase().includes(activeSearchQuery.toLowerCase())) ||
-            (conv.messages?.some(msg => msg.text?.toLowerCase().includes(activeSearchQuery.toLowerCase()))) // Added ?. for msg.text
+            (conv.lastMessage?.toLowerCase().includes(activeSearchQuery.toLowerCase())) // Search in last message content
         );
     }, [conversations, activeSearchQuery]);
 
-    const handleConversationClick = useCallback((convId, conv) => {
-        // Ensure setSelectedConversationId is a function before calling
-        if (typeof setSelectedConversationId === 'function') { // Crucial check
+    const handleConversationClick = useCallback((convId) => {
+        if (typeof setSelectedConversationId === 'function') {
             setSelectedConversationId(convId);
         } else {
             console.error("setSelectedConversationId is not a function in FlowLiveMessagesSidebar.");
         }
-
-        if (handleSelectUserOnMobile && typeof handleSelectUserOnMobile === 'function') {
-            const otherUserInConv = conv.users?.find(u => u.uid !== currentUserId);
-
-            if (otherUserInConv) {
-                handleSelectUserOnMobile(otherUserInConv);
-            } else {
-                handleSelectUserOnMobile(conv); // Fallback to passing the whole conversation
-            }
-        }
-    }, [setSelectedConversationId, handleSelectUserOnMobile, currentUserId]);
+    }, [setSelectedConversationId]);
 
     return (
         <div className={`relative flex flex-col ${isFullScreen ? 'w-full md:w-1/3 lg:w-1/4' : 'w-full md:w-1/3 lg:w-1/4'} border-r ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
@@ -65,40 +54,49 @@ const FlowLiveMessagesSidebar = ({
                 {filteredConversations.length === 0 ? (
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400 p-4">{t('no_conversations', 'Aucune conversation trouvée.')}</p>
                 ) : (
-                    filteredConversations.map(conv => (
-                        <motion.div
-                            key={conv.id || conv.name || `conv-${Math.random()}`} // Robust key
-                            className={`flex items-center p-3 border-b cursor-pointer transition-colors ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} ${selectedConversationId === conv.id ? (isDarkMode ? 'bg-indigo-700 bg-opacity-30' : 'bg-indigo-50') : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}`}
-                            onClick={() => handleConversationClick(conv.id, conv)}
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.99 }}
-                        >
-                            <div className="relative">
-                                {/* Corrected path for avatar and added default */}
-                                <img
-                                    src={conv.users?.find(u => u.uid !== currentUserId)?.photoURL || '/images/default-avatar.jpg'}
-                                    alt={conv.name || t('unknown_user', 'Utilisateur inconnu')}
-                                    className="w-10 h-10 rounded-full mr-3 object-cover"
-                                />
-                                {/* Corrected `conv.conv.users` to `conv.users` */}
-                                {conv.users?.find(u => u.uid !== currentUserId)?.isOnline && (
-                                    <span className="absolute bottom-0 right-3 block w-2.5 h-2.5 bg-green-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
+                    filteredConversations.map(conv => {
+                        const otherParticipant = conv.participantsDetails?.find(p => p.uid !== currentUserId);
+                        const displayPhotoURL = conv.isGroup ? '/images/default-group-avatar.png' : (otherParticipant?.photoURL || '/images/default-avatar.jpg');
+                        const isOnline = otherParticipant?.isOnline; // Assuming isOnline property exists on participant details
+
+                        return (
+                            <motion.div
+                                key={conv.id || conv.name || `conv-${Math.random()}`} // Robust key
+                                className={`flex items-center p-3 border-b cursor-pointer transition-colors ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} ${selectedConversationId === conv.id ? (isDarkMode ? 'bg-indigo-700 bg-opacity-30' : 'bg-indigo-50') : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}`}
+                                onClick={() => handleConversationClick(conv.id)}
+                                whileHover={{ scale: 1.01 }}
+                                whileTap={{ scale: 0.99 }}
+                            >
+                                <div className="relative">
+                                    <img
+                                        src={displayPhotoURL}
+                                        alt={conv.name || t('unknown_user', 'Utilisateur inconnu')}
+                                        className="w-10 h-10 rounded-full mr-3 object-cover"
+                                    />
+                                    {isOnline && (
+                                        <span className="absolute bottom-0 right-3 block w-2.5 h-2.5 bg-green-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-semibold text-gray-800 dark:text-white">{conv.name || t('new_chat', 'Nouveau chat')}</h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                        {conv.lastMessage || t('no_messages_yet', 'Aucun message pour l\'instant.')}
+                                    </p>
+                                </div>
+                                {conv.unread > 0 && (
+                                    <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                                        {conv.unread}
+                                    </span>
                                 )}
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="font-semibold text-gray-800 dark:text-white">{conv.name || t('new_chat', 'Nouveau chat')}</h4>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                                    {conv.lastMessageText || t('no_messages_yet', 'Aucun message pour l\'instant.')}
-                                </p>
-                            </div>
-                        </motion.div>
-                    ))
+                            </motion.div>
+                        );
+                    })
                 )}
             </div>
 
             <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <motion.button
-                    onClick={onNewDiscussionClick} // This should trigger the modal
+                    onClick={onNewDiscussionClick}
                     className="w-full bg-indigo-600 text-white py-2 rounded-md font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}

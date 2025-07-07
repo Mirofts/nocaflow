@@ -26,8 +26,6 @@ export const useFullScreen = (ref) => { // 'ref' is passed as a prop, it's the r
         };
 
         // Ajouter des listeners pour les différents préfixes de navigateur
-        // Ces listeners doivent être attachés au 'document' ou à 'ref.current' si vous gérez le mode élément par élément
-        // Pour un comportement global de "mode plein écran", attacher au document est standard.
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // Safari
         document.addEventListener('mozfullscreenchange', handleFullscreenChange); // Firefox

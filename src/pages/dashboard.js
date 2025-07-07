@@ -33,7 +33,7 @@ import {
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
-} from '../components/dashboard/modals/modals';
+} from '../components/dashboard/modals/modals'; // Ensure this path is correct
 import CalculatorModal from '../components/dashboard/CalculatorModal';
 import DetailsModal from '@/components/dashboard/modals/DetailsModal';
 
@@ -54,7 +54,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             tasks: [], messages: [], meetings: [], projects: [],
             staffMembers: [], clients: [], ganttTasks: [], invoices: [],
             notes: '',
-            user: { displayName: initialGuestNameSSR, photoURL: '/images/avatarguest.jpg' },
+            user: { displayName: initialGuestNameSSR, photoURL: '/images/avatars/avatarguest.jpg' }, // Updated guest avatar path
         };
 
         const USE_LOCAL_STORAGE_FOR_GUEST = false; // Temporarily disabled, set to true once #130 is resolved
@@ -92,17 +92,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return initialValue;
     });
 
-    // --- TEMPORARY FIX FOR SCROLL ISSUE (REMOVE AFTER ROOT CAUSE IS FOUND) ---
-    // If you need to force scroll to top on page load, uncomment this useEffect.
-    // It's placed correctly here, at the top level of the functional component.
-    /*
-    useEffect(() => {
-        window.scrollTo(0, 0);
-    }, []);
-    */
-    // -------------------------------------------------------------------------
-
-
     useEffect(() => {
         const USE_LOCAL_STORAGE_FOR_GUEST = false; // Temporarily disabled, set to true once #130 is resolved
 
@@ -137,7 +126,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 ...(prevLocalData.user || {}),
                 ...(newData.user || {}),
                 displayName: (newData.user && newData.user.displayName !== undefined) ? newData.user.displayName : prevLocalData.user?.displayName || initialGuestNameSSR,
-                photoURL: (newData.user && newData.user.photoURL !== undefined) ? newData.user.photoURL : prevLocalData.user?.photoURL || (initialMockData.user?.photoURL || '/images/avatarguest.jpg'),
+                photoURL: (newData.user && newData.user.photoURL !== undefined) ? newData.user.photoURL : prevLocalData.user?.photoURL || (initialMockData.user?.photoURL || '/images/avatars/avatarguest.jpg'), // Updated guest avatar path
             };
 
             return sanitizedData;
@@ -318,12 +307,17 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     // New handler to pass down to FlowLiveMessages
     const handleSelectUserOnMobile = useCallback((conv) => {
-        if (conv && conv.user) {
-            openModal('quickChat', conv.user);
+        // This function is intended to open a quick chat or profile for the selected user
+        // from the conversation sidebar on mobile.
+        // `conv` here might be the conversation object, not necessarily a 'user' object.
+        // We need to extract the other participant's details.
+        const otherParticipant = conv.participantsDetails?.find(p => p.uid !== user?.uid);
+        if (otherParticipant) {
+            openModal('quickChat', otherParticipant); // Pass the actual member object to QuickChatModal
         } else {
-            console.warn("handleSelectUserOnMobile received invalid conversation data:", conv);
+            console.warn("handleSelectUserOnMobile received invalid conversation data or could not find other participant:", conv);
         }
-    }, [openModal]);
+    }, [openModal, user?.uid]);
 
 
     return (
@@ -375,6 +369,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onLoginClick={onLoginClick}
                                     onRegisterClick={onRegisterClick}
                                     onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
+                                    onAddMeeting={() => openModal('addMeeting')} // Pass handler to open AddMeetingModal
+                                    onAddDeadline={() => openModal('addDeadline')} // Pass handler to open AddDeadlineModal
                                     messages={data.messages || []}
                                     user={user}
                                     initialMockData={initialMockData}
@@ -530,7 +526,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         allStaffMembers={data.staffMembers || []}
                         userUid={userUid}
                         currentUserName={user?.displayName || 'Moi'}
-                        onAddTask={addTodo}
+                        onAddTask={addTodo} // Pass the addTodo function here
                     />
                 )}
 

@@ -1,7 +1,7 @@
 // src/hooks/useChatActions.js
 import { useCallback } from 'react';
 import { db, storage } from '../lib/firebase'; // Assurez-vous que 'db' et 'storage' sont correctement exportés de firebase.js
-import { collection, doc, addDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, arrayUnion, serverTimestamp, query, where, getDocs, setDoc } from 'firebase/firestore'; // Added setDoc for simulated users
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 export const useChatActions = (currentUser, conversations, setConversations, setMessages) => {
@@ -9,11 +9,11 @@ export const useChatActions = (currentUser, conversations, setConversations, set
 
     // Helper function to update the last message of a conversation
     const updateLastMessage = useCallback(async (conversationId, messageContent, timestamp) => {
-        if (!db) { // Added check for db
+        if (!db) {
             console.error("Firestore DB is not initialized. Cannot update last message.");
             return;
         }
-        if (!conversationId) { // Added check for conversationId
+        if (!conversationId) {
             console.warn("Cannot update last message: conversationId is missing.");
             return;
         }
@@ -22,19 +22,19 @@ export const useChatActions = (currentUser, conversations, setConversations, set
             await updateDoc(convRef, {
                 lastMessage: messageContent,
                 lastMessageTime: timestamp,
-                lastMessageReadBy: [currentFirebaseUid]
+                lastMessageReadBy: [currentFirebaseUid] // Mark as read by current user when they send
             });
         } catch (e) {
             console.error("Error updating last message for conversation " + conversationId + ":", e);
         }
-    }, [currentFirebaseUid, db]);
+    }, [currentFirebaseUid]);
 
 
     // Function to send a text message
     const sendMessage = useCallback(async (text, conversationId, senderUid, isEphemeral = false, duration = null) => {
-        if (!db) { // Added check for db
+        if (!db) {
             console.error("Firestore DB is not initialized. Cannot send message.");
-            return;
+            return false;
         }
         if (!text.trim() || !conversationId || !senderUid) {
             console.warn("Cannot send empty message or without conversation/sender.");
@@ -47,8 +47,8 @@ export const useChatActions = (currentUser, conversations, setConversations, set
             timestamp: serverTimestamp(),
             type: 'text',
             isEphemeral: isEphemeral,
-            duration: isEphemeral ? (duration || 5 * 60 * 1000) : null,
-            readBy: [senderUid]
+            duration: isEphemeral ? (duration || 5 * 60 * 1000) : null, // Default 5 mins for ephemeral
+            readBy: [senderUid] // Mark as read by sender by default
         };
 
         try {
@@ -60,12 +60,12 @@ export const useChatActions = (currentUser, conversations, setConversations, set
             console.error("Error sending message to conversation " + conversationId + ":", e);
             throw e;
         }
-    }, [updateLastMessage, db]);
+    }, [updateLastMessage]);
 
 
     // Function to handle file uploads (images, PDFs)
     const handleFileUpload = useCallback(async (file, conversationId, senderUid, isEphemeral = false) => {
-        if (!db || !storage) { // Added checks for db and storage
+        if (!db || !storage) {
             console.error("Firebase DB or Storage is not initialized. Cannot upload file.");
             return false;
         }
@@ -93,7 +93,7 @@ export const useChatActions = (currentUser, conversations, setConversations, set
                 type: file.type.startsWith('image/') ? 'image' : 'file',
                 fileURL: fileURL,
                 isEphemeral: isEphemeral,
-                duration: isEphemeral ? (5 * 60 * 1000) : null,
+                duration: isEphemeral ? (5 * 60 * 1000) : null, // Default 5 mins for ephemeral
                 readBy: [senderUid]
             };
 
@@ -105,14 +105,14 @@ export const useChatActions = (currentUser, conversations, setConversations, set
             console.error("Error uploading file to conversation " + conversationId + ":", e);
             throw e;
         }
-    }, [updateLastMessage, db, storage]);
+    }, [updateLastMessage]);
 
 
     // Function to start a new conversation
     const startNewConversation = useCallback(async (participantUids, conversationName = '') => {
-        if (!db) { // Added check for db
+        if (!db) {
             console.error("Firestore DB is not initialized. Cannot start new conversation.");
-            return null; // Or throw an error
+            return null;
         }
         if (!participantUids || participantUids.length < 1) {
             throw new Error("Participants are required to start a new conversation.");
@@ -124,9 +124,8 @@ export const useChatActions = (currentUser, conversations, setConversations, set
         const sortedParticipantUids = Array.from(new Set([...participantUids, currentFirebaseUid])).sort();
 
         // Check if conversation with exact participants already exists
-        const existingQuery = collection(db, 'conversations');
-        const q = query(existingQuery, where('participants', '==', sortedParticipantUids));
-        const existingSnap = await getDocs(q);
+        const existingQuery = query(collection(db, 'conversations'), where('participants', '==', sortedParticipantUids));
+        const existingSnap = await getDocs(existingQuery);
 
         if (!existingSnap.empty) {
             return existingSnap.docs[0].id; // Return existing conversation ID
@@ -148,8 +147,8 @@ export const useChatActions = (currentUser, conversations, setConversations, set
                 finalConversationName = otherParticipant?.displayName || "New Chat";
             } else if (sortedParticipantUids.length > 2) { // Group chat
                 finalConversationName = `Group Chat (${allParticipantsDetails.map(p => p.displayName).join(', ')})`;
-            } else { // Self-chat or single participant chat
-                finalConversationName = "My Notes"; // Default for self-chat or single guest user
+            } else { // Self-chat or single participant chat (e.g., guest talking to self)
+                finalConversationName = "My Notes";
             }
         }
 
@@ -165,10 +164,6 @@ export const useChatActions = (currentUser, conversations, setConversations, set
                 isGroup: isGroupChat,
                 lastMessageReadBy: [currentFirebaseUid]
             });
-
-            // Update local conversations state for immediate UI reflection
-            // This is done in FlowLiveMessages/index.js now, no need to do it here again.
-            // setConversations(prev => ([{...}, ...prev.filter(c => c.id !== newConvRef.id)]));
 
             return newConvRef.id;
 
