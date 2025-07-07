@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { format, differenceInMinutes, parseISO, isValid, differenceInMilliseconds } from 'date-fns';
-import { fr } from 'date-fns/locale'; // <-- CORRIGÉ : Suppression du '=' en trop
+import { fr } from 'date-fns/locale';
 import { useTheme } from '../../context/ThemeContext';
 import { DashboardCard } from './DashboardCard';
 
@@ -120,10 +120,12 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
                 </motion.button>
             </div>
 
-            <h4 className={`text-center text-xl font-extrabold mb-2 ${titleTextColorClass}`}>
+            {/* Changed from text-xl to text-lg */}
+            <h4 className={`text-center text-lg font-extrabold mb-2 ${titleTextColorClass}`}>
                 {title}
             </h4>
-            <p className={`text-center text-3xl font-black ${timeTextColorClass} mb-4 leading-tight`}>
+            {/* Changed from text-3xl to text-2xl */}
+            <p className={`text-center text-2xl font-black ${timeTextColorClass} mb-4 leading-tight`}>
                 {displayTime}
             </p>
             <p className={`text-center text-base ${detailTextColorClass} mb-6 font-medium`}>
