@@ -1,35 +1,46 @@
 // src/components/dashboard/modals/AssignTaskProjectDeadlineModal.js
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react'; // Added useMemo, useEffect
 import { motion } from 'framer-motion';
 import { ModalWrapper } from './ModalWrapper';
 
-const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = [], userUid, currentUserName, onAddTask }) => {
+const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = [], userUid, currentUserName, onAddTask }) => { // onAddTask is addTodo from useUserTodos
     const [assignmentType, setAssignmentType] = useState('task');
     const [title, setTitle] = useState('');
     const [deadline, setDeadline] = useState('');
     const [assignedTo, setAssignedTo] = useState(member?.name || currentUserName || '');
     const [loading, setLoading] = useState(false);
 
-    const assignableStaff = (Array.isArray(allStaffMembers) ? allStaffMembers : []).filter(staffMember => staffMember.firebaseUid !== userUid);
+    const assignableStaff = useMemo(() => {
+        const staffList = (Array.isArray(allStaffMembers) ? allStaffMembers : []).map(sm => ({
+            ...sm,
+            uid: sm.uid || sm.firebaseUid // Use 'uid' or 'firebaseUid' consistently
+        }));
+        // Filter out the current user from the list of assignable staff
+        return staffList.filter(staffMember => staffMember.uid !== userUid);
+    }, [allStaffMembers, userUid]);
+
+    useEffect(() => {
+        if (member?.name) {
+            setAssignedTo(member.name); // Pre-fill assignedTo if a member is provided
+        } else if (currentUserName) {
+            setAssignedTo(currentUserName); // Otherwise, default to current user
+        }
+    }, [member, currentUserName]);
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!title.trim()) return;
         setLoading(true);
 
-        const assignmentData = {
-            title: title.trim(),
-            assignedTo: assignedTo,
-            deadline: deadline || null,
-        };
-
+        // Based on useUserTodos addTodo signature: (title, priority, deadline)
         if (assignmentType === 'task') {
-            await onAddTask(assignmentData.title, 'normal', assignmentData.deadline);
-            alert(t('task_assigned_success', `Tâche "${assignmentData.title}" assignée à ${assignedTo} et ajoutée !`));
+            await onAddTask(title.trim(), 'normal', deadline || null); // Passing title, priority, deadline
+            alert(t('task_assigned_success', `Tâche "${title.trim()}" assignée à ${assignedTo} et ajoutée !`));
         } else if (assignmentType === 'project') {
-            alert(t('project_assignment_placeholder', `Attribution de projet à ${assignedTo} : "${assignmentData.title}" - Non implémentée.`));
+            alert(t('project_assignment_placeholder', `Attribution de projet à ${assignedTo} : "${title.trim()}" - Non implémentée.`));
         } else if (assignmentType === 'deadline') {
-            alert(t('deadline_assignment_placeholder', `Attribution de deadline à ${assignedTo} : "${assignmentData.title}" - Non implémentée.`));
+            alert(t('deadline_assignment_placeholder', `Attribution de deadline à ${assignedTo} : "${title.trim()}" - Non implémentée.`));
         }
 
         setLoading(false);
@@ -70,22 +81,23 @@ const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = 
                 {/* Nouveau champ de sélection pour "Assigner à" */}
                 <div>
                     <label className="block text-slate-300 text-sm mb-2 font-medium">{t('assign_to_label', 'Assigner à')}</label>
-                    <select
-                        value={assignedTo}
-                        onChange={(e) => setAssignedTo(e.target.value)}
-                        className="form-input appearance-none pr-10"
-                        required
-                    >
-                        <option value={currentUserName}>{currentUserName} ({t('me', 'Moi')})</option>
-                        {(Array.isArray(assignableStaff) ? assignableStaff : []).map(member => (
-                            <option key={member.firebaseUid} value={member.name}>
-                                {member.name}
-                            </option>
-                        ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                        {/* ChevronDown SVG */}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    <div className="relative"> {/* Added relative for positioning custom arrow */}
+                        <select
+                            value={assignedTo}
+                            onChange={(e) => setAssignedTo(e.target.value)}
+                            className="form-input appearance-none pr-10" // Added appearance-none and pr-10
+                            required
+                        >
+                            <option value={currentUserName}>{currentUserName} ({t('me', 'Moi')})</option>
+                            {(Array.isArray(assignableStaff) ? assignableStaff : []).map(member => (
+                                <option key={member.uid} value={member.name}> {/* Use member.uid as key */}
+                                    {member.name}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
                     </div>
                 </div>
 

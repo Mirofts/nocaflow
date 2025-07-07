@@ -1,15 +1,15 @@
-// components/dashboard/FlowLiveMessages/modals/NewDiscussionModal.js
+// src/components/dashboard/FlowLiveMessages/modals/NewDiscussionModal.js
 import React, { useState, useRef } from 'react';
-import Image from 'next/image'; // Import Image component
-
+import Image from 'next/image';
 
 const NewDiscussionModal = ({
   showModal,
   onClose,
-  onCreate, // This will be the handleCreateNewDiscussion function from the parent
+  onCreate,
   internalAvailableTeamMembers,
   currentFirebaseUid,
   currentUserName,
+  currentUserPhotoURL, // <-- NEW PROP RECEIVED HERE
   t
 }) => {
   const [showNewContactInput, setShowNewContactInput] = useState(false);
@@ -47,7 +47,7 @@ const NewDiscussionModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-      <div className="glass-card p-6 rounded-2xl shadow-xl w-full max-w-md">
+      <div className="glass-card p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md">
         <h3 className="text-xl font-semibold mb-4 text-white">{t('new_discussion_title', 'Nouvelle discussion')}</h3>
 
         <div className="mb-4 flex space-x-2">
@@ -125,9 +125,9 @@ const NewDiscussionModal = ({
               {currentFirebaseUid && !selectedTeamMemberUids.includes(currentFirebaseUid) && (
                   <div className="flex items-center p-3 text-slate-500">
                       <input type="checkbox" className="mr-3" checked disabled />
-                      {/* Display current user's avatar or initials */}
-                 {currentUser?.photoURL ? (
-  <Image src={currentUser.photoURL} alt={currentUserName} width={28} height={28} className="rounded-full mr-3 object-cover" />
+                      {/* FIXED: Use currentUserPhotoURL prop here */}
+                 {currentUserPhotoURL ? (
+  <Image src={currentUserPhotoURL} alt={currentUserName} width={28} height={28} className="rounded-full mr-3 object-cover" />
 ) : (
   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gray-500 mr-3 text-sm`}>
     {currentUserName.charAt(0).toUpperCase()}

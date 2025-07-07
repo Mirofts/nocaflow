@@ -14,18 +14,18 @@ import { fr } from 'date-fns/locale';
 import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
 import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
 import FlowLiveMessagesInput from './FlowLiveMessagesInput';
-import NewDiscussionModal from './modals/NewDiscussionModal';
+import NewDiscussionModal from './modals/NewDiscussionModal'; // Keep this path
+
+// IMPORTS DES NOUVELLES MODALES DÉDIÉES
+import AddTaskModal from '@/components/dashboard/modals/TaskEditModal'; // Using TaskEditModal for AddTask
+import AddMeetingModal from '@/components/dashboard/modals/AddMeetingModal';
+import AddDeadlineModal from '@/components/dashboard/modals/AddDeadlineModal';
 
 // IMPORTS DES HOOKS : UTILISATION DES ALIAS
 import { useFullScreen } from '@/hooks/useFullScreen';
 import { useChatLogic } from '@/hooks/useChatLogic';
 import { useChatActions } from '@/hooks/useChatActions';
-
-// Placeholder for new modals (You will need to create these files)
-// import AddTaskModal from './modals/AddTaskModal';
-// import ScheduleMeetingModal from './modals/ScheduleMeetingModal';
-// import AddDeadlineModal from './modals/AddDeadlineModal';
-
+import { useUserTodos } from '@/hooks/useUserTodos'; // Added to handle task saving
 
 const ALL_EMOJIS = [
     '👋', '😀', '🔥', '🚀', '💡', '✅', '✨', '👍', '🎉', '🌟', '💫', '💥', '🚀', '🌈', '☀️', '🌻', '🌺', '🌲', '🌳', '🍂', '🍁', '🍓', '🍋', '🍎', '🍔', '🍕', '🌮', '🍩', '🍦', '☕', '🍵', '🥂', '🍾', '🎉', '🎁', '🎈', '🎂', '🥳', '🏠', '🏢', '💡', '⏰', '📆', '📈', '📊', '🔗', '🔒', '🔑', '📝', '📌', '📎', '📁', '📄', '📊', '📈', '📉', '💰', '💳', '💵', '💸', '📧', '📞', '💬', '🔔', '📣', '💡', '⚙️', '🔨', '🛠️', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳'
@@ -41,7 +41,8 @@ const FlowLiveMessages = forwardRef(({
     messages: messagesProp,
     user,
     initialMockData,
-    handleSelectUserOnMobile
+    handleSelectUserOnMobile,
+    onUpdateGuestData // Prop to update guest data if in guest mode
 }, ref) => {
     const { currentUser: authUser } = useAuth();
     const { isDarkMode } = useTheme();
@@ -51,6 +52,11 @@ const FlowLiveMessages = forwardRef(({
     const isGuestMode = !currentActiveUser || currentActiveUser.uid === 'guest_noca_flow';
     const currentFirebaseUid = currentActiveUser?.uid || (isGuestMode ? 'guest_noca_flow' : null);
     const currentUserName = currentActiveUser?.displayName || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : 'Moi');
+    const currentUserPhotoURL = currentActiveUser?.photoURL || (isGuestMode ? '/images/avatars/avatarguest.jpg' : '/images/default-avatar.jpg'); // Prop for NewDiscussionModal
+
+    // Initialize useUserTodos hook for task management
+    const initialGuestTasks = useMemo(() => initialMockData?.guestData?.tasks || [], [initialMockData]);
+    const { addTodo, editTodo, deleteTodo, toggleTodo } = useUserTodos(currentFirebaseUid, isGuestMode, onUpdateGuestData, initialGuestTasks);
 
     // Déclaration des fonctions utilitaires AVANT leurs utilisations dans les useEffects.
     const formatMessageTimeDisplay = useCallback((timestamp) => {
@@ -84,19 +90,21 @@ const FlowLiveMessages = forwardRef(({
     const {
         conversations,
         selectedConversationId,
-        filteredMessages, // Not directly used in index.js, but kept for clarity in useChatLogic hook return
+        filteredMessages,
         setSelectedConversationId,
         setConversations,
-        setMessages: setMessagesFromLogic, // Kept for clarity in useChatLogic hook return
+        setMessages: setMessagesFromLogic,
         isNewDiscussionModalOpen,
         setIsNewDiscussionModalOpen,
-        newDiscussionModalInitialContact, // Not directly used here, but kept for clarity in useChatLogic hook return
-        setNewDiscussionModalInitialContact, // Not directly used here, but kept for clarity in useChatLogic hook return
+        newDiscussionModalInitialContact,
+        setNewDiscussionModalInitialContact,
         activeSearchQuery,
         setActiveSearchQuery
     } = useChatLogic(currentActiveUser, initialMockData, messagesProp);
 
     const [messages, setMessages] = useState([]);
+    const [isLoadingChat, setIsLoadingChat] = useState(true); // Added loading state for the chat component
+
 
     const {
         sendMessage,
@@ -118,9 +126,10 @@ const FlowLiveMessages = forwardRef(({
     useEffect(() => {
         if (!currentFirebaseUid || !db) {
             setConversations([]);
+            setIsLoadingChat(false); // No user, so not loading chat
             return;
         }
-
+        setIsLoadingChat(true); // Start loading
         const q = query(
             collection(db, 'conversations'),
             where('participants', 'array-contains', currentFirebaseUid),
@@ -190,8 +199,10 @@ const FlowLiveMessages = forwardRef(({
             if (!selectedConversationId && convs.length > 0) {
                 setSelectedConversationId(convs[0].id);
             }
+            setIsLoadingChat(false); // Data loaded
         }, (error) => {
             console.error("Error fetching conversations:", error);
+            setIsLoadingChat(false); // Error, stop loading
         });
 
         return () => unsubscribe();
@@ -258,6 +269,7 @@ const FlowLiveMessages = forwardRef(({
     const [showAddTaskModal, setShowAddTaskModal] = useState(false);
     const [showMeetingModal, setShowMeetingModal] = useState(false);
     const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+    const [addTaskInitialData, setAddTaskInitialData] = useState(null); // State to pass initial data to AddTaskModal
 
 
     const handleLoginPrompt = useCallback(() => {
@@ -419,6 +431,28 @@ const FlowLiveMessages = forwardRef(({
     const displayChatName = activeConversationInfo?.name || t('new_conversation_default', 'Nouvelle Conversation');
     const displayChatAvatar = activeConversationInfo?.photoURL || '/images/default-group-avatar.png'; // Fallback pour avatar de groupe/chat
 
+    // Handlers for when modals save (these will interact with the useUserTodos and other hooks)
+    const handleSaveTask = useCallback(async (taskData) => {
+        // This function will use addTodo from useUserTodos
+        await addTodo(taskData.title, taskData.priority, taskData.deadline);
+        // You might want to also add a message to the chat about the new task
+        // For example: await sendMessage(`Nouvelle tâche ajoutée: "${taskData.title}" pour ${taskData.assignedTo}.`, selectedConversationId, currentFirebaseUid, false);
+        alert(t('task_saved_success', `Tâche "${taskData.title}" sauvegardée !`));
+    }, [addTodo, selectedConversationId, currentFirebaseUid, sendMessage, t]);
+
+    const handleSaveMeeting = useCallback(async (meetingData) => {
+        // This function would typically save the meeting to a calendar/meeting system
+        console.log("Meeting to save:", meetingData);
+        alert(t('meeting_scheduled_success', `Réunion "${meetingData.title}" planifiée (simulé)!`));
+    }, [t]);
+
+    const handleSaveDeadline = useCallback(async (deadlineData) => {
+        // This function would typically save the deadline to a project management system
+        console.log("Deadline to save:", deadlineData);
+        alert(t('deadline_added_success', `Deadline "${deadlineData.title}" ajoutée (simulé)!`));
+    }, [t]);
+
+
     return (
         // Conteneur principal du chat - Hauteur limitée et flex child min-h-0
         <div ref={chatContainerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : 'max-h-[700px]'}`}>
@@ -437,146 +471,167 @@ const FlowLiveMessages = forwardRef(({
                 </div>
             )}
 
-            {/* Sidebar (liste des conversations) */}
-            <FlowLiveMessagesSidebar
-                conversations={conversations || []}
-                selectedConversationId={selectedConversationId}
-                setSelectedConversationId={handleSelectConversation}
-                onNewDiscussionClick={() => setIsNewDiscussionModalOpen(true)}
-                activeSearchQuery={activeSearchQuery}
-                setActiveSearchQuery={setActiveSearchQuery}
-                currentUser={currentActiveUser}
-                t={t}
-                isFullScreen={isFullScreen}
-                handleSelectUserOnMobile={handleSelectUserOnMobile}
-            />
-
-            {/* Chat Panel (messages et input) */}
-            <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'} min-h-0`}>
-                {selectedConversationId ? (
-                    // En-tête du chat avec avatar, nom de la conversation et boutons d'action
-                    <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
-                        {/* Bouton de retour visible uniquement sur les petits écrans quand la sidebar est cachée */}
-                        {!showMobileSidebar && (
-                            <button className={`p-2 rounded-full mr-2 md:hidden ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`} onClick={() => setShowMobileSidebar(true)} aria-label={t('back_to_conversations', 'Retour aux conversations')}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                            </button>
-                        )}
-                        <div className="flex items-center">
-                            {/* Avatar de la conversation */}
-                            <img
-                                src={displayChatAvatar}
-                                alt={displayChatName}
-                                className="w-10 h-10 rounded-full mr-3 object-cover"
-                            />
-                            {/* Nom de la conversation */}
-                            <h3 className="text-lg font-semibold text-color-text-primary mr-2">
-                                {displayChatName}
-                            </h3>
-                            {activeConversationInfo?.isGroup && <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>{t('group', 'Groupe')}</span>}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {/* Meeting Icon */}
-                            <button
-                                className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
-                                title={t('schedule_meeting', 'Planifier une réunion')}
-                                onClick={() => {
-                                    setShowMeetingModal(true); // Open the meeting modal
-                                    onAddMeeting && onAddMeeting(); // Call original prop if needed by parent
-                                }}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><path d="M14 12H2V4h12v8Z"/></svg>
-                            </button>
-                            {/* Task Icon */}
-                            <button
-                                className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
-                                title={t('assign_task', 'Assigner une tâche')}
-                                onClick={() => {
-                                    setShowAddTaskModal(true); // Open the add task modal
-                                    const activeConv = conversations.find(c => c.id === selectedConversationId);
-                                    onOpenAddTaskFromChat({ // Call original prop if needed by parent
-                                        member: activeConv?.isGroup ? null : activeConv?.participantsDetails?.find(p => p.uid !== currentFirebaseUid),
-                                        conversationParticipants: activeConv?.participantsDetails || [],
-                                        currentFirebaseUid,
-                                        currentUserName,
-                                        isFromChat: true
-                                    });
-                                }}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M3 14h18"/><path d="M3 18h18"/><rect width="18" height="18" x="3" y="4" rx="2"/></svg>
-                            </button>
-                            {/* Deadline Icon */}
-                            <button
-                                className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
-                                title={t('add_deadline', 'Ajouter une deadline')}
-                                onClick={() => {
-                                    setShowDeadlineModal(true); // Open the deadline modal
-                                    onAddDeadline && onAddDeadline(); // Call original prop if needed by parent
-                                }}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y1="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            </button>
-                             {/* Block Contact Icon (simulated) */}
-                            <button
-                                className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-red-400 hover:text-white' : 'hover:bg-red-100 text-red-500 hover:text-red-600'}`}
-                                title={t('block_contact', 'Bloquer le contact')}
-                                onClick={() => alert(t('block_feature_placeholder', 'Fonctionnalité de blocage simulée : Contact bloqué temporairement.'))}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
-                            </button>
-                             {/* Fullscreen Toggle Button */}
-                            <button
-                                className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
-                                onClick={toggleFullScreen}
-                                title={isFullScreen ? t('exit_fullscreen', 'Quitter le mode plein écran') : t('enter_fullscreen', 'Passer en plein écran')}
-                            >
-                                {isFullScreen ? (
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3m-18 0h3a2 2 0 0 1 2 2v3"/></svg>
-                                ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h2m14 0h-2a2 2 0 0 1-2 2v2m0 14v-2a2 2 0 0 1 2-2h2m-14 0h2a2 2 0 0 1 2 2v2"/></svg>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-center text-center ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary text-color-text-secondary'}`}>
-                        <h3 className="text-lg font-semibold">{t('select_conversation', 'Sélectionnez une conversation pour commencer.')}</h3>
-                    </div>
+            {/* Loading state overlay for initial data fetch */}
+            <AnimatePresence>
+                {isLoadingChat && (
+                    <motion.div
+                        className="absolute inset-0 flex items-center justify-center bg-black/50 z-30"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <svg className="animate-spin h-10 w-10 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="ml-3 text-white">{t('loading_conversations', 'Chargement des conversations...')}</span>
+                    </motion.div>
                 )}
+            </AnimatePresence>
 
-                {/* Zone d'affichage des messages */}
-                <FlowLiveMessagesDisplay
-                    messages={messages || []}
-                    currentUser={currentActiveUser}
-                    onMessageAction={handleMessageAction}
-                    // onOpenAddTaskFromChat={onOpenAddTaskFromChat} // Removed: The task action is now initiated via header buttons, not directly from the display component itself, unless a message action triggers it.
-                    availableTeamMembers={internalAvailableTeamMembers}
-                    t={t}
-                    isFullScreen={isFullScreen}
-                    handleSelectUserOnMobile={handleSelectUserOnMobile}
-                    openEphemeralImagePreview={openEphemeralImagePreview}
-                />
+            {/* Content when not loading */}
+            {!isLoadingChat && (
+                <>
+                    {/* Sidebar (liste des conversations) */}
+                    <FlowLiveMessagesSidebar
+                        conversations={conversations || []}
+                        selectedConversationId={selectedConversationId}
+                        setSelectedConversationId={handleSelectConversation}
+                        onNewDiscussionClick={() => setIsNewDiscussionModalOpen(true)}
+                        activeSearchQuery={activeSearchQuery}
+                        setActiveSearchQuery={setActiveSearchQuery}
+                        currentUser={currentActiveUser}
+                        t={t}
+                        isFullScreen={isFullScreen}
+                        handleSelectUserOnMobile={handleSelectUserOnMobile}
+                    />
 
-                {/* Champ de saisie des messages */}
-                <FlowLiveMessagesInput
-                    newMessage={newMessage}
-                    setNewMessage={setNewMessage}
-                    handleSendNormalMessage={handleSendNormalMessage}
-                    handleAttachNormalFile={handleAttachNormalFile}
-                    handleEmoticonClick={handleEmoticonClick}
-                    emojis={ALL_EMOJIS}
-                    showEmojiPicker={showEmojiPicker}
-                    setShowEmojiPicker={setShowEmojiPicker}
-                    emojiButtonRef={emojiButtonRef}
-                    fileInputRef={fileInputRef}
-                    isDarkMode={isDarkMode}
-                    t={t}
-                    activeConversationId={selectedConversationId}
-                    isGuestMode={isGuestMode}
-                    handleSendEphemeralMessage={handleSendEphemeralMessage}
-                    handleAttachEphemeralFile={handleAttachEphemeralFile}
-                />
-            </div>
+                    {/* Chat Panel (messages et input) */}
+                    <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'} min-h-0`}>
+                        {selectedConversationId ? (
+                            // En-tête du chat avec avatar, nom de la conversation et boutons d'action
+                            <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
+                                {/* Bouton de retour visible uniquement sur les petits écrans quand la sidebar est cachée */}
+                                {!showMobileSidebar && (
+                                    <button className={`p-2 rounded-full mr-2 md:hidden ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`} onClick={() => setShowMobileSidebar(true)} aria-label={t('back_to_conversations', 'Retour aux conversations')}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                                    </button>
+                                )}
+                                <div className="flex items-center">
+                                    {/* Avatar de la conversation */}
+                                    <img
+                                        src={displayChatAvatar}
+                                        alt={displayChatName}
+                                        className="w-10 h-10 rounded-full mr-3 object-cover"
+                                    />
+                                    {/* Nom de la conversation */}
+                                    <h3 className="text-lg font-semibold text-color-text-primary mr-2">
+                                        {displayChatName}
+                                    </h3>
+                                    {activeConversationInfo?.isGroup && <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>{t('group', 'Groupe')}</span>}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {/* Meeting Icon */}
+                                    <button
+                                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
+                                        title={t('schedule_meeting', 'Planifier une réunion')}
+                                        onClick={handleOpenMeetingModal}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><path d="M14 12H2V4h12v8Z"/></svg>
+                                    </button>
+                                    {/* Task Icon */}
+                                    <button
+                                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
+                                        title={t('assign_task', 'Assigner une tâche')}
+                                        onClick={() => {
+                                            const activeConv = conversations.find(c => c.id === selectedConversationId);
+                                            // Pass relevant info to the AddTaskModal
+                                            setAddTaskInitialData({
+                                                assignedTo: activeConv?.isGroup ? null : activeConv?.participantsDetails?.find(p => p.uid !== currentFirebaseUid)?.displayName,
+                                                // You might also want to pass:
+                                                // conversationId: selectedConversationId,
+                                                // currentFirebaseUid: currentFirebaseUid,
+                                                // currentUserName: currentUserName,
+                                                // etc. depending on what TaskEditModal needs to pre-fill or track
+                                            });
+                                            setShowAddTaskModal(true);
+                                            // onOpenAddTaskFromChat might be an external prop for a dashboard-wide action,
+                                            // if so, call it here: onOpenAddTaskFromChat(data);
+                                        }}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M3 14h18"/><path d="M3 18h18"/><rect width="18" height="18" x="3" y="4" rx="2"/></svg>
+                                    </button>
+                                    {/* Deadline Icon */}
+                                    <button
+                                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
+                                        title={t('add_deadline', 'Ajouter une deadline')}
+                                        onClick={handleOpenDeadlineModal}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y1="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    </button>
+                                     {/* Block Contact Icon (simulated) */}
+                                    <button
+                                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-red-400 hover:text-white' : 'hover:bg-red-100 text-red-500 hover:text-red-600'}`}
+                                        title={t('block_contact', 'Bloquer le contact')}
+                                        onClick={() => alert(t('block_feature_placeholder', 'Fonctionnalité de blocage simulée : Contact bloqué temporairement.'))}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+                                    </button>
+                                     {/* Fullscreen Toggle Button */}
+                                    <button
+                                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
+                                        onClick={toggleFullScreen}
+                                        title={isFullScreen ? t('exit_fullscreen', 'Quitter le mode plein écran') : t('enter_fullscreen', 'Passer en plein écran')}
+                                    >
+                                        {isFullScreen ? (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3m-18 0h3a2 2 0 0 1 2 2v3"/></svg>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h2m14 0h-2a2 2 0 0 1-2 2v2m0 14v-2a2 2 0 0 1 2-2h2m-14 0h2a2 2 0 0 1 2 2v2"/></svg>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-center text-center ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary text-color-text-secondary'}`}>
+                                <h3 className="text-lg font-semibold">{t('select_conversation', 'Sélectionnez une conversation pour commencer.')}</h3>
+                            </div>
+                        )}
+
+                        {/* Zone d'affichage des messages */}
+                        <FlowLiveMessagesDisplay
+                            messages={messages || []}
+                            currentUser={currentActiveUser}
+                            onMessageAction={handleMessageAction}
+                            availableTeamMembers={internalAvailableTeamMembers}
+                            t={t}
+                            isFullScreen={isFullScreen}
+                            handleSelectUserOnMobile={handleSelectUserOnMobile}
+                            openEphemeralImagePreview={openEphemeralImagePreview}
+                        />
+
+                        {/* Champ de saisie des messages */}
+                        <FlowLiveMessagesInput
+                            newMessage={newMessage}
+                            setNewMessage={setNewMessage}
+                            handleSendNormalMessage={handleSendNormalMessage}
+                            handleAttachNormalFile={handleAttachNormalFile}
+                            handleEmoticonClick={handleEmoticonClick}
+                            emojis={ALL_EMOJIS}
+                            showEmojiPicker={showEmojiPicker}
+                            setShowEmojiPicker={setShowEmojiPicker}
+                            emojiButtonRef={emojiButtonRef}
+                            fileInputRef={fileInputRef}
+                            isDarkMode={isDarkMode}
+                            t={t}
+                            activeConversationId={selectedConversationId}
+                            isGuestMode={isGuestMode}
+                            handleSendEphemeralMessage={handleSendEphemeralMessage}
+                            handleAttachEphemeralFile={handleAttachEphemeralFile}
+                        />
+                    </div>
+                </>
+            )}
 
             {/* Modale de création/sélection de discussion */}
             <AnimatePresence>
@@ -588,58 +643,45 @@ const FlowLiveMessages = forwardRef(({
                         internalAvailableTeamMembers={internalAvailableTeamMembers}
                         currentFirebaseUid={currentFirebaseUid}
                         currentUserName={currentUserName}
+                        currentUserPhotoURL={currentUserPhotoURL} // Pass currentUserPhotoURL here
                         t={t}
                     />
                 )}
             </AnimatePresence>
 
-            {/* Placeholders for other modals (you'll implement these similar to NewDiscussionModal) */}
+            {/* Modale Ajouter Tâche (using TaskEditModal for the form) */}
             <AnimatePresence>
                 {showAddTaskModal && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                        <div className="glass-card p-6 rounded-2xl shadow-xl w-full max-w-md text-white">
-                            <h3 className="text-xl font-semibold mb-4">Ajouter une nouvelle tâche (Modal Placeholder)</h3>
-                            <p>Contenu de la modal d'ajout de tâche ici. Vous pouvez passer les props nécessaires.</p>
-                            <button onClick={() => setShowAddTaskModal(false)} className="main-button-secondary mt-4">{t('close', 'Fermer')}</button>
-                        </div>
-                    </div>
-                    // <AddTaskModal
-                    //     showModal={showAddTaskModal}
-                    //     onClose={() => setShowAddTaskModal(false)}
-                    //     // Pass any necessary props like `currentFirebaseUid`, `availableTeamMembers`, `t`
-                    // />
+                    <AddTaskModal
+                        task={addTaskInitialData || {}} // Pass initial data, or empty object for new task
+                        onSave={handleSaveTask} // Use the new handleSaveTask
+                        onClose={() => setShowAddTaskModal(false)}
+                        t={t}
+                        // Pass availableTeamMembers if TaskEditModal needs to assign to a specific member
+                        // availableTeamMembers={internalAvailableTeamMembers}
+                    />
                 )}
             </AnimatePresence>
 
+            {/* Modale Planifier Réunion */}
             <AnimatePresence>
                 {showMeetingModal && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                        <div className="glass-card p-6 rounded-2xl shadow-xl w-full max-w-md text-white">
-                            <h3 className="text-xl font-semibold mb-4">Planifier une réunion (Modal Placeholder)</h3>
-                            <p>Contenu de la modal de planification de réunion ici.</p>
-                            <button onClick={() => setShowMeetingModal(false)} className="main-button-secondary mt-4">{t('close', 'Fermer')}</button>
-                        </div>
-                    </div>
-                    // <ScheduleMeetingModal
-                    //     showModal={showMeetingModal}
-                    //     onClose={() => setShowMeetingModal(false)}
-                    // />
+                    <AddMeetingModal
+                        onSave={handleSaveMeeting}
+                        onClose={() => setShowMeetingModal(false)}
+                        t={t}
+                    />
                 )}
             </AnimatePresence>
 
+            {/* Modale Ajouter Deadline */}
             <AnimatePresence>
                 {showDeadlineModal && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                        <div className="glass-card p-6 rounded-2xl shadow-xl w-full max-w-md text-white">
-                            <h3 className="text-xl font-semibold mb-4">Ajouter une deadline (Modal Placeholder)</h3>
-                            <p>Contenu de la modal d'ajout de deadline ici.</p>
-                            <button onClick={() => setShowDeadlineModal(false)} className="main-button-secondary mt-4">{t('close', 'Fermer')}</button>
-                        </div>
-                    </div>
-                    // <AddDeadlineModal
-                    //     showModal={showDeadlineModal}
-                    //     onClose={() => setShowDeadlineModal(false)}
-                    // />
+                    <AddDeadlineModal
+                        onSave={handleSaveDeadline}
+                        onClose={() => setShowDeadlineModal(false)}
+                        t={t}
+                    />
                 )}
             </AnimatePresence>
 
