@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext'; // Corrected import path for ThemeContext
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext'; // Corrected import path for ThemeContext
 import { useUserTodos } from '../hooks/useUserTodos';
-import { initialMockData } from '@/lib/mockData';
+import { initialMockData } from '../lib/mockData';
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { format, parseISO, isValid } from 'date-fns';
