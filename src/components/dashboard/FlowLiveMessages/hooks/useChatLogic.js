@@ -28,13 +28,17 @@ export const useChatLogic = (currentUser, initialMockData, messagesProp) => {
         // of conversations and selectedConversationId.
     }, [initialMockData, messagesProp]);
 
-    // Effect to filter messages based on the selected conversation
-    useEffect(() => {
-        // `messages` state is updated by the Firestore listener in FlowLiveMessages/index.js
-        // so `filteredMessages` simply reflects the `messages` state which are already
-        // filtered by `selectedConversationId` in the `onSnapshot` callback.
+useEffect(() => {
+    if (!activeSearchQuery) {
         setFilteredMessages(messages || []);
-    }, [messages]);
+    } else {
+        const lowerQuery = activeSearchQuery.toLowerCase();
+        const filtered = (messages || []).filter((msg) =>
+            msg.content?.toLowerCase().includes(lowerQuery)
+        );
+        setFilteredMessages(filtered);
+    }
+}, [messages, activeSearchQuery]);
 
 
     // Return all necessary states and setters for FlowLiveMessages (index.js)

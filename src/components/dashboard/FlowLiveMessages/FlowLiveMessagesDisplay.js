@@ -1,5 +1,6 @@
 // src/components/dashboard/FlowLiveMessages/FlowLiveMessagesDisplay.js
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import FlowLiveMessagesInput from './FlowLiveMessagesInput';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 import { format } from 'date-fns';
@@ -17,18 +18,31 @@ const FlowLiveMessagesDisplay = ({
     t,
     isFullScreen,
     handleSelectUserOnMobile,
-    openEphemeralImagePreview // Added for ephemeral image handling
+    openEphemeralImagePreview
 }) => {
     const { isDarkMode } = useTheme();
     const messagesEndRef = useRef(null);
+
+    // ✅ ICI les states et refs nécessaires au composant Input
+    const [newMessage, setNewMessage] = useState('');
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const emojiButtonRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const emojis = ['😀', '😅', '😍', '😎', '😭', '👍', '🔥', '💯'];
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    if (messages?.length > 0 && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+    }
+  }, 50); // petit délai pour éviter le jump au chargement
+
+  return () => clearTimeout(timeout);
+}, [messages]);
 
     const isGuest = currentUser?.uid === 'guest_noca_flow';
 
@@ -126,6 +140,34 @@ const FlowLiveMessagesDisplay = ({
                 )}
                 <div ref={messagesEndRef} />
             </div>
+            {currentUser && (
+  <div className="flex gap-2 p-2 border-t bg-gray-900">
+    <Button onClick={openNewTask}>Nouvelle tâche</Button>
+    <Button onClick={openMeeting}>Réunion</Button>
+    <Button onClick={blockUser}>Bloquer</Button>
+  </div>
+)}
+            <div className="border-t p-2 bg-gray-900">
+  <FlowLiveMessagesInput
+    newMessage={newMessage}
+    setNewMessage={setNewMessage}
+    handleSendNormalMessage={handleSendNormalMessage}
+    handleSendEphemeralMessage={handleSendEphemeralMessage}
+    handleAttachNormalFile={handleAttachNormalFile}
+    handleAttachEphemeralFile={handleAttachEphemeralFile}
+    handleEmoticonClick={handleEmoticonClick}
+    emojiButtonRef={emojiButtonRef}
+    fileInputRef={fileInputRef}
+    showEmojiPicker={showEmojiPicker}
+    setShowEmojiPicker={setShowEmojiPicker}
+    isAttachDisabled={isAttachDisabled}
+    isSendDisabled={isSendDisabled}
+    isGuestMode={isGuestMode}
+    activeConversationId={activeConversationId}
+    emojis={emojis}
+    t={t}
+  />
+</div>
         </div>
     );
 };

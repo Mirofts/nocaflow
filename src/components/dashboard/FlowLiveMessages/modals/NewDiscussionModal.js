@@ -74,6 +74,7 @@ const NewDiscussionModal = ({
               onChange={(e) => setNewDiscussionName(e.target.value)}
               ref={newContactNameRef}
               autoFocus={true}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
             <input
               type="email"
@@ -81,6 +82,7 @@ const NewDiscussionModal = ({
               className="form-input w-full"
               value={newContactEmail}
               onChange={(e) => setNewContactEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
           </div>
         ) : (

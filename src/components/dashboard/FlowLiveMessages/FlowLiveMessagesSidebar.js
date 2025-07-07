@@ -56,7 +56,7 @@ const FlowLiveMessagesSidebar = ({
                 ) : (
                     filteredConversations.map(conv => {
                         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== currentUserId);
-                        const displayPhotoURL = conv.isGroup ? '/images/default-group-avatar.png' : (otherParticipant?.photoURL || '/images/default-avatar.jpg');
+                        const displayPhotoURL = conv.isGroup ? '/images/avatars/avatarguest.jpg' : (otherParticipant?.photoURL || '/images/avatars/avatarguest.jpg');
                         const isOnline = otherParticipant?.isOnline;
 
                         return (
