@@ -102,36 +102,36 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
 
     return (
         <motion.div
-            className={`relative flex flex-col items-center justify-between p-6 rounded-2xl shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl cursor-pointer ${cardBgClass}`}
-            onClick={() => onCardClick(alertData || {})}
+            className={`relative flex flex-col items-center justify-between p-4 rounded-2xl shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl cursor-pointer ${cardBgClass}`}
+            onClick={() => onCardClick(alertData)} // Ensure alertData is passed correctly
         >
-            <div className="flex justify-between items-center w-full mb-4">
-                <div className={`flex items-center justify-center p-3 rounded-full ${pulseColorClass} bg-opacity-20`}> {/* Plus grand padding, moins d'opacité */}
+            <div className="flex justify-between items-center w-full mb-2"> {/* Reduced mb */}
+                <div className={`flex items-center justify-center p-2 rounded-full ${pulseColorClass} bg-opacity-20`}> {/* Smaller padding */}
                     {icon}
                 </div>
                 <motion.button
                     onClick={(e) => { e.stopPropagation(); openCreateModal(type === 'deadline' ? 'addDeadline' : 'addMeeting'); }}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'}`}
+                    className={`p-1.5 rounded-full transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'}`} // Smaller padding
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     title={type === 'deadline' ? t('add_deadline', 'Ajouter une échéance') : t('schedule_meeting', 'Planifier une réunion')}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg> {/* Smaller icon */}
                 </motion.button>
             </div>
 
-            <h4 className={`text-center text-xl font-extrabold mb-2 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-700'}`}>
+            <h4 className={`text-center text-lg font-extrabold mb-1 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-700'}`}> {/* Reduced text-xl to text-lg, reduced mb-2 to mb-1 */}
                 {title}
             </h4>
-            <p className={`text-center text-3xl font-black ${timeLeft.overdue ? 'text-red-500' : (isUrgent ? 'text-orange-400' : (isDarkMode ? 'text-white' : 'text-gray-900'))} mb-4 leading-tight`}>
+            <p className={`text-center text-2xl font-black ${timeLeft.overdue ? 'text-red-500' : (isUrgent ? 'text-orange-400' : (isDarkMode ? 'text-white' : 'text-gray-900'))} mb-2 leading-tight`}> {/* Reduced text-3xl to text-2xl, reduced mb-4 to mb-2 */}
                 {displayTime}
             </p>
-            <p className="text-center text-base text-gray-400 dark:text-gray-500 mb-6 font-medium">
+            <p className="text-center text-sm text-gray-400 dark:text-gray-500 mb-4 font-medium"> {/* Reduced text-base to text-sm, reduced mb-6 to mb-4 */}
                 {(alertData?.name || alertData?.title) || t('no_name', 'Nom inconnu')}
             </p>
 
             {/* Progress Gauge */}
-            <div className={`w-full h-3 rounded-full ${gaugeTrackColorClass} mt-auto overflow-hidden`}> {/* Hauteur augmentée */}
+            <div className={`w-full h-2 rounded-full ${gaugeTrackColorClass} mt-auto overflow-hidden`}> {/* Reduced height to h-2 */}
                 <motion.div
                     className={`h-full rounded-full ${progressBarColorClass}`}
                     initial={{ width: '100%' }} // Commence à 100% de la jauge pleine (temps restant)
@@ -139,7 +139,7 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
                     transition={{ duration: 0.8, ease: "easeOut" }}
                 ></motion.div>
             </div>
-            <span className="mt-3 text-sm font-semibold text-gray-500 dark:text-gray-400">
+            <span className="mt-2 text-xs font-semibold text-gray-500 dark:text-gray-400"> {/* Reduced text-sm to text-xs, reduced mt-3 to mt-2 */}
                 {remainingPercentage.toFixed(0)}% {t('gauge_time_remaining', 'restant')} {/* Texte mis à jour */}
             </span>
         </motion.div>
@@ -176,16 +176,16 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                             type="deadline"
                             title={t('next_deadline', 'Prochaine Échéance')}
                             dateTime={nextDeadline.deadline}
-                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>}
+                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>} {/* Smaller icon size */}
                             pulseColorClass="bg-pink-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
-                            alertData={{ type: 'deadline', ...nextDeadline }}
+                            alertData={{ type: 'deadline', ...nextDeadline, eventName: nextDeadline.name }} // Pass name for display
                             t={t}
                         />
                     ) : (
                         <div className={`flex flex-col items-center justify-center p-6 rounded-2xl shadow-xl h-full w-full ${isDarkMode ? 'bg-gray-800' : 'bg-white'} text-gray-500 dark:text-gray-400 transition-colors duration-200`}>
-                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400 mb-3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                             <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400 mb-3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                             <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 text-center mb-2">{t('no_upcoming_deadlines', 'Aucune échéance à venir')}</p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 text-center">{t('add_new_deadline_hint', 'Ajoutez de nouvelles échéances pour rester organisé.')}</p>
                             <motion.button
@@ -207,16 +207,16 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                             type="meeting"
                             title={t('next_meeting', 'Prochaine Réunion')}
                             dateTime={nextMeeting.dateTime}
-                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>}
+                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>} {/* Smaller icon size */}
                             pulseColorClass="bg-violet-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
-                            alertData={{ type: 'meeting', ...nextMeeting }}
+                            alertData={{ type: 'meeting', ...nextMeeting, eventName: nextMeeting.title || nextMeeting.name }} // Pass the meeting title/name
                             t={t}
                         />
                     ) : (
                         <div className={`flex flex-col items-center justify-center p-6 rounded-2xl shadow-xl h-full w-full ${isDarkMode ? 'bg-gray-800' : 'bg-white'} text-gray-500 dark:text-gray-400 transition-colors duration-200`}>
-                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400 mb-3"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>
+                             <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400 mb-3"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>
                             <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 text-center mb-2">{t('no_upcoming_meetings', 'Aucune réunion à venir')}</p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 text-center">{t('add_new_meeting_hint', 'Planifiez de nouvelles réunions pour rester connecté.')}</p>
                             <motion.button
