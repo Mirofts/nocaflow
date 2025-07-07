@@ -1,7 +1,7 @@
 // src/components/dashboard/modals/BlockContactModal.js
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ModalWrapper } from './ModalWrapper'; // Assurez-vous que ce chemin est correct
+import { ModalWrapper } from './ModalWrapper';
 
 const BlockContactModal = ({ showModal, onClose, onConfirm, contactName, isBlocked, t }) => {
     if (!showModal) return null;

@@ -1,6 +1,7 @@
 // src/pages/_app.js
 import '../i18next';
 import '../styles/globals.css';
+import ClientOnly from '../components/ClientOnly';
 import { appWithTranslation } from 'next-i18next';
 import Head from 'next/head';
 import { AuthContextProvider } from '../context/AuthContext';
@@ -50,6 +51,7 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <AuthContextProvider>
+        <ClientOnly>
       <ThemeProvider>
         <div className="flex flex-col min-h-screen bg-color-bg-primary text-color-text-primary !p-0 !m-0 !max-w-none overflow-x-hidden">
           <Head>
@@ -100,6 +102,7 @@ function MyApp({ Component, pageProps }) {
         </AnimatePresence>
 
       </ThemeProvider>
+      </ClientOnly>
     </AuthContextProvider>
   );
 }

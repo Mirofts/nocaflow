@@ -1,7 +1,7 @@
 // src/components/dashboard/modals/ConfirmDeleteMessageModal.js
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ModalWrapper } from './ModalWrapper'; // Assurez-vous que ce chemin est correct
+import { ModalWrapper } from './ModalWrapper';
 
 const ConfirmDeleteMessageModal = ({ showModal, onClose, onConfirm, t }) => {
     if (!showModal) return null;

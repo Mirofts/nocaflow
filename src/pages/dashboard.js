@@ -3,8 +3,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { useUserTodos } from '../hooks/useUserTodos';
+import { useTheme } from '@/context/ThemeContext'; // Chemin corrigé
+import { useUserTodos } from '@/hooks/useUserTodos'; // Chemin corrigé
 import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -33,11 +33,10 @@ import {
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal,
-    BlockContactModal, ConfirmDeleteMessageModal
-} from '../components/dashboard/dashboardModals';
-import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '@/components/dashboard/modals/DetailsModal';
-
+    BlockContactModal, ConfirmDeleteMessageModal, NewDiscussionModal // Inclut NewDiscussionModal
+} from '../components/dashboard/dashboardModals'; // <-- CHEMIN CORRIGÉ pour votre arborescence
+import CalculatorModal from '../components/dashboard/CalculatorModal'; // C'est un fichier séparé
+import DetailsModal from '@/components/dashboard/modals/DetailsModal'; // C'est un fichier séparé dans /modals/
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
     const { user: authUser, logout } = useAuth();

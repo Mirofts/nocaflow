@@ -14,7 +14,7 @@ import AvatarEditModal from './modals/AvatarEditModal';
 import MeetingSchedulerModal from './modals/MeetingSchedulerModal';
 import ProjectFormModal from './modals/ProjectFormModal';
 import InvoiceFormModal from './modals/InvoiceFormModal';
-import InvoiceListModal from './modals/InvoiceListModal'; // <-- Chemin corrigé de 'modales' à 'modals'
+import InvoiceListModal from './modals/InvoiceListModal';
 import TeamMemberModal from './modals/TeamMemberModal';
 import QuickChatModal from './modals/QuickChatModal';
 import AssignTaskProjectDeadlineModal from './modals/AssignTaskProjectDeadlineModal';
@@ -23,11 +23,12 @@ import GanttTaskFormModal from './modals/GanttTaskFormModal';
 import GoogleDriveLinkModal from './modals/GoogleDriveLinkModal';
 import AddDeadlineModal from './modals/AddDeadlineModal';
 import AddMeetingModal from './modals/AddMeetingModal';
-// Ajout des nouvelles modales
+// Ajout des nouvelles modales spécifiques au chat
 import BlockContactModal from './modals/BlockContactModal';
 import ConfirmDeleteMessageModal from './modals/ConfirmDeleteMessageModal';
-// Import spécifique pour NewDiscussionModal, car il est dans un sous-dossier différent
+// Import spécifique pour NewDiscussionModal, car il est dans un sous-dossier de FlowLiveMessages
 import NewDiscussionModal from './FlowLiveMessages/modals/NewDiscussionModal'; // <-- Chemin corrigé
+import ClientFormModal from './modals/ClientFormModal';
 
 // Exportation de toutes les modales pour une importation centralisée
 export {
@@ -51,5 +52,6 @@ export {
     AddMeetingModal,
     BlockContactModal,
     ConfirmDeleteMessageModal,
-    NewDiscussionModal
+    NewDiscussionModal,
+    ClientFormModal
 };

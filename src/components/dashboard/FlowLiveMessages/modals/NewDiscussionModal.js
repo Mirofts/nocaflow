@@ -1,6 +1,6 @@
 // src/components/dashboard/FlowLiveMessages/modals/NewDiscussionModal.js
 import React, { useState, useRef } from 'react';
-import Image from 'next/image'; // Chemin corrigé
+import Image from 'next/image';
 
 const NewDiscussionModal = ({
   showModal,

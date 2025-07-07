@@ -11,7 +11,7 @@ const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = 
     const [deadline, setDeadline] = useState('');
     const [assignedTo, setAssignedTo] = useState(member?.name || currentUserName || '');
     const [loading, setLoading] = useState(false);
-    // Supprime isClient car nous allons gérer suppressHydrationWarning directement
+    // isClient est désormais inutile ici si suppressHydrationWarning est sur le div parent
     // const [isClient, setIsClient] = useState(false);
 
     // useEffect(() => {
@@ -57,10 +57,7 @@ const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = 
         onClose();
     };
 
-    // La classe selectClassName est toujours définie dynamiquement.
-    // Nous allons utiliser suppressHydrationWarning pour gérer le mismatch.
     const selectClassName = `form-input appearance-none pr-10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-color-bg-tertiary border-color-border-primary text-color-text-primary'}`;
-
 
     return (
         <ModalWrapper onClose={onClose} size="max-w-md">
@@ -91,15 +88,13 @@ const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = 
 
                 <div>
                     <label className="block text-slate-300 text-sm mb-2 font-medium">{t('assign_to_label', 'Assigner à')}</label>
-                    <div className="relative">
-                        {/* Appliquer suppressHydrationWarning à la fois au select et au div parent si nécessaire */}
-                        {/* Le problème est que le className sur le <select> est le même que le className sur le placeholder div */}
+                    <div className="relative" suppressHydrationWarning> {/* <-- suppressHydrationWarning ici */}
                         <select
                             value={assignedTo}
                             onChange={(e) => setAssignedTo(e.target.value)}
-                            className={selectClassName} // Utilisez la classe dynamique
+                            className={selectClassName}
                             required
-                            suppressHydrationWarning // <-- GARDER CE PROP ICI
+                            suppressHydrationWarning // <-- et ici
                         >
                             <option value={currentUserName}>{currentUserName} ({t('me', 'Moi')})</option>
                             {(Array.isArray(assignableStaff) ? assignableStaff : []).map(member => (

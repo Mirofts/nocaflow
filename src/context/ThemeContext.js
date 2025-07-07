@@ -1,6 +1,6 @@
 // src/context/ThemeContext.js
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'; // <-- useRef ajouté ici
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 const ThemeContext = createContext();
 
@@ -15,7 +15,7 @@ export const ThemeProvider = ({ children }) => {
         return false;
     });
 
-    const isInitialRender = useRef(true); // Ce useRef était la cause de l'erreur
+    const isInitialRender = useRef(true);
 
     useEffect(() => {
         const root = document.documentElement;

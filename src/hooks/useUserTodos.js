@@ -1,6 +1,6 @@
 // src/hooks/useUserTodos.js
 import React, { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase'; // Chemin corrigé
+import { db } from '@/lib/firebase'; // <-- Chemin corrigé
 import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, doc } from 'firebase/firestore';
 
 export const useUserTodos = (userUid, isGuestMode, onUpdateGuestData, initialGuestTasks) => {
@@ -107,7 +107,7 @@ export const useUserTodos = (userUid, isGuestMode, onUpdateGuestData, initialGue
         } else {
             try {
                 await deleteDoc(doc(db, 'users', userUid, 'todos', id));
-                console.log("Deleted todo from Firebase for user:", userUid, id);
+                console.log("Deleted todo from Firebase for user:", userUid);
             } catch (e) {
                 console.error("Error deleting todo:", e);
             }

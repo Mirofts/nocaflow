@@ -10,14 +10,12 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { format, isToday, isYesterday, isSameWeek, isSameDay, isSameYear, parseISO, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// IMPORTS DES COMPOSANTS ENFANTS (chemins corrects)
+// IMPORTS DES COMPOSANTS ENFANTS
 import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
 import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
 import FlowLiveMessagesInput from './FlowLiveMessagesInput';
 
 // IMPORTS DES MODALES VIA dashboardModals.js (le fichier central d'exportation)
-// Toutes les modales sont maintenant importées depuis ce fichier central,
-// y compris NewDiscussionModal qui a été ajouté à dashboardModals.js
 import {
     NewDiscussionModal, // NewDiscussionModal est maintenant importé de dashboardModals.js
     TaskEditModal, // Utilisé comme AddTaskModal
@@ -27,7 +25,7 @@ import {
     ConfirmDeleteMessageModal
 } from '@/components/dashboard/dashboardModals'; // <-- Chemin corrigé pour les modales via dashboardModals.js
 
-// IMPORTS DES HOOKS : UTILISATION DES ALIAS (chemins corrects)
+// IMPORTS DES HOOKS : UTILISATION DES ALIAS
 import { useFullScreen } from '@/hooks/useFullScreen';
 import { useChatLogic } from '@/hooks/useChatLogic';
 import { useChatActions } from '@/hooks/useChatActions';
@@ -700,8 +698,10 @@ const FlowLiveMessages = forwardRef(({
                             onEditMessage={handleEditMessage}
                             onDeleteMessage={handleConfirmDeleteMessage}
                             messageSearchQuery={messageSearchQuery}
+                            activeConversationIsGroup={activeConversationInfo?.isGroup} // Pass isGroup to display component
                         />
 
+                        {/* Champ de saisie des messages (vérifié pour la visibilité) */}
                         <div className="flex-shrink-0">
                             <FlowLiveMessagesInput
                                 newMessage={newMessage}
@@ -726,6 +726,7 @@ const FlowLiveMessages = forwardRef(({
                 </>
             )}
 
+            {/* Le bouton Fullscreen est à son emplacement unique ici. */}
             <div className="absolute top-0 right-0 p-2 z-50">
                 <button
                     className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
@@ -740,7 +741,7 @@ const FlowLiveMessages = forwardRef(({
                 </button>
             </div>
 
-            {/* Modale de création/sélection de discussion */}
+            {/* Modales diverses */}
             <AnimatePresence>
                 {isNewDiscussionModalOpen && (
                     <NewDiscussionModal
@@ -756,7 +757,6 @@ const FlowLiveMessages = forwardRef(({
                 )}
             </AnimatePresence>
 
-            {/* Modale Ajouter Tâche (using TaskEditModal for the form) */}
             <AnimatePresence>
                 {showAddTaskModal && (
                     <TaskEditModal
@@ -768,7 +768,6 @@ const FlowLiveMessages = forwardRef(({
                 )}
             </AnimatePresence>
 
-            {/* Modale Planifier Réunion */}
             <AnimatePresence>
                 {showMeetingModal && (
                     <AddMeetingModal
@@ -779,7 +778,6 @@ const FlowLiveMessages = forwardRef(({
                 )}
             </AnimatePresence>
 
-            {/* Modale Ajouter Deadline */}
             <AnimatePresence>
                 {showDeadlineModal && (
                     <AddDeadlineModal
@@ -790,7 +788,6 @@ const FlowLiveMessages = forwardRef(({
                 )}
             </AnimatePresence>
 
-            {/* Modale Confirmer Blocage/Déblocage de Contact */}
             <AnimatePresence>
                 {showBlockContactModal && contactToBlock && (
                     <BlockContactModal
@@ -804,7 +801,6 @@ const FlowLiveMessages = forwardRef(({
                 )}
             </AnimatePresence>
 
-            {/* Modale Confirmer Suppression de Message */}
             <AnimatePresence>
                 {showConfirmDeleteMessageModal && messageToDeleteId && (
                     <ConfirmDeleteMessageModal
@@ -816,8 +812,7 @@ const FlowLiveMessages = forwardRef(({
                 )}
             </AnimatePresence>
 
-             {/* Modale pour afficher l'image éphémère en grand */}
-            <AnimatePresence>
+             <AnimatePresence>
                 {ephemeralImagePreview && (
                     <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[101]" onClick={closeEphemeralImagePreview}>
                         <div className="relative p-4 rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
