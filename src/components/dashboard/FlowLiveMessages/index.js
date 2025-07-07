@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/Theme/ThemeContext'; // Corrected import path for ThemeContext
+import { useTheme } from '@/context/ThemeContext'; // Corrected import path for ThemeContext
 import { useTranslation } from 'react-i18next';
 import { db, auth, storage } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, serverTimestamp, arrayUnion, writeBatch, addDoc, setDoc } from 'firebase/firestore'; // Added setDoc
+import { collection, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, serverTimestamp, arrayUnion, writeBatch, addDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { format, isToday, isYesterday, isSameWeek, isSameDay, isSameYear, parseISO, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -260,33 +260,8 @@ const FlowLiveMessages = forwardRef(({
                     participantsDetails = [];
                 }
 
-                // For a more accurate unread count, you'd query the messages subcollection
-                // and count messages where currentFirebaseUid is not in 'readBy' array.
-                // For now, this simple flag based on lastMessageReadBy is used.
-                // To show exact unread count:
-                // Fetch unread messages count for each conversation
-                const unreadMessagesQuery = query(
-                    collection(db, 'conversations', d.id, 'messages'),
-                    where('readBy', 'array-contains', currentFirebaseUid), // This should be 'array-not-contains' for unread
-                    where('senderUid', '!=', currentFirebaseUid)
-                );
-                // The `where('readBy', 'array-contains', currentFirebaseUid)` is for messages ALREADY read by current user.
-                // To get UNREAD, you would need a more complex query or filter on client side.
-                // Firebase does not support `array-not-contains` directly.
-                // A common pattern is to fetch all messages and filter locally, or use a 'lastReadMessageId'
-                // and count messages after that ID.
-
-                // For simplicity and immediate fix, we'll use a placeholder for unread count.
-                // The `lastMessageReadBy` logic from previous code is limited and can't give an actual count.
-                // Let's use a simple placeholder for now or remove the badge if full implementation is deferred.
-                // If `lastMessageReadBy` indicates the LAST message was read, assume 0 unread for this simplified model.
-                // Otherwise, assume there's at least 1 unread if the last message wasn't read by the current user.
-
                 let unreadCount = 0;
                 if (data.lastMessageTime && data.lastMessageReadBy && !data.lastMessageReadBy.includes(currentFirebaseUid)) {
-                    // This is a simplistic approach; a real unread count requires more fetching.
-                    // For now, if the *last* message wasn't read by current user, we mark as 1 unread.
-                    // In a real scenario, you'd iterate through messages for an accurate count.
                     unreadCount = 1;
                 }
 

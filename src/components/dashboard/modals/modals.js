@@ -5,9 +5,9 @@ import Image from 'next/image';
 import { format, parseISO, isToday, isValid, intervalToDuration } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, updateDoc, setDoc } from 'firebase/firestore'; // Added setDoc
-import { db, storage } from '../../lib/firebase';
-import { useAuth } from '../../context/AuthContext';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase'; // Corrected import path
+import { useAuth } from '@/context/AuthContext'; // Corrected import path
 
 // Avatars NocaFlow prédéfinis (réutilisés ici)
 const nocaflowAvatars = [
