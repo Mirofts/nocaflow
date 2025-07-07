@@ -88,27 +88,21 @@ const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = 
                 <div>
                     <label className="block text-slate-300 text-sm mb-2 font-medium">{t('assign_to_label', 'Assigner à')}</label>
                     <div className="relative">
-                        {/* Render select only on client side to avoid hydration mismatch */}
-                        {isClient ? (
-                            <select
-                                value={assignedTo}
-                                onChange={(e) => setAssignedTo(e.target.value)}
-                                className={selectClassName}
-                                required
-                            >
-                                <option value={currentUserName}>{currentUserName} ({t('me', 'Moi')})</option>
-                                {(Array.isArray(assignableStaff) ? assignableStaff : []).map(member => (
-                                    <option key={member.uid} value={member.name}>
-                                        {member.name}
-                                    </option>
-                                ))}
-                            </select>
-                        ) : (
-                            // Placeholder div for SSR and initial client render
-                            <div className={`form-input appearance-none pr-10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-color-bg-tertiary border-color-border-primary text-color-text-primary'}`}>
-                                {t('loading', 'Chargement...')}
-                            </div>
-                        )}
+                        {/* Adding suppressHydrationWarning here is the key fix for the className mismatch. */}
+                        <select
+                            value={assignedTo}
+                            onChange={(e) => setAssignedTo(e.target.value)}
+                            className={selectClassName}
+                            required
+                            suppressHydrationWarning // <-- ADD THIS PROP
+                        >
+                            <option value={currentUserName}>{currentUserName} ({t('me', 'Moi')})</option>
+                            {(Array.isArray(assignableStaff) ? assignableStaff : []).map(member => (
+                                <option key={member.uid} value={member.name}>
+                                    {member.name}
+                                </option>
+                            ))}
+                        </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                         </div>
