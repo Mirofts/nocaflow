@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '../context/ThemeContext'; // Corrected to relative path
+import { useAuth } from '@/context/AuthContext'; // Chemin corrigé
+import { useTheme } from '../context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
@@ -27,16 +27,16 @@ import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
 
 
-// IMPORTS DES MODALES :
+// IMPORTS DES MODALES VIA LE FICHIER CENTRAL D'EXPORTATION dashboardModals.js :
 import {
     TaskEditModal, DayDetailsModal, QuickAddTaskModal, GuestNameEditModal, AvatarEditModal,
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
-    GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
-} from '../components/dashboard/modals/modals';
-import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '@/components/dashboard/modals/DetailsModal';
-
+    GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal,
+    BlockContactModal, ConfirmDeleteMessageModal // Ajout des nouvelles modales
+} from '../components/dashboard/dashboardModals'; // <-- CHEMIN CORRIGÉ pour votre arborescence
+import CalculatorModal from '../components/dashboard/CalculatorModal'; // C'est un fichier séparé
+import DetailsModal from '@/components/dashboard/modals/DetailsModal'; // C'est un fichier séparé dans /modals/
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
     const { user: authUser, logout } = useAuth();
@@ -295,21 +295,21 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         if (alertItem.type === 'deadline') {
             title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title || ''}`);
             const deadlineDate = parseISO(alertItem.deadline);
-            content = `${t('project_task', 'Tâche/Projet')} : ${alertData?.name || alertData?.title || ''}\n` + // Utiliser alertData ici
-                      `${t('client', 'Client')} : ${alertData?.client || t('not_specified', 'Non spécifié')}\n` + // Utiliser alertData ici
+            content = `${t('project_task', 'Tâche/Projet')} : ${alertItem?.name || alertItem?.title || ''}\n` +
+                      `${t('client', 'Client')} : ${alertItem?.client || t('not_specified', 'Non spécifié')}\n` +
                       `${t('date', 'Date')} : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `${t('description', 'Description')} : ${alertData?.description || t('no_description', 'Pas de description.')}`; // Utiliser alertData ici
+                      `${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}`;
         } else if (alertItem.type === 'meeting') {
             title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title || ''}`);
             const meetingDateTime = parseISO(alertItem.dateTime);
-            content = `${t('subject', 'Sujet')} : ${alertData?.title || ''}\n` + // Utiliser alertData ici
+            content = `${t('subject', 'Sujet')} : ${alertItem?.title || ''}\n` +
                       `${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `${t('location', 'Lieu')} : ${alertData?.location || t('not_specified', 'Non spécifié')}\n` + // Utiliser alertData ici
-                      `${t('description', 'Description')} : ${alertData?.description || t('no_description', 'Pas de description.')}`; // Utiliser alertData ici
+                      `${t('location', 'Lieu')} : ${alertItem?.location || t('not_specified', 'Non spécifié')}\n` +
+                      `${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}`;
         }
 
         openModal('detailsModal', { title, content });
-    }, [openModal, t]); // J'ai ajouté alertData ici comme dépendance, même si elle n'est pas directement utilisée dans la portée extérieure de ce useCallback, elle est passée via le `onAlertCardClick` et doit être stable.
+    }, [openModal, t]);
 
     const handleSelectUserOnMobile = useCallback((conv) => {
         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== authUser?.uid);
@@ -325,7 +325,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         <>
             <Head><title>Dashboard - NocaFLOW</title></Head>
             <div className="min-h-screen w-full dashboard-page-content-padding">
-                {isClient && isGuestMode && ( // Conditionnel au rendu client pour éviter l'hydratation
+                {isClient && isGuestMode && (
                     <div className="guest-banner-wrapper">
                         <GuestBanner
                             onRegisterClick={onRegisterClick}
@@ -428,10 +428,10 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         {/* Gantt Chart Section (full width) */}
                         <div className="col-span-12">
                             <DashboardCard
-                                title={t('gantt_chart_title', 'Planning Gantt')}
                                 icon={
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                                 }
+                                title={t('gantt_chart_title', 'Planning Gantt')}
                                 className="h-[600px] w-full"
                                 onFullscreenClick={handleGanttChartPlanningFullscreen}
                                 t={t}
@@ -566,6 +566,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         content={modalProps.content || ""}
                     />
                 )}
+
+                {/* MODALES SPÉCIFIQUES AU CHAT - Assurez-vous d'avoir les imports corrects ci-dessus */}
+                {/* Ces modales sont gérées directement par FlowLiveMessages/index.js */}
+                {/* Elles ne sont pas ici dans dashboard.js */}
+                {/* Exemple: BlockContactModal, ConfirmDeleteMessageModal */}
+
             </AnimatePresence>
         </>
     );

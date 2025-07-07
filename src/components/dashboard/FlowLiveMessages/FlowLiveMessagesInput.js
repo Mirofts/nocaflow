@@ -1,4 +1,4 @@
-// components/dashboard/FlowLiveMessages/FlowLiveMessagesInput.js
+// src/components/dashboard/FlowLiveMessages/FlowLiveMessagesInput.js
 import React from 'react';
 
 const FlowLiveMessagesInput = ({
@@ -11,13 +11,13 @@ const FlowLiveMessagesInput = ({
   showEmojiPicker,
   setShowEmojiPicker,
   emojiButtonRef,
-  fileInputRef, // Added fileInputRef
+  fileInputRef,
   isDarkMode,
   t,
-  handleSendEphemeralMessage, // New prop for ephemeral messages
-  handleAttachEphemeralFile, // New prop for ephemeral files
-  activeConversationId, // To disable buttons if no conversation is selected
-  isGuestMode // To disable buttons in guest mode
+  handleSendEphemeralMessage,
+  handleAttachEphemeralFile,
+  activeConversationId,
+  isGuestMode
 }) => {
 
   const isSendDisabled = !activeConversationId || !newMessage.trim();
@@ -27,9 +27,9 @@ const FlowLiveMessagesInput = ({
     <div className="flex items-end p-3 sm:p-4 border-t border-color-border-primary glass-card-input flex-shrink-0 relative">
       <input
         type="file"
-        ref={fileInputRef} // Ref is now passed and used here
+        ref={fileInputRef}
         className="hidden"
-        accept="image/*,application/pdf" // Specify accepted file types
+        accept="image/*,application/pdf"
       />
       <button
         className="text-gray-400 hover:text-purple-500 p-2 rounded"

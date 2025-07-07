@@ -12,33 +12,30 @@ export const useChatLogic = (currentUser, initialMockData, messagesProp) => {
 
     // Effect to initialize conversations from mock data or set default selected conversation
     useEffect(() => {
-        // Note: In real app, conversations come from Firestore via onSnapshot in FlowLiveMessages/index.js
         // This part mainly handles initial prop synchronization if messagesProp or initialMockData change.
+        // The primary source of conversations is the Firestore onSnapshot in FlowLiveMessages/index.js.
+        // This hook's `setConversations` will be overwritten by the parent's `setConversations` passed from the hook return.
         if (initialMockData?.conversations) {
-            setConversations(initialMockData.conversations);
+            // setConversations(initialMockData.conversations); // Commented out as index.js handles primary conv state
         }
 
         // Initialize internal messages state with prop messages
         if (messagesProp) {
              setMessages(messagesProp);
         }
-
-        // Set a default selected conversation if none is active and conversations exist
-        // The Firestore listener in FlowLiveMessages/index.js now handles the primary setting
-        // of conversations and selectedConversationId.
     }, [initialMockData, messagesProp]);
 
-useEffect(() => {
-    if (!activeSearchQuery) {
-        setFilteredMessages(messages || []);
-    } else {
-        const lowerQuery = activeSearchQuery.toLowerCase();
-        const filtered = (messages || []).filter((msg) =>
-            msg.content?.toLowerCase().includes(lowerQuery)
-        );
-        setFilteredMessages(filtered);
-    }
-}, [messages, activeSearchQuery]);
+    useEffect(() => {
+        if (!activeSearchQuery) {
+            setFilteredMessages(messages || []);
+        } else {
+            const lowerQuery = activeSearchQuery.toLowerCase();
+            const filtered = (messages || []).filter((msg) =>
+                msg.content?.toLowerCase().includes(lowerQuery)
+            );
+            setFilteredMessages(filtered);
+        }
+    }, [messages, activeSearchQuery]);
 
 
     // Return all necessary states and setters for FlowLiveMessages (index.js)

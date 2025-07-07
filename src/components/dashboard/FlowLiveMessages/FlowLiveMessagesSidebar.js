@@ -1,7 +1,7 @@
 // src/components/dashboard/FlowLiveMessages/FlowLiveMessagesSidebar.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '../../../context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext'; // Chemin corrigé
 
 const FlowLiveMessagesSidebar = ({
     conversations,
@@ -38,7 +38,6 @@ const FlowLiveMessagesSidebar = ({
     }, [setSelectedConversationId]);
 
     return (
-        // Added h-full here to ensure it takes the full height of its parent flex container.
         <div className={`relative flex flex-col h-full ${isFullScreen ? 'w-full md:w-1/3 lg:w-1/4' : 'w-full md:w-1/3 lg:w-1/4'} border-r ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-50'}`}>
             <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <h3 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">{t('conversations_title', 'Conversations')}</h3>
@@ -51,14 +50,13 @@ const FlowLiveMessagesSidebar = ({
                 />
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {filteredConversations.length === 0 ? (
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400 p-4">{t('no_conversations', 'Aucune conversation trouvée.')}</p>
                 ) : (
                     filteredConversations.map(conv => {
                         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== currentUserId);
-                        // Using a more robust default avatar logic: group avatar for groups, default for others
-                        const displayPhotoURL = conv.isGroup ? '/images/default-group-avatar.png' : (otherParticipant?.photoURL || '/images/default-avatar.jpg');
+                        const displayPhotoURL = conv.isGroup ? '/images/default-group-avatar.png' : (otherParticipant?.photoURL || '/images/avatars/default-avatar.jpg');
                         const isOnline = otherParticipant?.isOnline;
 
                         return (
@@ -86,7 +84,7 @@ const FlowLiveMessagesSidebar = ({
                                     </p>
                                 </div>
                                 {conv.unread > 0 && (
-                                    <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                                    <span className="ml-2 px-2 py-0.5 bg-purple-500 text-white text-xs font-bold rounded-full">
                                         {conv.unread}
                                     </span>
                                 )}
@@ -96,7 +94,6 @@ const FlowLiveMessagesSidebar = ({
                 )}
             </div>
 
-            {/* Le bouton "Nouvelle discussion" doit être ancré en bas */}
             <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
                 <motion.button
                     onClick={onNewDiscussionClick}

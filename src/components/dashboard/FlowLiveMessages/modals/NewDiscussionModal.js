@@ -1,6 +1,6 @@
 // src/components/dashboard/FlowLiveMessages/modals/NewDiscussionModal.js
 import React, { useState, useRef } from 'react';
-import Image from 'next/image';
+import Image from 'next/image'; // Chemin corrigé
 
 const NewDiscussionModal = ({
   showModal,
@@ -9,19 +9,18 @@ const NewDiscussionModal = ({
   internalAvailableTeamMembers,
   currentFirebaseUid,
   currentUserName,
-  currentUserPhotoURL, // <-- NEW PROP RECEIVED HERE
+  currentUserPhotoURL,
   t
 }) => {
   const [showNewContactInput, setShowNewContactInput] = useState(false);
   const [newContactEmail, setNewContactEmail] = useState('');
   const [selectedTeamMemberUids, setSelectedTeamMemberUids] = useState([]);
   const [newDiscussionName, setNewDiscussionName] = useState('');
-  const newContactNameRef = useRef(null); // Ref for autoFocus
+  const newContactNameRef = useRef(null);
 
   if (!showModal) return null;
 
   const handleSubmit = async () => {
-    // Basic validation before calling onCreate
     if (showNewContactInput && (!newDiscussionName.trim() || !newContactEmail.trim())) {
         alert(t('fill_all_new_contact_fields', 'Veuillez remplir le nom et l\'email pour le nouveau contact.'));
         return;
@@ -37,7 +36,6 @@ const NewDiscussionModal = ({
       selectedUids: selectedTeamMemberUids,
       showNewContact: showNewContactInput
     });
-    // Reset form state after submission
     setNewContactEmail('');
     setSelectedTeamMemberUids([]);
     setNewDiscussionName('');
@@ -97,21 +95,20 @@ const NewDiscussionModal = ({
               autoFocus={true}
             />
             <div className="max-h-60 overflow-y-auto custom-scrollbar mb-4 border border-gray-700 rounded-md">
-              {internalAvailableTeamMembers.filter(member => member.uid !== currentFirebaseUid).map(member => ( // Use member.uid
+              {internalAvailableTeamMembers.filter(member => member.uid !== currentFirebaseUid).map(member => (
                 <div key={member.uid} className="flex items-center p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0" onClick={() => {
                     setSelectedTeamMemberUids(prev =>
-                        prev.includes(member.uid) // Use member.uid
-                            ? prev.filter(uid => uid !== member.uid) // Use member.uid
-                            : [...prev, member.uid] // Use member.uid
+                        prev.includes(member.uid)
+                            ? prev.filter(uid => uid !== member.uid)
+                            : [...prev, member.uid]
                     );
                 }}>
                   <input
                     type="checkbox"
                     className="mr-3 form-checkbox text-pink-500 rounded"
-                    checked={selectedTeamMemberUids.includes(member.uid)} // Use member.uid
-                    onChange={() => {}} // Controlled by div onClick
+                    checked={selectedTeamMemberUids.includes(member.uid)}
+                    onChange={() => {}}
                   />
-                  {/* Display avatar if available, otherwise initials */}
                   {member.photoURL ? (
                     <Image src={member.photoURL} alt={member.displayName || member.name} width={28} height={28} className="rounded-full mr-3 object-cover" />
                   ) : (
@@ -125,7 +122,6 @@ const NewDiscussionModal = ({
               {currentFirebaseUid && !selectedTeamMemberUids.includes(currentFirebaseUid) && (
                   <div className="flex items-center p-3 text-slate-500">
                       <input type="checkbox" className="mr-3" checked disabled />
-                      {/* FIXED: Use currentUserPhotoURL prop here */}
                  {currentUserPhotoURL ? (
   <Image src={currentUserPhotoURL} alt={currentUserName} width={28} height={28} className="rounded-full mr-3 object-cover" />
 ) : (
