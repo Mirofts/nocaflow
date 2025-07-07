@@ -21,7 +21,6 @@ import { useFullScreen } from '@/hooks/useFullScreen';
 import { useChatLogic } from '@/hooks/useChatLogic';
 import { useChatActions } from '@/hooks/useChatActions';
 
-
 const ALL_EMOJIS = [
     '👋', '😀', '🔥', '🚀', '💡', '✅', '✨', '👍', '🎉', '🌟', '💫', '💥', '🚀', '🌈', '☀️', '🌻', '🌺', '🌲', '🌳', '🍂', '🍁', '🍓', '🍋', '🍎', '🍔', '🍕', '🌮', '🍩', '🍦', '☕', '🍵', '🥂', '🍾', '🎉', '🎁', '🎈', '🎂', '🥳', '🏠', '🏢', '💡', '⏰', '📆', '📈', '📊', '🔗', '🔒', '🔑', '📝', '📌', '📎', '📁', '📄', '📊', '📈', '📉', '💰', '💳', '💵', '💸', '📧', '📞', '💬', '🔔', '📣', '💡', '⚙️', '🔨', '🛠️', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳'
 ];
@@ -29,46 +28,50 @@ const ALL_EMOJIS = [
 const FlowLiveMessages = forwardRef(({
     onLoginClick,
     onRegisterClick,
-    onOpenAddTaskFromChat, // Prop pour ouvrir la modale d'ajout de tâche depuis le chat
-    onAddMeeting, // Prop pour ajouter une réunion
-    onAddDeadline, // Prop pour ajouter une deadline
+    onOpenAddTaskFromChat,
+    onAddMeeting,
+    onAddDeadline,
     availableTeamMembers,
-    messages: messagesProp,
-    user,
+    messages: messagesProp, // This prop seems unused, as messages are fetched via onSnapshot
+    user, // The user prop passed from dashboard.js, which is authUser
     initialMockData,
     handleSelectUserOnMobile
 }, ref) => {
-    const { currentUser: authUser } = useAuth();
+    const { currentUser: authUser } = useAuth(); // Use authUser from AuthContext for consistency
     const { isDarkMode } = useTheme();
     const { t, i18n } = useTranslation('common');
 
-    const currentUser = user || authUser;
-    const isGuestMode = !currentUser || currentUser.uid === 'guest_noca_flow';
-    const currentFirebaseUid = currentUser?.uid || (isGuestMode ? 'guest_noca_flow' : null);
-    const currentUserName = currentUser?.displayName || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : 'Moi');
+    // Determine the actual current user based on prop and AuthContext
+    const currentActiveUser = user || authUser;
+    const isGuestMode = !currentActiveUser || currentActiveUser.uid === 'guest_noca_flow';
+    const currentFirebaseUid = currentActiveUser?.uid || (isGuestMode ? 'guest_noca_flow' : null);
+    const currentUserName = currentActiveUser?.displayName || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : 'Moi');
 
 
     const {
         conversations,
         selectedConversationId,
-        filteredMessages,
+        filteredMessages, // This is derived from the 'messages' state below
         setSelectedConversationId,
         setConversations,
-        setMessages,
+        setMessages: setMessagesFromLogic, // Renamed to avoid conflict with local state
         isNewDiscussionModalOpen,
         setIsNewDiscussionModalOpen,
         newDiscussionModalInitialContact,
         setNewDiscussionModalInitialContact,
         activeSearchQuery,
         setActiveSearchQuery
-    } = useChatLogic(currentUser, initialMockData, messagesProp);
+    } = useChatLogic(currentActiveUser, initialMockData, messagesProp);
+
+    // Local state for messages fetched from Firestore for the selected conversation
+    const [messages, setMessages] = useState([]); // This state will hold the messages for the *currently selected* conversation
 
     const {
         sendMessage,
         startNewConversation,
         handleMessageAction,
         handleFileUpload
-    } = useChatActions(currentUser, conversations, setConversations, setMessages);
+    } = useChatActions(currentActiveUser, conversations, setConversations, setMessages); // Pass local setMessages here
 
 
     const chatContainerRef = useRef(null);
@@ -79,11 +82,52 @@ const FlowLiveMessages = forwardRef(({
         toggleFullScreen: toggleFullScreen
     }));
 
+    // This useEffect is now crucial for populating the 'messages' state for the display
     useEffect(() => {
-        if (messagesProp) {
-            setMessages(messagesProp);
+        if (!selectedConversationId || !db) {
+            setMessages([]); // Clear messages if no conversation is selected
+            return;
         }
-    }, [messagesProp, setMessages]);
+
+        const messagesColRef = collection(db, 'conversations', selectedConversationId, 'messages');
+        const q = query(messagesColRef, orderBy('timestamp'));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const newMessages = snapshot.docs.map(d => {
+                const data = d.data();
+                // Find the active conversation details from the 'conversations' state
+                // This 'conversations' state is populated by the first onSnapshot in this component
+                const activeConv = conversations.find(conv => conv.id === selectedConversationId);
+                const senderDetail = activeConv?.participantsDetails?.find(p => p.uid === data.senderUid);
+
+                const senderName = (data.senderUid === currentFirebaseUid)
+                    ? currentUserName
+                    : (senderDetail?.displayName || t('unknown_user', 'Utilisateur'));
+
+                return {
+                    id: d.id,
+                    ...data,
+                    displayTime: formatMessageTimeDisplay(data.timestamp),
+                    status: (data.readBy || []).includes(currentFirebaseUid) ? 'read' : 'sent',
+                    from: senderName, // This 'from' is just for display, not data structure
+                    senderPhotoURL: senderDetail?.photoURL || '/images/default-avatar.jpg',
+                    senderName: senderName // This senderName is used for display
+                };
+            });
+            setMessages(newMessages); // Update the local 'messages' state for display
+
+            // Mark messages as read
+            const unreadMessageIds = snapshot.docs.filter(d => !(d.data().readBy || []).includes(currentFirebaseUid) && d.data().senderUid !== currentFirebaseUid).map(d => d.id);
+            if (unreadMessageIds.length > 0) {
+                markMessagesAsRead(selectedConversationId, unreadMessageIds);
+            }
+        }, (error) => {
+            console.error("Error fetching messages for conversation " + selectedConversationId + ":", error);
+            setMessages([]); // Clear messages on error
+        });
+
+        return () => unsubscribe(); // Cleanup function
+    }, [selectedConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, db, conversations]); // Added 'conversations' to dependencies
 
 
     const [newMessage, setNewMessage] = useState('');
@@ -93,7 +137,6 @@ const FlowLiveMessages = forwardRef(({
     const emojiButtonRef = useRef(null);
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
-    // DÉPLACÉ EN HAUT : Déclaration de handleLoginPrompt
     const handleLoginPrompt = useCallback(() => {
         alert(t('access_restricted', 'Accès Restreint. Veuillez vous connecter pour accéder à la messagerie en temps réel.'));
         onLoginClick && onLoginClick();
@@ -103,7 +146,7 @@ const FlowLiveMessages = forwardRef(({
     const internalAvailableTeamMembers = useMemo(() => {
         if (availableTeamMembers && availableTeamMembers.length > 0) {
             return availableTeamMembers;
-        } else if (initialMockData?.staffMembers) { // Guest mode will use this
+        } else if (initialMockData?.staffMembers) {
             return initialMockData.staffMembers;
         }
         return [];
@@ -141,7 +184,7 @@ const FlowLiveMessages = forwardRef(({
                 if (e.target.files && e.target.files[0]) {
                     await handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, false);
                 }
-                e.target.value = null; // Clear the input after selection
+                e.target.value = null;
             };
             fileInputRef.current.click();
         }
@@ -158,7 +201,7 @@ const FlowLiveMessages = forwardRef(({
                 if (e.target.files && e.target.files[0]) {
                     await handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, true);
                 }
-                e.target.value = null; // Clear the input after selection
+                e.target.value = null;
             };
             fileInputRef.current.click();
         }
@@ -251,7 +294,7 @@ const FlowLiveMessages = forwardRef(({
                         photoURL = partnerDetail?.photoURL || '/images/default-avatar.jpg';
                     } else if (data.participants.length === 1 && data.participants.includes(currentFirebaseUid)) {
                         displayName = t('guest_you', 'TOI');
-                        photoURL = currentUser?.photoURL || '/images/avatars/avatarguest.jpg'; // Correct path for guest avatar
+                        photoURL = currentActiveUser?.photoURL || '/images/avatars/avatarguest.jpg'; // Correct path for guest avatar
                     }
                 } else {
                     displayName = data.name || t('new_conversation_default', 'Nouvelle Conversation');
@@ -287,52 +330,11 @@ const FlowLiveMessages = forwardRef(({
         });
 
         return () => unsubscribe();
-    }, [currentFirebaseUid, currentUser, t, db, setSelectedConversationId, selectedConversationId]);
-
-    useEffect(() => {
-        if (!selectedConversationId || !db) {
-            setMessages([]);
-            return;
-        }
-
-        const messagesColRef = collection(db, 'conversations', selectedConversationId, 'messages');
-        const q = query(messagesColRef, orderBy('timestamp'));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const newMessages = snapshot.docs.map(d => {
-                const data = d.data();
-                const activeConv = conversations.find(conv => conv.id === selectedConversationId);
-                const senderDetail = activeConv?.participantsDetails?.find(p => p.uid === data.senderUid);
-
-                const senderName = (data.senderUid === currentFirebaseUid)
-                    ? currentUserName
-                    : (senderDetail?.displayName || t('unknown_user', 'Utilisateur'));
-
-                return {
-                    id: d.id,
-                    ...data,
-                    displayTime: formatMessageTimeDisplay(data.timestamp),
-                    status: (data.readBy || []).includes(currentFirebaseUid) ? 'read' : 'sent',
-                    from: senderName,
-                    senderPhotoURL: senderDetail?.photoURL || '/images/default-avatar.jpg',
-                    senderName: senderName
-                };
-            });
-            setMessages(newMessages);
-
-            const unreadMessageIds = snapshot.docs.filter(d => !(d.data().readBy || []).includes(currentFirebaseUid) && d.data().senderUid !== currentFirebaseUid).map(d => d.id);
-            if (unreadMessageIds.length > 0) {
-                markMessagesAsRead(selectedConversationId, unreadMessageIds);
-            }
-        }, (error) => {
-            console.error("Error fetching messages:", error);
-        });
-
-        return () => unsubscribe();
-    }, [selectedConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, db, conversations]);
+    }, [currentFirebaseUid, currentActiveUser, t, db, setSelectedConversationId, selectedConversationId]); // Changed 'currentUser' to 'currentActiveUser' dependency
 
 
     const handleCreateNewDiscussion = useCallback(async ({ name, email, selectedUids, showNewContact }) => {
-        if (!currentUser) {
+        if (!currentActiveUser) { // Use currentActiveUser
             alert(t('login_to_create_discussion', 'Veuillez vous connecter pour créer une discussion.'));
             return;
         }
@@ -345,20 +347,17 @@ const FlowLiveMessages = forwardRef(({
             }
             console.log(`Simulating invitation to new contact: ${name} (${email})`);
 
-            // Simulate adding a new user to the system for chat purposes
             const newContactUid = `simulated-uid-${Date.now()}`;
             participantUids.add(newContactUid);
 
-            // Add the simulated user to Firebase 'users' collection so they can be resolved as participants
             try {
                 const usersColRef = collection(db, 'users');
-                await setDoc(doc(usersColRef, newContactUid), { // Use setDoc to set a specific UID
+                await setDoc(doc(usersColRef, newContactUid), {
                     uid: newContactUid,
                     displayName: name,
                     email: email,
-                    photoURL: '/images/default-avatar.jpg', // Default avatar for new simulated user
+                    photoURL: '/images/default-avatar.jpg',
                     isOnline: false,
-                    // Optionally, add a flag indicating this is a simulated/invited user
                     isSimulated: true,
                     invitedAt: serverTimestamp()
                 });
@@ -382,7 +381,7 @@ const FlowLiveMessages = forwardRef(({
         try {
             const newConvId = await startNewConversation(sortedParticipantUids, name?.trim() || '');
             if (newConvId) {
-                setSelectedConversationId(newConvId); // Automatically select the new conversation
+                setSelectedConversationId(newConvId);
             }
             setIsNewDiscussionModalOpen(false);
             setNewMessage('');
@@ -390,7 +389,7 @@ const FlowLiveMessages = forwardRef(({
             console.error("Failed to start new conversation:", error);
             alert(t('error_starting_conversation', 'Erreur lors du démarrage de la conversation.'));
         }
-    }, [currentUser, currentFirebaseUid, t, startNewConversation, setIsNewDiscussionModalOpen, setNewMessage, setSelectedConversationId, db]);
+    }, [currentActiveUser, currentFirebaseUid, t, startNewConversation, setIsNewDiscussionModalOpen, setNewMessage, setSelectedConversationId, db]); // Changed 'currentUser' to 'currentActiveUser' dependency
 
 
     const handleSelectConversation = useCallback((convId) => {
@@ -426,7 +425,7 @@ const FlowLiveMessages = forwardRef(({
                 onNewDiscussionClick={() => setIsNewDiscussionModalOpen(true)}
                 activeSearchQuery={activeSearchQuery}
                 setActiveSearchQuery={setActiveSearchQuery}
-                currentUser={currentUser}
+                currentUser={currentActiveUser} // Use currentActiveUser here
                 t={t}
                 isFullScreen={isFullScreen}
                 handleSelectUserOnMobile={handleSelectUserOnMobile}
@@ -500,8 +499,8 @@ const FlowLiveMessages = forwardRef(({
 
                 {/* Zone d'affichage des messages */}
                 <FlowLiveMessagesDisplay
-                    messages={filteredMessages || []}
-                    currentUser={currentUser}
+                    messages={messages || []} // Use the local 'messages' state
+                    currentUser={currentActiveUser} // Use currentActiveUser here
                     onMessageAction={handleMessageAction}
                     onOpenAddTaskFromChat={onOpenAddTaskFromChat}
                     availableTeamMembers={internalAvailableTeamMembers}
@@ -522,7 +521,7 @@ const FlowLiveMessages = forwardRef(({
                     showEmojiPicker={showEmojiPicker}
                     setShowEmojiPicker={setShowEmojiPicker}
                     emojiButtonRef={emojiButtonRef}
-                    fileInputRef={fileInputRef} // Pass ref down to input for file selection
+                    fileInputRef={fileInputRef}
                     isDarkMode={isDarkMode}
                     t={t}
                     activeConversationId={selectedConversationId}
