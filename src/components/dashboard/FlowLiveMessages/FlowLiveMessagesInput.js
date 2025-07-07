@@ -71,7 +71,10 @@ const FlowLiveMessagesInput = ({
               <span
                 key={index}
                 className="cursor-pointer text-xl p-1 hover:bg-gray-700 rounded-md flex items-center justify-center"
-                onClick={() => handleEmoticonClick(emoji)}
+                onClick={() => {
+                  handleEmoticonClick(emoji);
+                  setShowEmojiPicker(false); // Close emoji picker after selection
+                }}
               >
                 {emoji}
               </span>

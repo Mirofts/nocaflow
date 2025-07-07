@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/Theme/ThemeContext'; // Corrected import path for ThemeContext
 import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
@@ -372,7 +372,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onAddMeeting={() => openModal('addMeeting')} // Pass handler to open AddMeetingModal
                                     onAddDeadline={() => openModal('addDeadline')} // Pass handler to open AddDeadlineModal
                                     messages={data.messages || []}
-                                    user={user}
+                                    user={isGuestMode ? data.user : user} // Pass the current user object correctly
                                     initialMockData={initialMockData}
                                     availableTeamMembers={data.staffMembers || []}
                                     handleSelectUserOnMobile={handleSelectUserOnMobile}
@@ -521,7 +521,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {activeModal === 'assignTaskProjectDeadline' && modalProps && (
                     <AssignTaskProjectDeadlineModal
                         t={t}
-                        member={modalProps}
+                        member={modalProps.member} // Pass the correct member object from chatData
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers || []}
                         userUid={userUid}

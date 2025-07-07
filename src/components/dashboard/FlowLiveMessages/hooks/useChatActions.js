@@ -27,7 +27,7 @@ export const useChatActions = (currentUser, conversations, setConversations, set
         } catch (e) {
             console.error("Error updating last message for conversation " + conversationId + ":", e);
         }
-    }, [currentFirebaseUid]);
+    }, [currentFirebaseUid, db]);
 
 
     // Function to send a text message

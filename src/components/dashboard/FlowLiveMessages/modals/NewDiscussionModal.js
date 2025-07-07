@@ -1,5 +1,6 @@
 // components/dashboard/FlowLiveMessages/modals/NewDiscussionModal.js
 import React, { useState, useRef } from 'react';
+import Image from 'next/image'; // Import Image component
 
 const NewDiscussionModal = ({
   showModal,
@@ -19,12 +20,23 @@ const NewDiscussionModal = ({
   if (!showModal) return null;
 
   const handleSubmit = async () => {
+    // Basic validation before calling onCreate
+    if (showNewContactInput && (!newDiscussionName.trim() || !newContactEmail.trim())) {
+        alert(t('fill_all_new_contact_fields', 'Veuillez remplir le nom et l\'email pour le nouveau contact.'));
+        return;
+    }
+    if (!showNewContactInput && selectedTeamMemberUids.length === 0) {
+        alert(t('select_members_for_discussion', 'Veuillez sélectionner au moins un membre pour la discussion.'));
+        return;
+    }
+
     await onCreate({
       name: newDiscussionName,
       email: newContactEmail,
       selectedUids: selectedTeamMemberUids,
       showNewContact: showNewContactInput
     });
+    // Reset form state after submission
     setNewContactEmail('');
     setSelectedTeamMemberUids([]);
     setNewDiscussionName('');
@@ -82,32 +94,42 @@ const NewDiscussionModal = ({
               autoFocus={true}
             />
             <div className="max-h-60 overflow-y-auto custom-scrollbar mb-4 border border-gray-700 rounded-md">
-              {internalAvailableTeamMembers.filter(member => member.firebaseUid !== currentFirebaseUid).map(member => (
-                <div key={member.firebaseUid} className="flex items-center p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0" onClick={() => {
+              {internalAvailableTeamMembers.filter(member => member.uid !== currentFirebaseUid).map(member => ( // Use member.uid
+                <div key={member.uid} className="flex items-center p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0" onClick={() => {
                     setSelectedTeamMemberUids(prev =>
-                        prev.includes(member.firebaseUid)
-                            ? prev.filter(uid => uid !== member.firebaseUid)
-                            : [...prev, member.firebaseUid]
+                        prev.includes(member.uid) // Use member.uid
+                            ? prev.filter(uid => uid !== member.uid) // Use member.uid
+                            : [...prev, member.uid] // Use member.uid
                     );
                 }}>
                   <input
                     type="checkbox"
                     className="mr-3 form-checkbox text-pink-500 rounded"
-                    checked={selectedTeamMemberUids.includes(member.firebaseUid)}
-                    onChange={() => {}}
+                    checked={selectedTeamMemberUids.includes(member.uid)} // Use member.uid
+                    onChange={() => {}} // Controlled by div onClick
                   />
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gray-500 mr-3 text-sm`}>
-                      {member.initials}
-                  </div>
-                  <span className="text-white">{member.name}</span>
+                  {/* Display avatar if available, otherwise initials */}
+                  {member.photoURL ? (
+                    <Image src={member.photoURL} alt={member.displayName || member.name} width={28} height={28} className="rounded-full mr-3 object-cover" />
+                  ) : (
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gray-500 mr-3 text-sm`}>
+                        {(member.displayName || member.name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-white">{member.displayName || member.name}</span>
                 </div>
               ))}
               {currentFirebaseUid && !selectedTeamMemberUids.includes(currentFirebaseUid) && (
                   <div className="flex items-center p-3 text-slate-500">
                       <input type="checkbox" className="mr-3" checked disabled />
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gray-500 mr-3 text-sm`}>
-                          {currentUserName.charAt(0).toUpperCase()}
-                      </div>
+                      {/* Display current user's avatar or initials */}
+                      {currentUser?.photoURL ? (
+                        <Image src={currentUser.photoURL} alt={currentUserName} width={28} height={28} className="rounded-full mr-3 object-cover" />
+                      ) : (
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gray-500 mr-3 text-sm`}>
+                            {currentUserName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <span>{currentUserName} ({t('you', 'Vous')})</span>
                   </div>
               )}

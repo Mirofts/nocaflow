@@ -5,6 +5,9 @@ import { useTheme } from '../../../context/ThemeContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+// Import sub-components if any
+// import ChatBubble from './ChatBubble'; // Assuming you have a ChatBubble component
+
 const FlowLiveMessagesDisplay = ({
     messages,
     currentUser,
@@ -46,11 +49,6 @@ const FlowLiveMessagesDisplay = ({
     return (
         <div className={`flex-1 flex flex-col ${isFullScreen ? 'h-full' : 'h-full'} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
             {/* Removed the 'Live Chat' header */}
-            {/* <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
-                    {t('live_chat', 'Live Chat')}
-                </h3>
-            </div> */}
 
             <div className="flex-1 overflow-y-auto p-4">
                 {messages?.length === 0 ? (
@@ -107,7 +105,7 @@ const FlowLiveMessagesDisplay = ({
                                     </a>
                                 )}
                                 <p className={`text-right text-xs mt-1 ${msg.senderUid === (currentUser?.uid || 'guest_noca_flow') ? 'text-blue-200' : (isDarkMode ? 'text-gray-400' : 'text-gray-500')}`}>
-                                    {msg.displayTime} {/* Use displayTime from processed message */}
+                                    {msg.displayTime}
                                 </p>
                                 {msg.actions && msg.actions.length > 0 && (
                                     <div className="mt-2 flex flex-wrap gap-2">
