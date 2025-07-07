@@ -4,51 +4,51 @@ import { useState, useEffect, useCallback } from 'react';
 export const useChatLogic = (currentUser, initialMockData, messagesProp) => {
     const [conversations, setConversations] = useState([]);
     const [selectedConversationId, setSelectedConversationId] = useState(null);
-    const [messages, setMessages] = useState([]); // Internal state for messages
-    const [filteredMessages, setFilteredMessages] = useState([]);
+    const [messages, setMessages] = useState([]); // Internal state for messages, synchronized with messagesProp
+    const [filteredMessages, setFilteredMessages] = useState([]); // Messages displayed based on active conversation
     const [isNewDiscussionModalOpen, setIsNewDiscussionModalOpen] = useState(false);
     const [newDiscussionModalInitialContact, setNewDiscussionModalInitialContact] = useState(null);
     const [activeSearchQuery, setActiveSearchQuery] = useState('');
 
-    // Initialize conversations and messages from props or mock data
+    // Effect to initialize conversations from mock data or set default selected conversation
     useEffect(() => {
-        const userConversations = initialMockData.conversations || []; // Ensure conversations is an array
-        setConversations(userConversations);
-        setMessages(messagesProp || []); // Initialize internal messages state with prop messages
-        
-        // Try to select a default conversation if none is selected
-        if (!selectedConversationId && userConversations.length > 0) {
-            setSelectedConversationId(userConversations[0].id);
+        // Note: In real app, conversations come from Firestore via onSnapshot in FlowLiveMessages/index.js
+        // This part mainly handles initial prop synchronization if messagesProp or initialMockData change.
+        if (initialMockData?.conversations) {
+            setConversations(initialMockData.conversations);
         }
-    }, [initialMockData, messagesProp, selectedConversationId]); // Added selectedConversationId to deps
 
-    // Filter messages based on selected conversation
-    useEffect(() => {
-        const currentConv = conversations.find(conv => conv.id === selectedConversationId);
-        if (currentConv) {
-            setFilteredMessages(currentConv.messages || []); // Ensure messages are an array
-        } else {
-            setFilteredMessages([]);
+        // Initialize internal messages state with prop messages
+        if (messagesProp) {
+             setMessages(messagesProp);
         }
-    }, [selectedConversationId, conversations]);
 
-    // Handle search query
-    useEffect(() => {
-        if (activeSearchQuery) {
-            // Re-filter conversations if search query changes
-            // (The filteredConversations in Sidebar will handle this, so this might not be strictly needed here)
-        }
-    }, [activeSearchQuery]);
+        // Set a default selected conversation if none is active and conversations exist
+        // The Firestore listener in FlowLiveMessages/index.js now handles the primary setting
+        // of conversations and selectedConversationId.
+    }, [initialMockData, messagesProp]);
+
+useEffect(() => {
+    if (!activeSearchQuery) {
+        setFilteredMessages(messages || []);
+    } else {
+        const lowerQuery = activeSearchQuery.toLowerCase();
+        const filtered = (messages || []).filter((msg) =>
+            msg.content?.toLowerCase().includes(lowerQuery)
+        );
+        setFilteredMessages(filtered);
+    }
+}, [messages, activeSearchQuery]);
 
 
-    // Return all necessary states and setters
+    // Return all necessary states and setters for FlowLiveMessages (index.js)
     return {
         conversations,
         selectedConversationId,
         filteredMessages,
-        setSelectedConversationId, // <-- Guaranteed to be returned
+        setSelectedConversationId,
         setConversations,
-        setMessages, // <-- Guaranteed to be returned
+        setMessages, // setMessages is passed back for sync with messagesProp
         isNewDiscussionModalOpen,
         setIsNewDiscussionModalOpen,
         newDiscussionModalInitialContact,

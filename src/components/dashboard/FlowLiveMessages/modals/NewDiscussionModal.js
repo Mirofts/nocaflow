@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import Image from 'next/image'; // Import Image component
 
+
 const NewDiscussionModal = ({
   showModal,
   onClose,
@@ -125,13 +126,13 @@ const NewDiscussionModal = ({
                   <div className="flex items-center p-3 text-slate-500">
                       <input type="checkbox" className="mr-3" checked disabled />
                       {/* Display current user's avatar or initials */}
-                      {currentUser?.photoURL ? (
-                        <Image src={currentUser.photoURL} alt={currentUserName} width={28} height={28} className="rounded-full mr-3 object-cover" />
-                      ) : (
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gray-500 mr-3 text-sm`}>
-                            {currentUserName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                 {currentUser?.photoURL ? (
+  <Image src={currentUser.photoURL} alt={currentUserName} width={28} height={28} className="rounded-full mr-3 object-cover" />
+) : (
+  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gray-500 mr-3 text-sm`}>
+    {currentUserName.charAt(0).toUpperCase()}
+  </div>
+)}
                       <span>{currentUserName} ({t('you', 'Vous')})</span>
                   </div>
               )}

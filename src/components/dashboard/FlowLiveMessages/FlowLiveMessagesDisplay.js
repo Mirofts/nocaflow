@@ -9,6 +9,10 @@ import { fr } from 'date-fns/locale';
 // Import sub-components if any
 // import ChatBubble from './ChatBubble'; // Assuming you have a ChatBubble component
 
+const openNewTask = () => console.log('Nouvelle tâche cliquée');
+const openMeeting = () => console.log('Réunion cliquée');
+const blockUser = () => console.log('Bloquer cliqué');
+
 const FlowLiveMessagesDisplay = ({
     messages,
     currentUser,
@@ -30,6 +34,36 @@ const FlowLiveMessagesDisplay = ({
     const fileInputRef = useRef(null);
     const emojis = ['😀', '😅', '😍', '😎', '😭', '👍', '🔥', '💯'];
 
+    const handleSendNormalMessage = () => {
+  if (newMessage.trim() === '') return;
+  console.log('Message normal envoyé :', newMessage);
+  setNewMessage('');
+};
+
+const handleSendEphemeralMessage = () => {
+  if (newMessage.trim() === '') return;
+  console.log('Message éphémère envoyé :', newMessage);
+  setNewMessage('');
+};
+
+const handleAttachNormalFile = () => {
+  console.log('Fichier normal attaché');
+};
+
+const handleAttachEphemeralFile = () => {
+  console.log('Fichier éphémère attaché');
+};
+
+const handleEmoticonClick = (emoji) => {
+  setNewMessage((prev) => prev + emoji);
+};
+
+const isAttachDisabled = false;
+const isSendDisabled = newMessage.trim() === '';
+ const isGuest = currentUser?.uid === 'guest_noca_flow';
+const isGuestMode = isGuest;
+const activeConversationId = 'demo_conversation_id';
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -41,10 +75,14 @@ useEffect(() => {
     }
   }, 50); // petit délai pour éviter le jump au chargement
 
+// ✅ Fonctions temporaires à ajouter juste avant le "return ("
+
+
+
   return () => clearTimeout(timeout);
 }, [messages]);
 
-    const isGuest = currentUser?.uid === 'guest_noca_flow';
+   
 
     const getSenderDisplayName = (senderId, senderName) => {
         if (senderId === (currentUser?.uid || 'guest_noca_flow')) {
@@ -140,33 +178,15 @@ useEffect(() => {
                 )}
                 <div ref={messagesEndRef} />
             </div>
-            {currentUser && (
-  <div className="flex gap-2 p-2 border-t bg-gray-900">
-    <Button onClick={openNewTask}>Nouvelle tâche</Button>
-    <Button onClick={openMeeting}>Réunion</Button>
-    <Button onClick={blockUser}>Bloquer</Button>
+{currentUser && (
+  <div className="flex gap-2">
+    <button onClick={openNewTask} className="main-button-secondary">Nouvelle tâche</button>
+    <button onClick={openMeeting} className="main-button-secondary">Réunion</button>
+    <button onClick={blockUser} className="main-button-secondary">Bloquer</button>
   </div>
 )}
             <div className="border-t p-2 bg-gray-900">
-  <FlowLiveMessagesInput
-    newMessage={newMessage}
-    setNewMessage={setNewMessage}
-    handleSendNormalMessage={handleSendNormalMessage}
-    handleSendEphemeralMessage={handleSendEphemeralMessage}
-    handleAttachNormalFile={handleAttachNormalFile}
-    handleAttachEphemeralFile={handleAttachEphemeralFile}
-    handleEmoticonClick={handleEmoticonClick}
-    emojiButtonRef={emojiButtonRef}
-    fileInputRef={fileInputRef}
-    showEmojiPicker={showEmojiPicker}
-    setShowEmojiPicker={setShowEmojiPicker}
-    isAttachDisabled={isAttachDisabled}
-    isSendDisabled={isSendDisabled}
-    isGuestMode={isGuestMode}
-    activeConversationId={activeConversationId}
-    emojis={emojis}
-    t={t}
-  />
+
 </div>
         </div>
     );
