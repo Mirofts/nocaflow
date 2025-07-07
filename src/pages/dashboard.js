@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '@/context/AuthContext'; // Utilise les alias
+import { useTheme } from '@/context/ThemeContext'; // Utilise les alias
 import { useUserTodos } from '../hooks/useUserTodos';
-import { initialMockData } from '../lib/mockData';
+import { initialMockData } from '@/lib/mockData'; // Utilise les alias
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { format, parseISO, isValid } from 'date-fns';
@@ -35,7 +35,7 @@ import {
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '../components/dashboard/modals/DetailsModal';
+import DetailsModal from '@/components/dashboard/modals/DetailsModal'; // Utilise l'alias
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -49,7 +49,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
 
-    // Initialisation et synchronisation des données locales
     const [localData, setLocalData] = useState(() => {
         let initialValue = {
             tasks: [], messages: [], meetings: [], projects: [],
@@ -180,11 +179,10 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [isGuestMode, localData, todos, guestName, user]);
 
 
-    // Gestionnaire d'état des modales (état simplifié)
     const [activeModal, setActiveModal] = useState(null);
     const [modalProps, setModalProps] = useState(null);
 
-    const openModal = useCallback((name, props = {}) => { // Default props to an empty object
+    const openModal = useCallback((name, props = {}) => {
         setActiveModal(name);
         setModalProps(props);
     }, []);
@@ -195,7 +193,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, []);
 
 
-    // Fonctions CRUD pour les données locales (mode invité)
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
     const deleteProject = useCallback((projectId) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).filter(p => p.id !== projectId) })); }, [onUpdateGuestData]);
@@ -240,7 +237,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const handleAddDeadline = useCallback((newDeadline) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { id: `proj-${Date.now()}`, name: newDeadline.title, client: newDeadline.client || 'General', progress: 0, deadline: newDeadline.date, description: newDeadline.description, staff: [], paidAmount: '0 €', nextPayment: 'N/A', totalAmount: 'N/A', createdAt: new Date().toISOString(), googleDriveLink: null }] })); }, [onUpdateGuestData]);
     const handleAddInvoice = useCallback((newInvoice) => { onUpdateGuestData(prev => ({ ...prev, invoices: [...(prev.invoices || []), { ...newInvoice, id: `inv-${Date.now()}` }] })); }, [onUpdateGuestData]);
 
-    // Refs pour les composants pouvant basculer en plein écran
     const flowLiveMessagesRef = useRef(null);
     const ganttChartPlanningRef = useRef(null);
 
@@ -260,7 +256,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, []);
 
-    // Calcul des statistiques pour le DashboardHeader
     const stats = useMemo(() => {
         const now = new Date();
 
@@ -287,20 +282,19 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         openModal('calculator');
     }, [openModal]);
 
-    // Handler pour ouvrir la modale de détails des alertes (passée à TimeAlerts)
     const handleOpenAlertDetails = useCallback((alertItem) => {
         let title = '';
         let content = '';
 
         if (alertItem.type === 'deadline') {
-            title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title || ''}`); // Ensure default empty string
+            title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title || ''}`);
             const deadlineDate = parseISO(alertItem.deadline);
             content = `${t('project_task', 'Tâche/Projet')} : ${alertItem.name || alertItem.title || ''}\n` +
                       `${t('client', 'Client')} : ${alertItem.client || t('not_specified', 'Non spécifié')}\n` +
                       `${t('date', 'Date')} : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
                       `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
         } else if (alertItem.type === 'meeting') {
-            title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title || ''}`); // Ensure default empty string
+            title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title || ''}`);
             const meetingDateTime = parseISO(alertItem.dateTime);
             content = `${t('subject', 'Sujet')} : ${alertItem.title || ''}\n` +
                       `${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
@@ -310,6 +304,15 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
         openModal('detailsModal', { title, content });
     }, [openModal, t]);
+
+    // New handler to pass down to FlowLiveMessages
+    const handleSelectUserOnMobile = useCallback((conv) => {
+        if (conv && conv.user) {
+            openModal('quickChat', conv.user);
+        } else {
+            console.warn("handleSelectUserOnMobile received invalid conversation data:", conv);
+        }
+    }, [openModal]);
 
 
     return (
@@ -365,6 +368,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     user={user}
                                     initialMockData={initialMockData}
                                     availableTeamMembers={data.staffMembers || []}
+                                    handleSelectUserOnMobile={handleSelectUserOnMobile}
                                 />
                             </DashboardCard>
 
@@ -388,8 +392,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 meetings={data.meetings || []}
                                 t={t}
                                 lang={lang}
-                                openModal={openModal} // For the '+' button
-                                onAlertCardClick={handleOpenAlertDetails} // For clicking the card
+                                openModal={openModal}
+                                onAlertCardClick={handleOpenAlertDetails}
                             />
 
                             <TodoList
@@ -467,7 +471,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             </div>
 
             <AnimatePresence>
-                {/* Rendu conditionnel des modales basé sur activeModal */}
                 {activeModal === 'taskEdit' && <TaskEditModal t={t} task={modalProps} onSave={editTodo} onClose={closeModal} />}
                 {activeModal === 'dayDetails' && <DayDetailsModal t={t} data={modalProps} onAddTask={(date) => openModal('quickTask', date)} onClose={closeModal} />}
                 {activeModal === 'quickTask' && <QuickAddTaskModal t={t} date={modalProps} onSave={addTodo} onClose={closeModal} />}
@@ -551,8 +554,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     <DetailsModal
                         isOpen={true}
                         onClose={closeModal}
-                        title={modalProps.title || ""} // Ensure default empty string
-                        content={modalProps.content || ""} // Ensure default empty string
+                        title={modalProps.title || ""}
+                        content={modalProps.content || ""}
                     />
                 )}
             </AnimatePresence>

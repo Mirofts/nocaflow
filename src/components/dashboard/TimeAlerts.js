@@ -70,75 +70,77 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
 
     const isUrgent = timeLeft.days < 1 && !timeLeft.overdue;
 
-    let progressPercentage = 0;
+    // --- LOGIQUE DE LA BARRE DE PROGRESSION (TEMPS RESTANT) ---
+    let remainingPercentage = 0; // 0% = plus de temps, 100% = tout le temps (48h)
     if (timeLeft.overdue) {
-        progressPercentage = 100;
+        remainingPercentage = 0; // Si dépassé, il ne reste plus de temps, donc 0% de la jauge remplie
     } else if (timeLeft.totalMinutes <= 0) {
-         progressPercentage = 100;
+        remainingPercentage = 0; // Si le temps est exactement 0, 0% de la jauge remplie
     } else if (timeLeft.totalMinutes >= FULL_GAUGE_DURATION_MINUTES) {
-        progressPercentage = 0;
+        remainingPercentage = 100; // Si il reste 48h ou plus, la jauge est pleine (100% restant)
     } else {
-        progressPercentage = ((FULL_GAUGE_DURATION_MINUTES - timeLeft.totalMinutes) / FULL_GAUGE_DURATION_MINUTES) * 100;
+        // Temps restant sur la fenêtre de 48h
+        remainingPercentage = (timeLeft.totalMinutes / FULL_GAUGE_DURATION_MINUTES) * 100;
     }
 
-    let progressBarColor = '';
+    // Déterminer la couleur de la barre en fonction du temps restant (plutôt que le temps passé)
+    let progressBarColorClass = '';
     if (timeLeft.overdue) {
-        progressBarColor = 'bg-red-500';
-    } else if (timeLeft.totalMinutes <= 2 * 60) {
-        progressBarColor = 'bg-red-400';
-    } else if (timeLeft.totalMinutes <= 6 * 60) {
-        progressBarColor = 'bg-orange-400';
-    } else if (timeLeft.totalMinutes <= 24 * 60) {
-        progressBarColor = 'bg-yellow-400';
+        progressBarColorClass = 'bg-red-500'; // Dépassé
+    } else if (timeLeft.totalMinutes < 2 * 60) { // Moins de 2h
+        progressBarColorClass = 'bg-red-400';
+    } else if (timeLeft.totalMinutes < 6 * 60) { // Moins de 6h
+        progressBarColorClass = 'bg-orange-400';
+    } else if (timeLeft.totalMinutes < 24 * 60) { // Moins de 24h
+        progressBarColorClass = 'bg-yellow-400';
     } else {
-        progressBarColor = 'bg-green-400';
+        progressBarColorClass = 'bg-green-400'; // Reste > 24h
     }
 
     const gaugeTrackColorClass = isDarkMode ? 'bg-gray-700' : 'bg-gray-200';
-    const cardBgClass = isDarkMode ? 'bg-gray-700' : 'bg-white';
+    const cardBgClass = isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'; // Ajout de bordures subtiles
 
     return (
         <motion.div
-            className={`relative flex flex-col items-center justify-between p-4 rounded-lg shadow-lg cursor-pointer h-full transition-colors duration-200 ${cardBgClass}`}
-            whileHover={{ scale: 1.02, boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.15)" }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onCardClick(alertData || {})} // Assurer que alertData est un objet
+            className={`relative flex flex-col items-center justify-between p-6 rounded-2xl shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-2xl cursor-pointer ${cardBgClass}`}
+            onClick={() => onCardClick(alertData || {})}
         >
-            <div className="flex justify-between items-center w-full mb-3">
-                <div className={`flex items-center justify-center p-2 rounded-full ${pulseColorClass} bg-opacity-30`}>
+            <div className="flex justify-between items-center w-full mb-4">
+                <div className={`flex items-center justify-center p-3 rounded-full ${pulseColorClass} bg-opacity-20`}> {/* Plus grand padding, moins d'opacité */}
                     {icon}
                 </div>
                 <motion.button
                     onClick={(e) => { e.stopPropagation(); openCreateModal(type === 'deadline' ? 'addDeadline' : 'addMeeting'); }}
-                    className={`p-1.5 rounded-full transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-600' : 'text-gray-600 hover:bg-gray-200'}`}
+                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'}`}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     title={type === 'deadline' ? t('add_deadline', 'Ajouter une échéance') : t('schedule_meeting', 'Planifier une réunion')}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
                 </motion.button>
             </div>
-            <h4 className={`text-center text-lg font-bold mb-1 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-700'}`}>
+
+            <h4 className={`text-center text-xl font-extrabold mb-2 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-700'}`}>
                 {title}
             </h4>
-            <p className={`text-center text-xl font-extrabold ${timeLeft.overdue ? 'text-red-500' : (isUrgent ? 'text-orange-500' : (isDarkMode ? 'text-white' : 'text-gray-900'))} mb-2`}>
+            <p className={`text-center text-3xl font-black ${timeLeft.overdue ? 'text-red-500' : (isUrgent ? 'text-orange-400' : (isDarkMode ? 'text-white' : 'text-gray-900'))} mb-4 leading-tight`}>
                 {displayTime}
             </p>
-            {/* Added null/undefined checks for alertData properties */}
-            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-                {(alertData?.name || alertData?.title) || t('no_name', 'Nom inconnu')} {/* Use optional chaining and fallback */}
+            <p className="text-center text-base text-gray-400 dark:text-gray-500 mb-6 font-medium">
+                {(alertData?.name || alertData?.title) || t('no_name', 'Nom inconnu')}
             </p>
 
-            <div className={`w-full h-2 rounded-full ${gaugeTrackColorClass} mt-auto overflow-hidden`}>
+            {/* Progress Gauge */}
+            <div className={`w-full h-3 rounded-full ${gaugeTrackColorClass} mt-auto overflow-hidden`}> {/* Hauteur augmentée */}
                 <motion.div
-                    className={`h-full rounded-full ${progressBarColor}`}
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${progressPercentage}%` }}
+                    className={`h-full rounded-full ${progressBarColorClass}`}
+                    initial={{ width: '100%' }} // Commence à 100% de la jauge pleine (temps restant)
+                    animate={{ width: `${remainingPercentage}%` }} // Se réduit au fur et à mesure que le temps passe
                     transition={{ duration: 0.8, ease: "easeOut" }}
                 ></motion.div>
             </div>
-            <span className="mt-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
-                {progressPercentage.toFixed(0)}% {t('gauge_progress_done', 'passé')}
+            <span className="mt-3 text-sm font-semibold text-gray-500 dark:text-gray-400">
+                {remainingPercentage.toFixed(0)}% {t('gauge_time_remaining', 'restant')} {/* Texte mis à jour */}
             </span>
         </motion.div>
     );
@@ -146,7 +148,6 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
 
 
 const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }) => {
-    // Ensuring projects and meetings are always arrays for filter/sort operations
     const safeProjects = projects || [];
     const safeMeetings = meetings || [];
 
@@ -167,29 +168,29 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
             className="col-span-12"
             noContentPadding={true}
         >
-            <div className={`grid grid-cols-1 md:grid-cols-2 flex-grow p-4 gap-4 bg-gray-50 dark:bg-gray-900 rounded-xl`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 flex-grow p-4 gap-6 bg-gray-900 rounded-xl shadow-inner`}> {/* Fond sombre pour les cartes claires */}
                 {/* Next Deadline Card */}
-                <div className={`rounded-lg p-1 flex flex-col items-center border border-transparent`}>
+                <div className={`rounded-2xl p-1`}> {/* Container pour la carte individuelle */}
                     {nextDeadline ? (
                         <SingleTimeAlertCard
                             type="deadline"
                             title={t('next_deadline', 'Prochaine Échéance')}
-                            dateTime={nextDeadline.deadline} // This should be guaranteed valid from filter
-                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>}
+                            dateTime={nextDeadline.deadline}
+                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>}
                             pulseColorClass="bg-pink-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
-                            alertData={{ type: 'deadline', ...nextDeadline }} // Pass all deadline data
+                            alertData={{ type: 'deadline', ...nextDeadline }}
                             t={t}
                         />
                     ) : (
-                        <div className={`flex flex-col items-center justify-center py-4 px-2 text-gray-500 dark:text-gray-400 rounded-lg shadow-lg h-full w-full ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400 mb-2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                            <p className="text-base font-semibold text-gray-700 dark:text-gray-200 text-center">{t('no_upcoming_deadlines', 'Aucune échéance à venir')}</p>
-                            <p className="text-sm mt-1 text-gray-500 dark:text-gray-400 text-center">{t('add_new_deadline_hint', 'Ajoutez de nouvelles échéances pour rester organisé.')}</p>
+                        <div className={`flex flex-col items-center justify-center p-6 rounded-2xl shadow-xl h-full w-full ${isDarkMode ? 'bg-gray-800' : 'bg-white'} text-gray-500 dark:text-gray-400 transition-colors duration-200`}>
+                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400 mb-3"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                            <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 text-center mb-2">{t('no_upcoming_deadlines', 'Aucune échéance à venir')}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center">{t('add_new_deadline_hint', 'Ajoutez de nouvelles échéances pour rester organisé.')}</p>
                             <motion.button
                                 onClick={() => openModal('addDeadline')}
-                                className={`mt-3 px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-500 text-white hover:bg-indigo-600'}`}
+                                className={`mt-4 px-5 py-2 rounded-lg font-semibold transition-colors ${isDarkMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-500 text-white hover:bg-indigo-600'}`}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
@@ -200,13 +201,13 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                 </div>
 
                 {/* Next Meeting Card */}
-                <div className={`rounded-lg p-1 flex flex-col items-center border border-transparent`}>
+                <div className={`rounded-2xl p-1`}> {/* Container pour la carte individuelle */}
                     {nextMeeting ? (
                         <SingleTimeAlertCard
                             type="meeting"
                             title={t('next_meeting', 'Prochaine Réunion')}
-                            dateTime={nextMeeting.dateTime} // This should be guaranteed valid from filter
-                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>}
+                            dateTime={nextMeeting.dateTime}
+                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>}
                             pulseColorClass="bg-violet-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
@@ -214,13 +215,13 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                             t={t}
                         />
                     ) : (
-                        <div className={`flex flex-col items-center justify-center py-4 px-2 text-gray-500 dark:text-gray-400 rounded-lg shadow-lg h-full w-full ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400 mb-2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>
-                            <p className="text-base font-semibold text-gray-700 dark:text-gray-200 text-center">{t('no_upcoming_meetings', 'Aucune réunion à venir')}</p>
-                            <p className="text-sm mt-1 text-gray-500 dark:text-gray-400 text-center">{t('add_new_meeting_hint', 'Planifiez de nouvelles réunions pour rester connecté.')}</p>
+                        <div className={`flex flex-col items-center justify-center p-6 rounded-2xl shadow-xl h-full w-full ${isDarkMode ? 'bg-gray-800' : 'bg-white'} text-gray-500 dark:text-gray-400 transition-colors duration-200`}>
+                             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400 mb-3"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>
+                            <p className="text-lg font-semibold text-gray-700 dark:text-gray-200 text-center mb-2">{t('no_upcoming_meetings', 'Aucune réunion à venir')}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center">{t('add_new_meeting_hint', 'Planifiez de nouvelles réunions pour rester connecté.')}</p>
                             <motion.button
                                 onClick={() => openModal('addMeeting')}
-                                className={`mt-3 px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-500 text-white hover:bg-indigo-600'}`}
+                                className={`mt-4 px-5 py-2 rounded-lg font-semibold transition-colors ${isDarkMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-500 text-white hover:bg-indigo-600'}`}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >

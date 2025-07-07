@@ -5,6 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 const DetailsModal = ({ isOpen, onClose, title, content }) => {
     if (!isOpen) return null;
 
+    // Décomposer le contenu en paires clé-valeur pour un affichage structuré
+    const parsedContent = (content || "").split('\n').map(line => {
+        const parts = line.split(':');
+        const key = parts[0]?.trim();
+        const value = parts.slice(1).join(':').trim(); // Rejoindre le reste au cas où la valeur contienne des ":"
+        return { key, value };
+    }).filter(item => item.key && item.value); // Filtrer les lignes vides ou mal formées
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -12,43 +20,46 @@ const DetailsModal = ({ isOpen, onClose, title, content }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4"
+                    className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50 p-4 backdrop-blur-sm" // Augmente l'opacité et ajoute un flou
                     onClick={onClose}
                 >
                     <motion.div
                         initial={{ scale: 0.9, y: 50 }}
                         animate={{ scale: 1, y: 0 }}
                         exit={{ scale: 0.9, y: 50, opacity: 0 }}
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-8 w-full max-w-lg relative transform transition-all duration-300 ease-out"
+                        className="bg-gray-900 text-white rounded-xl shadow-2xl p-8 w-full max-w-lg relative transform transition-all duration-300 ease-out border border-indigo-700" // Fond sombre, bordure lumineuse
                         onClick={e => e.stopPropagation()}
                     >
-                        <h2 className="text-2xl font-extrabold mb-5 text-gray-900 dark:text-white border-b pb-3 border-gray-200 dark:border-gray-700">
-                            {title || "Détails"} {/* Default value for title */}
+                        <h2 className="text-3xl font-extrabold mb-6 text-indigo-400 border-b pb-4 border-indigo-700"> {/* Titre plus grand, couleur d'accent */}
+                            {title || "Détails de l'Événement"}
                         </h2>
-                        <div className="text-gray-700 dark:text-gray-300 leading-relaxed text-base">
-                            {(content || "Aucun contenu disponible.").split('\n').map((line, index) => ( // Default value for content
-                                <p key={index} className="mb-2 last:mb-0">
-                                    <span className="font-semibold text-gray-800 dark:text-gray-200">
-                                        {line.includes(':') ? line.split(':')[0] + ':' : ''} {/* Only show key if ':' exists */}
+                        <div className="text-gray-300 leading-relaxed text-lg space-y-3"> {/* Espacement, texte plus grand, couleur douce */}
+                            {parsedContent.length > 0 ? parsedContent.map((item, index) => (
+                                <div key={index} className="flex flex-col sm:flex-row sm:items-start"> {/* Mise en page responsive clé-valeur */}
+                                    <span className="font-semibold text-indigo-300 sm:w-1/3 flex-shrink-0">
+                                        {item.key}:
                                     </span>
-                                    <span>
-                                        {line.includes(':') ? line.split(':').slice(1).join(':') : line} {/* Show value or full line */}
+                                    <span className="text-gray-200 sm:w-2/3 break-words">
+                                        {item.value}
                                     </span>
-                                </p>
-                            ))}
+                                </div>
+                            )) : (
+                                <p className="text-center text-gray-400">{content || "Aucun détail disponible."}</p>
+                            )}
                         </div>
-                        <div className="flex justify-end mt-8">
+                        <div className="flex justify-end mt-10"> {/* Marge plus grande */}
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors duration-200 text-lg font-semibold"
+                                className="px-8 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 text-lg shadow-md hover:shadow-lg" // Bouton stylisé
                             >
                                 Fermer
                             </button>
                         </div>
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-3xl font-bold transition-colors"
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors text-3xl font-bold"
+                            title="Fermer"
                         >
                             &times;
                         </button>
