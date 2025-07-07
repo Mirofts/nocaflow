@@ -38,7 +38,8 @@ const FlowLiveMessagesSidebar = ({
     }, [setSelectedConversationId]);
 
     return (
-        <div className={`relative flex flex-col ${isFullScreen ? 'w-full md:w-1/3 lg:w-1/4' : 'w-full md:w-1/3 lg:w-1/4'} border-r ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
+        // Added h-full here to ensure it takes the full height of its parent flex container.
+        <div className={`relative flex flex-col h-full ${isFullScreen ? 'w-full md:w-1/3 lg:w-1/4' : 'w-full md:w-1/3 lg:w-1/4'} border-r ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-50'}`}>
             <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <h3 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">{t('conversations_title', 'Conversations')}</h3>
                 <input
@@ -56,7 +57,8 @@ const FlowLiveMessagesSidebar = ({
                 ) : (
                     filteredConversations.map(conv => {
                         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== currentUserId);
-                        const displayPhotoURL = conv.isGroup ? '/images/avatars/avatarguest.jpg' : (otherParticipant?.photoURL || '/images/avatars/avatarguest.jpg');
+                        // Using a more robust default avatar logic: group avatar for groups, default for others
+                        const displayPhotoURL = conv.isGroup ? '/images/default-group-avatar.png' : (otherParticipant?.photoURL || '/images/default-avatar.jpg');
                         const isOnline = otherParticipant?.isOnline;
 
                         return (
@@ -95,7 +97,7 @@ const FlowLiveMessagesSidebar = ({
             </div>
 
             {/* Le bouton "Nouvelle discussion" doit être ancré en bas */}
-            <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}> {/* flex-shrink-0 pour qu'il ne se réduise pas */}
+            <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
                 <motion.button
                     onClick={onNewDiscussionClick}
                     className="w-full bg-indigo-600 text-white py-2 rounded-md font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2"

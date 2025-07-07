@@ -1,23 +1,16 @@
 // src/components/dashboard/FlowLiveMessages/FlowLiveMessagesDisplay.js
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import FlowLiveMessagesInput from './FlowLiveMessagesInput';
+import FlowLiveMessagesInput from './FlowLiveMessagesInput'; // Keep if FlowLiveMessagesInput is used elsewhere directly
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// Import sub-components if any
-// import ChatBubble from './ChatBubble'; // Assuming you have a ChatBubble component
-
-const openNewTask = () => console.log('Nouvelle tâche cliquée');
-const openMeeting = () => console.log('Réunion cliquée');
-const blockUser = () => console.log('Bloquer cliqué');
-
 const FlowLiveMessagesDisplay = ({
     messages,
     currentUser,
     onMessageAction,
-    onOpenAddTaskFromChat,
+    // Removed onOpenAddTaskFromChat as it's handled in index.js now via header buttons
     availableTeamMembers,
     t,
     isFullScreen,
@@ -27,62 +20,40 @@ const FlowLiveMessagesDisplay = ({
     const { isDarkMode } = useTheme();
     const messagesEndRef = useRef(null);
 
-    // ✅ ICI les states et refs nécessaires au composant Input
-    const [newMessage, setNewMessage] = useState('');
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const emojiButtonRef = useRef(null);
-    const fileInputRef = useRef(null);
-    const emojis = ['😀', '😅', '😍', '😎', '😭', '👍', '🔥', '💯'];
+    // ✅ ICI les states et refs nécessaires au composant Input (these are props from parent now, removed local states)
+    // const [newMessage, setNewMessage] = useState(''); // These states are managed in FlowLiveMessages/index.js
+    // const [showEmojiPicker, setShowEmojiPicker] = useState(false); // These states are managed in FlowLiveMessages/index.js
+    // const emojiButtonRef = useRef(null); // These states are managed in FlowLiveMessages/index.js
+    // const fileInputRef = useRef(null); // These states are managed in FlowLiveMessages/index.js
+    // const emojis = ['😀', '😅', '😍', '😎', '😭', '👍', '🔥', '💯']; // These states are managed in FlowLiveMessages/index.js
 
-    const handleSendNormalMessage = () => {
-  if (newMessage.trim() === '') return;
-  console.log('Message normal envoyé :', newMessage);
-  setNewMessage('');
-};
+    // Removed temporary handlers that were causing the extra buttons
+    // const handleSendNormalMessage = () => { /* ... */ };
+    // const handleSendEphemeralMessage = () => { /* ... */ };
+    // const handleAttachNormalFile = () => { /* ... */ };
+    // const handleAttachEphemeralFile = () => { /* ... */ };
+    // const handleEmoticonClick = (emoji) => { /* ... */ };
 
-const handleSendEphemeralMessage = () => {
-  if (newMessage.trim() === '') return;
-  console.log('Message éphémère envoyé :', newMessage);
-  setNewMessage('');
-};
-
-const handleAttachNormalFile = () => {
-  console.log('Fichier normal attaché');
-};
-
-const handleAttachEphemeralFile = () => {
-  console.log('Fichier éphémère attaché');
-};
-
-const handleEmoticonClick = (emoji) => {
-  setNewMessage((prev) => prev + emoji);
-};
-
-const isAttachDisabled = false;
-const isSendDisabled = newMessage.trim() === '';
- const isGuest = currentUser?.uid === 'guest_noca_flow';
-const isGuestMode = isGuest;
-const activeConversationId = 'demo_conversation_id';
+    // Removed unused constants (they were related to the temporary handlers)
+    // const isAttachDisabled = false;
+    // const isSendDisabled = newMessage.trim() === '';
+    // const isGuest = currentUser?.uid === 'guest_noca_flow';
+    // const isGuestMode = isGuest;
+    // const activeConversationId = 'demo_conversation_id';
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-useEffect(() => {
-  const timeout = setTimeout(() => {
-    if (messages?.length > 0 && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
-    }
-  }, 50); // petit délai pour éviter le jump au chargement
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            if (messages?.length > 0 && messagesEndRef.current) {
+                messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+            }
+        }, 50); // petit délai pour éviter le jump au chargement
 
-// ✅ Fonctions temporaires à ajouter juste avant le "return ("
-
-
-
-  return () => clearTimeout(timeout);
-}, [messages]);
-
-   
+        return () => clearTimeout(timeout);
+    }, [messages]);
 
     const getSenderDisplayName = (senderId, senderName) => {
         if (senderId === (currentUser?.uid || 'guest_noca_flow')) {
@@ -100,7 +71,7 @@ useEffect(() => {
 
     return (
         <div className={`flex-1 flex flex-col ${isFullScreen ? 'h-full' : 'h-full'} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            {/* Removed the 'Live Chat' header */}
+            {/* Removed the 'Live Chat' header - if it was here, it's now in index.js */}
 
             <div className="flex-1 overflow-y-auto p-4">
                 {messages?.length === 0 ? (
@@ -178,16 +149,8 @@ useEffect(() => {
                 )}
                 <div ref={messagesEndRef} />
             </div>
-{currentUser && (
-  <div className="flex gap-2">
-    <button onClick={openNewTask} className="main-button-secondary">Nouvelle tâche</button>
-    <button onClick={openMeeting} className="main-button-secondary">Réunion</button>
-    <button onClick={blockUser} className="main-button-secondary">Bloquer</button>
-  </div>
-)}
-            <div className="border-t p-2 bg-gray-900">
-
-</div>
+            {/* Removed the temporary buttons from here */}
+            {/* The input component is a separate child, so no need for an extra div here */}
         </div>
     );
 };

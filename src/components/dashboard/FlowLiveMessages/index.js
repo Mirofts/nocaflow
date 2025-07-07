@@ -21,6 +21,11 @@ import { useFullScreen } from '@/hooks/useFullScreen';
 import { useChatLogic } from '@/hooks/useChatLogic';
 import { useChatActions } from '@/hooks/useChatActions';
 
+// Placeholder for new modals (You will need to create these files)
+// import AddTaskModal from './modals/AddTaskModal';
+// import ScheduleMeetingModal from './modals/ScheduleMeetingModal';
+// import AddDeadlineModal from './modals/AddDeadlineModal';
+
 
 const ALL_EMOJIS = [
     '👋', '😀', '🔥', '🚀', '💡', '✅', '✨', '👍', '🎉', '🌟', '💫', '💥', '🚀', '🌈', '☀️', '🌻', '🌺', '🌲', '🌳', '🍂', '🍁', '🍓', '🍋', '🍎', '🍔', '🍕', '🌮', '🍩', '🍦', '☕', '🍵', '🥂', '🍾', '🎉', '🎁', '🎈', '🎂', '🥳', '🏠', '🏢', '💡', '⏰', '📆', '📈', '📊', '🔗', '🔒', '🔑', '📝', '📌', '📎', '📁', '📄', '📊', '📈', '📉', '💰', '💳', '💵', '💸', '📧', '📞', '💬', '🔔', '📣', '💡', '⚙️', '🔨', '🛠️', '💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '💾', '💿', '📀', '📚', '📖', '🖊️', '🖌️', '✏️', '🖍️', '📏', '📐', '✂️', '🗑️', '🔒', '🔑', '🛡️', '⚙️', '🔗', '📎', '📌', '📍', '📁', '📂', '🗂️', '🗓️', '📅', '📆', '⏰', '⏱️', '⌛', '⏳'
@@ -29,9 +34,9 @@ const ALL_EMOJIS = [
 const FlowLiveMessages = forwardRef(({
     onLoginClick,
     onRegisterClick,
-    onOpenAddTaskFromChat,
-    onAddMeeting,
-    onAddDeadline,
+    onOpenAddTaskFromChat, // This prop can now trigger the modal at this level directly, or be ignored if the modal handles its own logic.
+    onAddMeeting,          // This prop can now trigger the modal at this level directly.
+    onAddDeadline,         // This prop can now trigger the modal at this level directly.
     availableTeamMembers,
     messages: messagesProp,
     user,
@@ -79,14 +84,14 @@ const FlowLiveMessages = forwardRef(({
     const {
         conversations,
         selectedConversationId,
-        filteredMessages,
+        filteredMessages, // Not directly used in index.js, but kept for clarity in useChatLogic hook return
         setSelectedConversationId,
         setConversations,
-        setMessages: setMessagesFromLogic,
+        setMessages: setMessagesFromLogic, // Kept for clarity in useChatLogic hook return
         isNewDiscussionModalOpen,
         setIsNewDiscussionModalOpen,
-        newDiscussionModalInitialContact,
-        setNewDiscussionModalInitialContact,
+        newDiscussionModalInitialContact, // Not directly used here, but kept for clarity in useChatLogic hook return
+        setNewDiscussionModalInitialContact, // Not directly used here, but kept for clarity in useChatLogic hook return
         activeSearchQuery,
         setActiveSearchQuery
     } = useChatLogic(currentActiveUser, initialMockData, messagesProp);
@@ -248,6 +253,12 @@ const FlowLiveMessages = forwardRef(({
     const fileInputRef = useRef(null);
     const emojiButtonRef = useRef(null);
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
+    // States for new modals
+    const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+    const [showMeetingModal, setShowMeetingModal] = useState(false);
+    const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+
 
     const handleLoginPrompt = useCallback(() => {
         alert(t('access_restricted', 'Accès Restreint. Veuillez vous connecter pour accéder à la messagerie en temps réel.'));
@@ -469,7 +480,10 @@ const FlowLiveMessages = forwardRef(({
                             <button
                                 className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
                                 title={t('schedule_meeting', 'Planifier une réunion')}
-                                onClick={() => onAddMeeting && onAddMeeting()}
+                                onClick={() => {
+                                    setShowMeetingModal(true); // Open the meeting modal
+                                    onAddMeeting && onAddMeeting(); // Call original prop if needed by parent
+                                }}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><path d="M14 12H2V4h12v8Z"/></svg>
                             </button>
@@ -478,8 +492,9 @@ const FlowLiveMessages = forwardRef(({
                                 className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
                                 title={t('assign_task', 'Assigner une tâche')}
                                 onClick={() => {
+                                    setShowAddTaskModal(true); // Open the add task modal
                                     const activeConv = conversations.find(c => c.id === selectedConversationId);
-                                    onOpenAddTaskFromChat({
+                                    onOpenAddTaskFromChat({ // Call original prop if needed by parent
                                         member: activeConv?.isGroup ? null : activeConv?.participantsDetails?.find(p => p.uid !== currentFirebaseUid),
                                         conversationParticipants: activeConv?.participantsDetails || [],
                                         currentFirebaseUid,
@@ -494,7 +509,10 @@ const FlowLiveMessages = forwardRef(({
                             <button
                                 className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
                                 title={t('add_deadline', 'Ajouter une deadline')}
-                                onClick={() => onAddDeadline && onAddDeadline()}
+                                onClick={() => {
+                                    setShowDeadlineModal(true); // Open the deadline modal
+                                    onAddDeadline && onAddDeadline(); // Call original prop if needed by parent
+                                }}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y1="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             </button>
@@ -505,6 +523,18 @@ const FlowLiveMessages = forwardRef(({
                                 onClick={() => alert(t('block_feature_placeholder', 'Fonctionnalité de blocage simulée : Contact bloqué temporairement.'))}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+                            </button>
+                             {/* Fullscreen Toggle Button */}
+                            <button
+                                className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
+                                onClick={toggleFullScreen}
+                                title={isFullScreen ? t('exit_fullscreen', 'Quitter le mode plein écran') : t('enter_fullscreen', 'Passer en plein écran')}
+                            >
+                                {isFullScreen ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3m-18 0h3a2 2 0 0 1 2 2v3"/></svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h2m14 0h-2a2 2 0 0 1-2 2v2m0 14v-2a2 2 0 0 1 2-2h2m-14 0h2a2 2 0 0 1 2 2v2"/></svg>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -519,7 +549,7 @@ const FlowLiveMessages = forwardRef(({
                     messages={messages || []}
                     currentUser={currentActiveUser}
                     onMessageAction={handleMessageAction}
-                    onOpenAddTaskFromChat={onOpenAddTaskFromChat}
+                    // onOpenAddTaskFromChat={onOpenAddTaskFromChat} // Removed: The task action is now initiated via header buttons, not directly from the display component itself, unless a message action triggers it.
                     availableTeamMembers={internalAvailableTeamMembers}
                     t={t}
                     isFullScreen={isFullScreen}
@@ -562,6 +592,57 @@ const FlowLiveMessages = forwardRef(({
                     />
                 )}
             </AnimatePresence>
+
+            {/* Placeholders for other modals (you'll implement these similar to NewDiscussionModal) */}
+            <AnimatePresence>
+                {showAddTaskModal && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                        <div className="glass-card p-6 rounded-2xl shadow-xl w-full max-w-md text-white">
+                            <h3 className="text-xl font-semibold mb-4">Ajouter une nouvelle tâche (Modal Placeholder)</h3>
+                            <p>Contenu de la modal d'ajout de tâche ici. Vous pouvez passer les props nécessaires.</p>
+                            <button onClick={() => setShowAddTaskModal(false)} className="main-button-secondary mt-4">{t('close', 'Fermer')}</button>
+                        </div>
+                    </div>
+                    // <AddTaskModal
+                    //     showModal={showAddTaskModal}
+                    //     onClose={() => setShowAddTaskModal(false)}
+                    //     // Pass any necessary props like `currentFirebaseUid`, `availableTeamMembers`, `t`
+                    // />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showMeetingModal && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                        <div className="glass-card p-6 rounded-2xl shadow-xl w-full max-w-md text-white">
+                            <h3 className="text-xl font-semibold mb-4">Planifier une réunion (Modal Placeholder)</h3>
+                            <p>Contenu de la modal de planification de réunion ici.</p>
+                            <button onClick={() => setShowMeetingModal(false)} className="main-button-secondary mt-4">{t('close', 'Fermer')}</button>
+                        </div>
+                    </div>
+                    // <ScheduleMeetingModal
+                    //     showModal={showMeetingModal}
+                    //     onClose={() => setShowMeetingModal(false)}
+                    // />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showDeadlineModal && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                        <div className="glass-card p-6 rounded-2xl shadow-xl w-full max-w-md text-white">
+                            <h3 className="text-xl font-semibold mb-4">Ajouter une deadline (Modal Placeholder)</h3>
+                            <p>Contenu de la modal d'ajout de deadline ici.</p>
+                            <button onClick={() => setShowDeadlineModal(false)} className="main-button-secondary mt-4">{t('close', 'Fermer')}</button>
+                        </div>
+                    </div>
+                    // <AddDeadlineModal
+                    //     showModal={showDeadlineModal}
+                    //     onClose={() => setShowDeadlineModal(false)}
+                    // />
+                )}
+            </AnimatePresence>
+
              {/* Modale pour afficher l'image éphémère en grand */}
             <AnimatePresence>
                 {ephemeralImagePreview && (
