@@ -33,19 +33,21 @@ import {
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
-} from '../components/dashboard/modals/modals'; // Ensure this path is correct
+} from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
 import DetailsModal from '@/components/dashboard/modals/DetailsModal';
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
-    const { user, logout } = useAuth();
+    const { user: authUser, logout } = useAuth(); // Renommé 'user' en 'authUser' pour éviter la confusion
     const { isDarkMode, toggleTheme } = useTheme();
     const { t } = useTranslation('common');
 
-    const isGuestMode = !user || user.uid === 'guest_noca_flow';
+    // Déterminez isGuestMode en se basant sur authUser
+    const isGuestMode = !authUser || authUser.uid === 'guest_noca_flow';
+    
     const initialGuestNameSSR = 'Visiteur Curieux';
-    const userUid = user?.uid;
+    const userUid = authUser?.uid; // Utilisez authUser pour l'UID
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
 
@@ -54,10 +56,10 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             tasks: [], messages: [], meetings: [], projects: [],
             staffMembers: [], clients: [], ganttTasks: [], invoices: [],
             notes: '',
-            user: { displayName: initialGuestNameSSR, photoURL: '/images/avatars/avatarguest.jpg' }, // Updated guest avatar path
+            user: { displayName: initialGuestNameSSR, photoURL: '/images/avatars/avatarguest.jpg' },
         };
 
-        const USE_LOCAL_STORAGE_FOR_GUEST = false; // Temporarily disabled, set to true once #130 is resolved
+        const USE_LOCAL_STORAGE_FOR_GUEST = false;
 
         if (typeof window !== 'undefined' && USE_LOCAL_STORAGE_FOR_GUEST) {
             try {
@@ -93,7 +95,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     });
 
     useEffect(() => {
-        const USE_LOCAL_STORAGE_FOR_GUEST = false; // Temporarily disabled, set to true once #130 is resolved
+        const USE_LOCAL_STORAGE_FOR_GUEST = false;
 
         if (typeof window !== 'undefined' && isGuestMode && USE_LOCAL_STORAGE_FOR_GUEST) {
             try {
@@ -126,7 +128,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 ...(prevLocalData.user || {}),
                 ...(newData.user || {}),
                 displayName: (newData.user && newData.user.displayName !== undefined) ? newData.user.displayName : prevLocalData.user?.displayName || initialGuestNameSSR,
-                photoURL: (newData.user && newData.user.photoURL !== undefined) ? newData.user.photoURL : prevLocalData.user?.photoURL || (initialMockData.user?.photoURL || '/images/avatars/avatarguest.jpg'), // Updated guest avatar path
+                photoURL: (newData.user && newData.user.photoURL !== undefined) ? newData.user.photoURL : prevLocalData.user?.photoURL || (initialMockData.user?.photoURL || '/images/avatars/avatarguest.jpg'),
             };
 
             return sanitizedData;
@@ -157,7 +159,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         let currentData = { ...localData };
 
         if (!isGuestMode) {
-            currentData.user = user;
+            currentData.user = authUser; // Utilisez authUser pour l'utilisateur connecté
             currentData.tasks = todos;
         } else {
             currentData.user = {
@@ -176,7 +178,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
 
         return currentData;
-    }, [isGuestMode, localData, todos, guestName, user]);
+    }, [isGuestMode, localData, todos, guestName, authUser]);
 
 
     const [activeModal, setActiveModal] = useState(null);
@@ -311,13 +313,13 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         // from the conversation sidebar on mobile.
         // `conv` here might be the conversation object, not necessarily a 'user' object.
         // We need to extract the other participant's details.
-        const otherParticipant = conv.participantsDetails?.find(p => p.uid !== user?.uid);
+        const otherParticipant = conv.participantsDetails?.find(p => p.uid !== authUser?.uid); // Utilisez authUser
         if (otherParticipant) {
             openModal('quickChat', otherParticipant); // Pass the actual member object to QuickChatModal
         } else {
             console.warn("handleSelectUserOnMobile received invalid conversation data or could not find other participant:", conv);
         }
-    }, [openModal, user?.uid]);
+    }, [openModal, authUser?.uid]);
 
 
     return (
@@ -340,7 +342,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                 >
                     <DashboardHeader
-                        user={isGuestMode ? data.user : user}
+                        user={authUser} // Passez directement authUser
                         isGuestMode={isGuestMode}
                         openModal={openModal}
                         handleLogout={logout}
@@ -372,7 +374,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onAddMeeting={() => openModal('addMeeting')} // Pass handler to open AddMeetingModal
                                     onAddDeadline={() => openModal('addDeadline')} // Pass handler to open AddDeadlineModal
                                     messages={data.messages || []}
-                                    user={isGuestMode ? data.user : user} // Pass the current user object correctly
+                                    user={authUser} // Passez directement authUser
                                     initialMockData={initialMockData}
                                     availableTeamMembers={data.staffMembers || []}
                                     handleSelectUserOnMobile={handleSelectUserOnMobile}
@@ -492,14 +494,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 )}
                 {activeModal === 'userNameEdit' && !isGuestMode && (
                     <UserNameEditModal
-                        currentUser={user}
+                        currentUser={user} // Pass original 'user' from useAuth for this modal
                         onClose={closeModal}
                         t={t}
                     />
                 )}
                 {activeModal === 'avatar' && (
                     <AvatarEditModal
-                        user={user}
+                        user={user} // Pass original 'user' from useAuth for this modal
                         onClose={closeModal}
                         onUpdateGuestAvatar={(newAvatar) => onUpdateGuestData(prev => ({ ...prev, user: { ...prev.user, photoURL: newAvatar } }))}
                         isGuestMode={isGuestMode}
@@ -521,12 +523,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {activeModal === 'assignTaskProjectDeadline' && modalProps && (
                     <AssignTaskProjectDeadlineModal
                         t={t}
-                        member={modalProps.member} // Pass the correct member object from chatData
+                        member={modalProps.member}
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers || []}
                         userUid={userUid}
-                        currentUserName={user?.displayName || 'Moi'}
-                        onAddTask={addTodo} // Pass the addTodo function here
+                        currentUserName={authUser?.displayName || 'Moi'} // Utilisez authUser ici
+                        onAddTask={addTodo}
                     />
                 )}
 
