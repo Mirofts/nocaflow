@@ -309,13 +309,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     // New handler to pass down to FlowLiveMessages
     const handleSelectUserOnMobile = useCallback((conv) => {
-        // This function is intended to open a quick chat or profile for the selected user
-        // from the conversation sidebar on mobile.
-        // `conv` here might be the conversation object, not necessarily a 'user' object.
-        // We need to extract the other participant's details.
-        const otherParticipant = conv.participantsDetails?.find(p => p.uid !== authUser?.uid); // Utilisez authUser
+        const otherParticipant = conv.participantsDetails?.find(p => p.uid !== authUser?.uid); // Utilisez authUser ici
         if (otherParticipant) {
-            openModal('quickChat', otherParticipant); // Pass the actual member object to QuickChatModal
+            openModal('quickChat', otherParticipant);
         } else {
             console.warn("handleSelectUserOnMobile received invalid conversation data or could not find other participant:", conv);
         }
@@ -494,14 +490,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 )}
                 {activeModal === 'userNameEdit' && !isGuestMode && (
                     <UserNameEditModal
-                        currentUser={user} // Pass original 'user' from useAuth for this modal
+                        currentUser={authUser} // Utiliser authUser ici
                         onClose={closeModal}
                         t={t}
                     />
                 )}
                 {activeModal === 'avatar' && (
                     <AvatarEditModal
-                        user={user} // Pass original 'user' from useAuth for this modal
+                        user={authUser} // Utiliser authUser ici
                         onClose={closeModal}
                         onUpdateGuestAvatar={(newAvatar) => onUpdateGuestData(prev => ({ ...prev, user: { ...prev.user, photoURL: newAvatar } }))}
                         isGuestMode={isGuestMode}
@@ -527,7 +523,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers || []}
                         userUid={userUid}
-                        currentUserName={authUser?.displayName || 'Moi'} // Utilisez authUser ici
+                        currentUserName={authUser?.displayName || 'Moi'}
                         onAddTask={addTodo}
                     />
                 )}
