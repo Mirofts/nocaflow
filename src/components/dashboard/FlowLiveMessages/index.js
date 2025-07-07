@@ -14,7 +14,7 @@ import { fr } from 'date-fns/locale';
 import FlowLiveMessagesSidebar from './FlowLiveMessagesSidebar';
 import FlowLiveMessagesDisplay from './FlowLiveMessagesDisplay';
 import FlowLiveMessagesInput from './FlowLiveMessagesInput';
-import NewDiscussionModal from './modals/NewDiscussionModal'; // Keep this path
+import NewDiscussionModal from './modals/NewDiscussionModal';
 
 // IMPORTS DES NOUVELLES MODALES DÉDIÉES
 import AddTaskModal from '@/components/dashboard/modals/TaskEditModal'; // Using TaskEditModal for AddTask
@@ -34,15 +34,15 @@ const ALL_EMOJIS = [
 const FlowLiveMessages = forwardRef(({
     onLoginClick,
     onRegisterClick,
-    onOpenAddTaskFromChat, // This prop can now trigger the modal at this level directly, or be ignored if the modal handles its own logic.
-    onAddMeeting,          // This prop can now trigger the modal at this level directly.
-    onAddDeadline,         // This prop can now trigger the modal at this level directly.
+    onOpenAddTaskFromChat,
+    onAddMeeting,
+    onAddDeadline,
     availableTeamMembers,
     messages: messagesProp,
     user,
     initialMockData,
     handleSelectUserOnMobile,
-    onUpdateGuestData // Prop to update guest data if in guest mode
+    onUpdateGuestData
 }, ref) => {
     const { currentUser: authUser } = useAuth();
     const { isDarkMode } = useTheme();
@@ -52,7 +52,7 @@ const FlowLiveMessages = forwardRef(({
     const isGuestMode = !currentActiveUser || currentActiveUser.uid === 'guest_noca_flow';
     const currentFirebaseUid = currentActiveUser?.uid || (isGuestMode ? 'guest_noca_flow' : null);
     const currentUserName = currentActiveUser?.displayName || (isGuestMode ? t('guest_user_default', 'Visiteur Curieux') : 'Moi');
-    const currentUserPhotoURL = currentActiveUser?.photoURL || (isGuestMode ? '/images/avatars/avatarguest.jpg' : '/images/default-avatar.jpg'); // Prop for NewDiscussionModal
+    const currentUserPhotoURL = currentActiveUser?.photoURL || (isGuestMode ? '/images/avatars/avatarguest.jpg' : '/images/default-avatar.jpg');
 
     // Initialize useUserTodos hook for task management
     const initialGuestTasks = useMemo(() => initialMockData?.guestData?.tasks || [], [initialMockData]);
@@ -103,8 +103,7 @@ const FlowLiveMessages = forwardRef(({
     } = useChatLogic(currentActiveUser, initialMockData, messagesProp);
 
     const [messages, setMessages] = useState([]);
-    const [isLoadingChat, setIsLoadingChat] = useState(true); // Added loading state for the chat component
-
+    const [isLoadingChat, setIsLoadingChat] = useState(true);
 
     const {
         sendMessage,
@@ -126,10 +125,10 @@ const FlowLiveMessages = forwardRef(({
     useEffect(() => {
         if (!currentFirebaseUid || !db) {
             setConversations([]);
-            setIsLoadingChat(false); // No user, so not loading chat
+            setIsLoadingChat(false);
             return;
         }
-        setIsLoadingChat(true); // Start loading
+        setIsLoadingChat(true);
         const q = query(
             collection(db, 'conversations'),
             where('participants', 'array-contains', currentFirebaseUid),
@@ -199,10 +198,10 @@ const FlowLiveMessages = forwardRef(({
             if (!selectedConversationId && convs.length > 0) {
                 setSelectedConversationId(convs[0].id);
             }
-            setIsLoadingChat(false); // Data loaded
+            setIsLoadingChat(false);
         }, (error) => {
             console.error("Error fetching conversations:", error);
-            setIsLoadingChat(false); // Error, stop loading
+            setIsLoadingChat(false);
         });
 
         return () => unsubscribe();
@@ -269,8 +268,7 @@ const FlowLiveMessages = forwardRef(({
     const [showAddTaskModal, setShowAddTaskModal] = useState(false);
     const [showMeetingModal, setShowMeetingModal] = useState(false);
     const [showDeadlineModal, setShowDeadlineModal] = useState(false);
-    const [addTaskInitialData, setAddTaskInitialData] = useState(null); // State to pass initial data to AddTaskModal
-
+    const [addTaskInitialData, setAddTaskInitialData] = useState(null);
 
     const handleLoginPrompt = useCallback(() => {
         alert(t('access_restricted', 'Accès Restreint. Veuillez vous connecter pour accéder à la messagerie en temps réel.'));
@@ -431,10 +429,25 @@ const FlowLiveMessages = forwardRef(({
     const displayChatName = activeConversationInfo?.name || t('new_conversation_default', 'Nouvelle Conversation');
     const displayChatAvatar = activeConversationInfo?.photoURL || '/images/default-group-avatar.png'; // Fallback pour avatar de groupe/chat
 
+    // Handlers to open the new modals (MOVED THESE UP)
+    const handleOpenAddTaskModal = useCallback((taskData = {}) => {
+        setAddTaskInitialData(taskData); // Capture any initial data passed
+        setShowAddTaskModal(true);
+    }, []);
+
+    const handleOpenMeetingModal = useCallback(() => {
+        setShowMeetingModal(true);
+    }, []);
+
+    const handleOpenDeadlineModal = useCallback(() => {
+        setShowDeadlineModal(true);
+    }, []);
+
     // Handlers for when modals save (these will interact with the useUserTodos and other hooks)
     const handleSaveTask = useCallback(async (taskData) => {
         // This function will use addTodo from useUserTodos
-        await addTodo(taskData.title, taskData.priority, taskData.deadline);
+        // addTodo expects (title, priority, deadline)
+        await addTodo(taskData.title, taskData.priority || 'normal', taskData.deadline || null);
         // You might want to also add a message to the chat about the new task
         // For example: await sendMessage(`Nouvelle tâche ajoutée: "${taskData.title}" pour ${taskData.assignedTo}.`, selectedConversationId, currentFirebaseUid, false);
         alert(t('task_saved_success', `Tâche "${taskData.title}" sauvegardée !`));
@@ -536,7 +549,7 @@ const FlowLiveMessages = forwardRef(({
                                     <button
                                         className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
                                         title={t('schedule_meeting', 'Planifier une réunion')}
-                                        onClick={handleOpenMeetingModal}
+                                        onClick={handleOpenMeetingModal} // Correctly calling the defined handler
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><path d="M14 12H2V4h12v8Z"/></svg>
                                     </button>
@@ -546,18 +559,10 @@ const FlowLiveMessages = forwardRef(({
                                         title={t('assign_task', 'Assigner une tâche')}
                                         onClick={() => {
                                             const activeConv = conversations.find(c => c.id === selectedConversationId);
-                                            // Pass relevant info to the AddTaskModal
                                             setAddTaskInitialData({
                                                 assignedTo: activeConv?.isGroup ? null : activeConv?.participantsDetails?.find(p => p.uid !== currentFirebaseUid)?.displayName,
-                                                // You might also want to pass:
-                                                // conversationId: selectedConversationId,
-                                                // currentFirebaseUid: currentFirebaseUid,
-                                                // currentUserName: currentUserName,
-                                                // etc. depending on what TaskEditModal needs to pre-fill or track
                                             });
-                                            setShowAddTaskModal(true);
-                                            // onOpenAddTaskFromChat might be an external prop for a dashboard-wide action,
-                                            // if so, call it here: onOpenAddTaskFromChat(data);
+                                            handleOpenAddTaskModal(); // Correctly calling the defined handler
                                         }}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M3 14h18"/><path d="M3 18h18"/><rect width="18" height="18" x="3" y="4" rx="2"/></svg>
@@ -566,7 +571,7 @@ const FlowLiveMessages = forwardRef(({
                                     <button
                                         className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
                                         title={t('add_deadline', 'Ajouter une deadline')}
-                                        onClick={handleOpenDeadlineModal}
+                                        onClick={handleOpenDeadlineModal} // Correctly calling the defined handler
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y1="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                                     </button>
@@ -643,7 +648,7 @@ const FlowLiveMessages = forwardRef(({
                         internalAvailableTeamMembers={internalAvailableTeamMembers}
                         currentFirebaseUid={currentFirebaseUid}
                         currentUserName={currentUserName}
-                        currentUserPhotoURL={currentUserPhotoURL} // Pass currentUserPhotoURL here
+                        currentUserPhotoURL={currentUserPhotoURL}
                         t={t}
                     />
                 )}
@@ -653,12 +658,10 @@ const FlowLiveMessages = forwardRef(({
             <AnimatePresence>
                 {showAddTaskModal && (
                     <AddTaskModal
-                        task={addTaskInitialData || {}} // Pass initial data, or empty object for new task
-                        onSave={handleSaveTask} // Use the new handleSaveTask
+                        task={addTaskInitialData || {}}
+                        onSave={handleSaveTask}
                         onClose={() => setShowAddTaskModal(false)}
                         t={t}
-                        // Pass availableTeamMembers if TaskEditModal needs to assign to a specific member
-                        // availableTeamMembers={internalAvailableTeamMembers}
                     />
                 )}
             </AnimatePresence>
