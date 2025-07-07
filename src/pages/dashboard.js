@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext'; // Corrected import path for ThemeContext
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '../context/ThemeContext'; // Corrected to relative path
 import { useUserTodos } from '../hooks/useUserTodos';
-import { initialMockData } from '../lib/mockData';
+import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { format, parseISO, isValid } from 'date-fns';
@@ -47,7 +47,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const isGuestMode = !authUser || authUser.uid === 'guest_noca_flow';
     
     const initialGuestNameSSR = 'Visiteur Curieux';
-    const userUid = authUser?.uid; // Utilisez authUser pour l'UID
+    // REMOVED: const userUid = authUser?.uid; // Cette déclaration de haut niveau peut être problématique
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
 
@@ -152,15 +152,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return isGuestMode ? (localData.tasks || []) : [];
     }, [isGuestMode, localData.tasks]);
 
-    const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
-        useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
-
+    // userUid est maintenant calculé à l'intérieur de `data` useMemo
     const data = useMemo(() => {
         let currentData = { ...localData };
 
+        // Définir userUid ici
+        const calculatedUserUid = authUser?.uid; 
+
         if (!isGuestMode) {
             currentData.user = authUser; // Utilisez authUser pour l'utilisateur connecté
-            currentData.tasks = todos;
+            currentData.tasks = todos; // todos dépend de userUid, nous devons ajuster useUserTodos
         } else {
             currentData.user = {
                 ...currentData.user,
@@ -176,9 +177,26 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         currentData.ganttTasks = Array.isArray(currentData.ganttTasks) ? currentData.ganttTasks : [];
         currentData.invoices = Array.isArray(currentData.invoices) ? currentData.invoices : [];
         currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
+        currentData.userUid = calculatedUserUid; // Ajouter userUid à l'objet data
 
         return currentData;
     }, [isGuestMode, localData, todos, guestName, authUser]);
+
+    // Ajuster l'appel à useUserTodos pour qu'il reçoive userUid de `data`
+    // Note: Cela pourrait potentiellement créer une boucle si todos dépend de data.tasks
+    // Il est préférable de passer authUser?.uid directement à useUserTodos.
+    // Revertons la modification précédente et gérons userUid comme avant, mais plus bas.
+    
+    // REMOVED: const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
+    // REMOVED:    useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
+    //
+    // Let's re-add it here, but ensure userUid is correctly defined and stable.
+
+    // Calculate userUid outside of useMemo `data` but AFTER authUser is available
+    const userUid = authUser?.uid; 
+
+    const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
+        useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
 
 
     const [activeModal, setActiveModal] = useState(null);
@@ -309,7 +327,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     // New handler to pass down to FlowLiveMessages
     const handleSelectUserOnMobile = useCallback((conv) => {
-        const otherParticipant = conv.participantsDetails?.find(p => p.uid !== authUser?.uid); // Utilisez authUser ici
+        const otherParticipant = conv.participantsDetails?.find(p => p.uid !== authUser?.uid);
         if (otherParticipant) {
             openModal('quickChat', otherParticipant);
         } else {
@@ -338,7 +356,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                 >
                     <DashboardHeader
-                        user={authUser} // Passez directement authUser
+                        user={authUser}
                         isGuestMode={isGuestMode}
                         openModal={openModal}
                         handleLogout={logout}
@@ -367,8 +385,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onLoginClick={onLoginClick}
                                     onRegisterClick={onRegisterClick}
                                     onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
-                                    onAddMeeting={() => openModal('addMeeting')} // Pass handler to open AddMeetingModal
-                                    onAddDeadline={() => openModal('addDeadline')} // Pass handler to open AddDeadlineModal
+                                    onAddMeeting={() => openModal('addMeeting')}
+                                    onAddDeadline={() => openModal('addDeadline')}
                                     messages={data.messages || []}
                                     user={authUser} // Passez directement authUser
                                     initialMockData={initialMockData}
@@ -522,7 +540,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         member={modalProps.member}
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers || []}
-                        userUid={userUid}
+                        userUid={data.userUid} // Utiliser userUid de l'objet data
                         currentUserName={authUser?.displayName || 'Moi'}
                         onAddTask={addTodo}
                     />
