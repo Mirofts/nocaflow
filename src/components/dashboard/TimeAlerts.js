@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { format, differenceInMinutes, parseISO, isValid, differenceInMilliseconds } from 'date-fns';
-import { fr } = from 'date-fns/locale';
+import { fr } from 'date-fns/locale'; // <-- CORRIGÉ : Suppression du '=' en trop
 import { useTheme } from '../../context/ThemeContext';
 import { DashboardCard } from './DashboardCard';
 
@@ -177,7 +177,7 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                             type="deadline"
                             title={t('next_deadline', 'Prochaine Échéance')}
                             dateTime={nextDeadline.deadline}
-                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>} /* Correction du commentaire JSX */
+                            icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>}
                             pulseColorClass="bg-pink-500"
                             openCreateModal={openModal}
                             onCardClick={onAlertCardClick}
@@ -208,7 +208,6 @@ const TimeAlerts = ({ projects, meetings, t, lang, openModal, onAlertCardClick }
                             type="meeting"
                             title={t('next_meeting', 'Prochaine Réunion')}
                             dateTime={nextMeeting.dateTime}
-                            // Correction : Suppression du commentaire JSX incorrect
                             icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 2v4a2 2 0 0 0 2 2h4"/><path d="M8 2v4a2 2 0 0 1-2 2H2"/><path d="M12 11h.01"/><path d="M12 15h.01"/></svg>}
                             pulseColorClass="bg-violet-500"
                             openCreateModal={openModal}
