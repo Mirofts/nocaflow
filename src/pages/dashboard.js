@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/context/AuthContext'; // Chemin corrigé
+import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '@/lib/mockData';
@@ -33,10 +33,11 @@ import {
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal,
-    BlockContactModal, ConfirmDeleteMessageModal // Ajout des nouvelles modales
-} from '../components/dashboard/dashboardModals'; // <-- CHEMIN CORRIGÉ pour votre arborescence
-import CalculatorModal from '../components/dashboard/CalculatorModal'; // C'est un fichier séparé
-import DetailsModal from '@/components/dashboard/modals/DetailsModal'; // C'est un fichier séparé dans /modals/
+    BlockContactModal, ConfirmDeleteMessageModal
+} from '../components/dashboard/dashboardModals';
+import CalculatorModal from '../components/dashboard/CalculatorModal';
+import DetailsModal from '@/components/dashboard/modals/DetailsModal';
+
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
     const { user: authUser, logout } = useAuth();
@@ -52,7 +53,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const [isClient, setIsClient] = useState(false); // État pour le rendu côté client
 
     useEffect(() => {
-        setIsClient(true); // Définit à true après le premier rendu côté client
+        setIsClient(true); // Définit à true après le premier rendu côté client (CLIENT-SIDE ONLY)
     }, []);
 
     const [localData, setLocalData] = useState(() => {
@@ -569,7 +570,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
                 {/* MODALES SPÉCIFIQUES AU CHAT - Assurez-vous d'avoir les imports corrects ci-dessus */}
                 {/* Ces modales sont gérées directement par FlowLiveMessages/index.js */}
-                {/* Elles ne sont pas ici dans dashboard.js */}
                 {/* Exemple: BlockContactModal, ConfirmDeleteMessageModal */}
 
             </AnimatePresence>
