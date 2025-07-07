@@ -39,15 +39,14 @@ import DetailsModal from '@/components/dashboard/modals/DetailsModal';
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
-    const { user: authUser, logout } = useAuth(); // Renommé 'user' en 'authUser' pour éviter la confusion
+    const { user: authUser, logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
     const { t } = useTranslation('common');
 
-    // Déterminez isGuestMode en se basant sur authUser
     const isGuestMode = !authUser || authUser.uid === 'guest_noca_flow';
     
     const initialGuestNameSSR = 'Visiteur Curieux';
-    // REMOVED: const userUid = authUser?.uid; // Cette déclaration de haut niveau peut être problématique
+    const userUid = authUser?.uid; // Assuré d'être défini ici pour useUserTodos
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
 
@@ -152,16 +151,17 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return isGuestMode ? (localData.tasks || []) : [];
     }, [isGuestMode, localData.tasks]);
 
-    // userUid est maintenant calculé à l'intérieur de `data` useMemo
+    // DÉPLACEZ CETTE DÉCLARATION AVANT LE useMemo 'data'
+    const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
+        useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
+
+
     const data = useMemo(() => {
         let currentData = { ...localData };
 
-        // Définir userUid ici
-        const calculatedUserUid = authUser?.uid; 
-
         if (!isGuestMode) {
             currentData.user = authUser; // Utilisez authUser pour l'utilisateur connecté
-            currentData.tasks = todos; // todos dépend de userUid, nous devons ajuster useUserTodos
+            currentData.tasks = todos; // Maintenant 'todos' est défini
         } else {
             currentData.user = {
                 ...currentData.user,
@@ -177,26 +177,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         currentData.ganttTasks = Array.isArray(currentData.ganttTasks) ? currentData.ganttTasks : [];
         currentData.invoices = Array.isArray(currentData.invoices) ? currentData.invoices : [];
         currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
-        currentData.userUid = calculatedUserUid; // Ajouter userUid à l'objet data
+
+        // Si data.userUid est utilisé ailleurs, il est mieux de le garder dans data
+        currentData.userUid = userUid; // Assurez-vous que c'est le userUid correct de useAuth
 
         return currentData;
-    }, [isGuestMode, localData, todos, guestName, authUser]);
-
-    // Ajuster l'appel à useUserTodos pour qu'il reçoive userUid de `data`
-    // Note: Cela pourrait potentiellement créer une boucle si todos dépend de data.tasks
-    // Il est préférable de passer authUser?.uid directement à useUserTodos.
-    // Revertons la modification précédente et gérons userUid comme avant, mais plus bas.
-    
-    // REMOVED: const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
-    // REMOVED:    useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
-    //
-    // Let's re-add it here, but ensure userUid is correctly defined and stable.
-
-    // Calculate userUid outside of useMemo `data` but AFTER authUser is available
-    const userUid = authUser?.uid; 
-
-    const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
-        useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
+    }, [isGuestMode, localData, todos, guestName, authUser, userUid]); // Ajout de userUid dans les dépendances
 
 
     const [activeModal, setActiveModal] = useState(null);
@@ -388,7 +374,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                     onAddMeeting={() => openModal('addMeeting')}
                                     onAddDeadline={() => openModal('addDeadline')}
                                     messages={data.messages || []}
-                                    user={authUser} // Passez directement authUser
+                                    user={authUser}
                                     initialMockData={initialMockData}
                                     availableTeamMembers={data.staffMembers || []}
                                     handleSelectUserOnMobile={handleSelectUserOnMobile}
@@ -540,7 +526,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         member={modalProps.member}
                         onClose={closeModal}
                         allStaffMembers={data.staffMembers || []}
-                        userUid={data.userUid} // Utiliser userUid de l'objet data
+                        userUid={userUid} // userUid est correctement scope ici
                         currentUserName={authUser?.displayName || 'Moi'}
                         onAddTask={addTodo}
                     />
