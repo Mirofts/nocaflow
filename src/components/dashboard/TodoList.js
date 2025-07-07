@@ -13,13 +13,9 @@ const TodoList = ({ todos, loading, onAdd, onToggle, onEdit, onDelete, t, classN
         e.preventDefault();
         if (newTaskText.trim()) {
             // Changed this line to pass a consistent task object structure
-            // Assuming `addTodo` expects { title, completed, priority, deadline }
-            onAdd({
-                title: newTaskText.trim(),
-                completed: false,
-                priority: 'normal', // Default priority for quick add
-                deadline: null // No deadline by default for quick add
-            });
+           // In TodoList.js, inside handleAddTask
+// Assuming onAdd (addTodo) expects only the title string
+onAdd(newTaskText.trim());
             setNewTaskText('');
         }
     }, [newTaskText, onAdd]);
