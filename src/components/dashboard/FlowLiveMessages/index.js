@@ -34,7 +34,7 @@ const FlowLiveMessages = forwardRef(({
     onAddDeadline,
     availableTeamMembers,
     messages: messagesProp,
-    user, // The user prop passed from dashboard.js, which is authUser
+    user,
     initialMockData,
     handleSelectUserOnMobile
 }, ref) => {
@@ -400,9 +400,17 @@ const FlowLiveMessages = forwardRef(({
     }, [setSelectedConversationId]);
 
 
+    // Récupérer les informations de la conversation sélectionnée pour l'affichage de l'en-tête
+    const activeConversationInfo = useMemo(() => {
+        return conversations.find(c => c.id === selectedConversationId);
+    }, [conversations, selectedConversationId]);
+
+    const displayChatName = activeConversationInfo?.name || t('new_conversation_default', 'Nouvelle Conversation');
+    const displayChatAvatar = activeConversationInfo?.photoURL || '/images/default-group-avatar.png'; // Fallback pour avatar de groupe/chat
+
     return (
-        // Conteneur principal du chat - Ajout d'une hauteur maximale pour éviter l'étirement
-        <div ref={chatContainerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : 'max-h-[700px]'}`}> {/* max-h-700px ou une autre valeur appropriée */}
+        // Conteneur principal du chat - Hauteur limitée et flex child min-h-0
+        <div ref={chatContainerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : 'max-h-[700px]'}`}>
             {isGuestMode && (
                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-40 text-white text-center p-4">
                     <p className="text-xl font-semibold mb-4">{t('access_restricted', 'Accès Restreint.')}</p>
@@ -433,8 +441,9 @@ const FlowLiveMessages = forwardRef(({
             />
 
             {/* Chat Panel (messages et input) */}
-            <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'} min-h-0`}> {/* min-h-0 pour permettre au contenu de flex d'être scrollable */}
+            <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'} min-h-0`}>
                 {selectedConversationId ? (
+                    // En-tête du chat avec avatar, nom de la conversation et boutons d'action
                     <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
                         {/* Bouton de retour visible uniquement sur les petits écrans quand la sidebar est cachée */}
                         {!showMobileSidebar && (
@@ -443,10 +452,17 @@ const FlowLiveMessages = forwardRef(({
                             </button>
                         )}
                         <div className="flex items-center">
+                            {/* Avatar de la conversation */}
+                            <img
+                                src={displayChatAvatar}
+                                alt={displayChatName}
+                                className="w-10 h-10 rounded-full mr-3 object-cover"
+                            />
+                            {/* Nom de la conversation */}
                             <h3 className="text-lg font-semibold text-color-text-primary mr-2">
-                                {conversations.find(c => c.id === selectedConversationId)?.name || t('new_conversation_default', 'Nouvelle Conversation')}
+                                {displayChatName}
                             </h3>
-                            {conversations.find(c => c.id === selectedConversationId)?.isGroup && <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>{t('group', 'Groupe')}</span>}
+                            {activeConversationInfo?.isGroup && <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>{t('group', 'Groupe')}</span>}
                         </div>
                         <div className="flex items-center gap-2">
                             {/* Meeting Icon */}
@@ -480,7 +496,7 @@ const FlowLiveMessages = forwardRef(({
                                 title={t('add_deadline', 'Ajouter une deadline')}
                                 onClick={() => onAddDeadline && onAddDeadline()}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y1="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             </button>
                              {/* Block Contact Icon (simulated) */}
                             <button

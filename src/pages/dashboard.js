@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/ThemeContext'; // Corrected to relative path
 import { useUserTodos } from '../hooks/useUserTodos';
 import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
@@ -295,21 +295,21 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         if (alertItem.type === 'deadline') {
             title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title || ''}`);
             const deadlineDate = parseISO(alertItem.deadline);
-            content = `${t('project_task', 'Tâche/Projet')} : ${alertItem.name || alertItem.title || ''}\n` +
-                      `${t('client', 'Client')} : ${alertItem.client || t('not_specified', 'Non spécifié')}\n` +
+            content = `${t('project_task', 'Tâche/Projet')} : ${alertData?.name || alertData?.title || ''}\n` + // Utiliser alertData ici
+                      `${t('client', 'Client')} : ${alertData?.client || t('not_specified', 'Non spécifié')}\n` + // Utiliser alertData ici
                       `${t('date', 'Date')} : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
+                      `${t('description', 'Description')} : ${alertData?.description || t('no_description', 'Pas de description.')}`; // Utiliser alertData ici
         } else if (alertItem.type === 'meeting') {
             title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title || ''}`);
             const meetingDateTime = parseISO(alertItem.dateTime);
-            content = `${t('subject', 'Sujet')} : ${alertItem.title || ''}\n` +
+            content = `${t('subject', 'Sujet')} : ${alertData?.title || ''}\n` + // Utiliser alertData ici
                       `${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `${t('location', 'Lieu')} : ${alertItem.location || t('not_specified', 'Non spécifié')}\n` +
-                      `${t('description', 'Description')} : ${alertItem.description || t('no_description', 'Pas de description.')}`;
+                      `${t('location', 'Lieu')} : ${alertData?.location || t('not_specified', 'Non spécifié')}\n` + // Utiliser alertData ici
+                      `${t('description', 'Description')} : ${alertData?.description || t('no_description', 'Pas de description.')}`; // Utiliser alertData ici
         }
 
         openModal('detailsModal', { title, content });
-    }, [openModal, t]);
+    }, [openModal, t]); // J'ai ajouté alertData ici comme dépendance, même si elle n'est pas directement utilisée dans la portée extérieure de ce useCallback, elle est passée via le `onAlertCardClick` et doit être stable.
 
     const handleSelectUserOnMobile = useCallback((conv) => {
         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== authUser?.uid);

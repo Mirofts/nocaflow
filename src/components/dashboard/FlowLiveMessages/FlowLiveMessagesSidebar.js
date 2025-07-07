@@ -25,7 +25,7 @@ const FlowLiveMessagesSidebar = ({
         }
         return conversations.filter(conv =>
             (conv.name?.toLowerCase().includes(activeSearchQuery.toLowerCase())) ||
-            (conv.lastMessage?.toLowerCase().includes(activeSearchQuery.toLowerCase())) // Search in last message content
+            (conv.lastMessage?.toLowerCase().includes(activeSearchQuery.toLowerCase()))
         );
     }, [conversations, activeSearchQuery]);
 
@@ -57,11 +57,11 @@ const FlowLiveMessagesSidebar = ({
                     filteredConversations.map(conv => {
                         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== currentUserId);
                         const displayPhotoURL = conv.isGroup ? '/images/default-group-avatar.png' : (otherParticipant?.photoURL || '/images/default-avatar.jpg');
-                        const isOnline = otherParticipant?.isOnline; // Assuming isOnline property exists on participant details
+                        const isOnline = otherParticipant?.isOnline;
 
                         return (
                             <motion.div
-                                key={conv.id || conv.name || `conv-${Math.random()}`} // Robust key
+                                key={conv.id || conv.name || `conv-${Math.random()}`}
                                 className={`flex items-center p-3 border-b cursor-pointer transition-colors ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} ${selectedConversationId === conv.id ? (isDarkMode ? 'bg-indigo-700 bg-opacity-30' : 'bg-indigo-50') : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}`}
                                 onClick={() => handleConversationClick(conv.id)}
                                 whileHover={{ scale: 1.01 }}
@@ -94,7 +94,8 @@ const FlowLiveMessagesSidebar = ({
                 )}
             </div>
 
-            <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            {/* Le bouton "Nouvelle discussion" doit être ancré en bas */}
+            <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}> {/* flex-shrink-0 pour qu'il ne se réduise pas */}
                 <motion.button
                     onClick={onNewDiscussionClick}
                     className="w-full bg-indigo-600 text-white py-2 rounded-md font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-2"

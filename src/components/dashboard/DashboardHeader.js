@@ -1,11 +1,11 @@
-// components/dashboard/DashboardHeader.js
-import React, { useState, useEffect, useMemo } from 'react';
+// src/components/dashboard/DashboardHeader.js
+import React, { useState, useEffect, useMemo, useCallback } from 'react'; // Added useCallback
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '@/context/ThemeContext'; // Corrected import path
+import { useAuth } from '@/context/AuthContext'; // Corrected import path
 import Greeting from './Greeting'; // Keep Greeting as it contains the "Ave, TOI" text
-import { initialMockData } from '../../lib/mockData'; // Import initialMockData for guest stats
+// Removed: import { initialMockData } from '../../lib/mockData'; // Not directly used here, unnecessary import
 
 // Composant PulsingIcon pour les icônes animées
 const PulsingIcon = ({ children, isPulsing, pulseColorClass = 'bg-pink-500' }) => (
@@ -29,40 +29,41 @@ const StatPill = ({ icon, count, isPulsing = false, pulseColorClass }) => (
 );
 
 const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t, onOpenCalculator }) => {
-    const { isDarkMode } = useTheme();
+    const { isDarkMode, toggleTheme } = useTheme();
 
-    const displayUserNameForAvatar = user?.displayName || t('guest_user_default', 'Cher Invité');
-    // Assurez-vous que les chemins d'images sont corrects et que les fichiers existent
-    const avatarUrl = isGuestMode ? '/images/avatars/default-avatar.jpg' : (user?.photoURL || '/images/avatars/default-avatar.jpg');
-
-    const phrases = [
-        "NocaFLOW trie même les chaussettes sales ?",
-        "Un seul outil. Zéro chaos. Juste du FLOW.",
-        "Multitâche ? Non. NocaFLOW fait tout, vraiment.",
-        "Productif sans effort. Merci NocaFLOW, dopage légal.",
-        "NocaFLOW gère tout, sauf les ronrons. 🐾",
-        "Adieu stress. Bonjour FLOW (et siestes félines).",
-        "Même mamie l’utilise. Et elle kiffe grave.",
-        "Plus fort que le café : NocaFLOW.",
-        "NocaFLOW rend accros… à l’efficacité !",
-        "Projets qui volent. Tracas au tapis."
-    ];
+    // Définition des phrases en dehors du composant si elles ne changent jamais
+    const phrases = useMemo(() => [ // Utiliser useMemo pour s'assurer que les phrases sont stables
+        t("phrase1", "NocaFLOW trie même les chaussettes sales ?"),
+        t("phrase2", "Un seul outil. Zéro chaos. Juste du FLOW."),
+        t("phrase3", "Multitâche ? Non. NocaFLOW fait tout, vraiment."),
+        t("phrase4", "Productif sans effort. Merci NocaFLOW, dopage légal."),
+        t("phrase5", "NocaFLOW gère tout, sauf les ronrons. 🐾"),
+        t("phrase6", "Adieu stress. Bonjour FLOW (et siestes félines)."),
+        t("phrase7", "Même mamie l’utilise. Et elle kiffe grave."),
+        t("phrase8", "Plus fort que le café : NocaFLOW."),
+        t("phrase9", "NocaFLOW rend accros… à l’efficacité !"),
+        t("phrase10", "Projets qui volent. Tracas au tapis.")
+    ], [t]); // Dépend de la fonction t pour les traductions
 
     const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
 
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentPhraseIndex(prevIndex => (prevIndex + 1) % phrases.length);
-        }, 10000);
+        }, 10000); // Change toutes les 10 secondes
 
         return () => clearInterval(interval);
-    }, [phrases.length]);
+    }, [phrases]); // Dépend de 'phrases' pour réinitialiser l'intervalle si les phrases changent
+
+    const displayUserNameForAvatar = user?.displayName || t('guest_user_default', 'Cher Invité');
+    const avatarUrl = isGuestMode ? '/images/avatars/avatarguest.jpg' : (user?.photoURL || '/images/default-avatar.jpg'); // Utiliser avatarguest.jpg pour les invités par défaut.
+
 
     return (
         <motion.header
-            initial={{ opacity: 0, y: -20 }} // Animation initiale
-            animate={{ opacity: 1, y: 0 }} // Animation d'entrée
-            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-4" // Réduit mt-8 à mt-4 pour réduire l'espace
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-4"
         >
             <div className="flex items-center gap-4">
                 {/* Avatar principal (le grand, cliquable pour changer) */}
@@ -91,10 +92,11 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                             </button>
                         )}
                     </div>
+                    {/* Gestion de l'affichage de la phrase tournante */}
                     <div className="h-10 overflow-hidden mt-1">
                         <AnimatePresence mode="wait">
                             <motion.p
-                                key={currentPhraseIndex}
+                                key={currentPhraseIndex} // La clé change pour déclencher l'animation de sortie/entrée
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
@@ -117,7 +119,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sky-400"><path d="M9 11L12 14L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 } count={stats.tasks} isPulsing={stats.tasks > 0} pulseColorClass="bg-sky-500" />
                 <StatPill icon={
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 } count={stats.meetings} isPulsing={stats.meetings > 0} pulseColorClass="bg-amber-500" />
 
                 <button
