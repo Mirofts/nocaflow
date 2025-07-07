@@ -309,12 +309,13 @@
     }
   }
 
-  .minimized-card {
-    height: 72px !important; /* Slightly adjusted height for minimized state */
+  /* Removed .minimized-card as its height logic is now in DashboardCard.js */
+  /* .minimized-card {
+    height: 72px !important;
     transition: height 0.3s ease-in-out, padding 0.3s ease-in-out;
     padding-bottom: 0 !important;
     overflow: hidden !important;
-  }
+  } */
 
   .flex-grow[style*="height: auto"] {
     min-height: 0;
@@ -436,3 +437,18 @@
 /* Ajout de classes de taille de texte pour une meilleure granularité */
 .text-heading-card { @apply text-xl font-semibold; }
 .text-content-sm { @apply text-sm; }
+
+/* Styling for Fullscreen Mode */
+.fullscreen-mode-styling {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99; /* Below modals, but above everything else */
+  background-color: var(--color-bg-primary); /* Or a specific fullscreen background */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}

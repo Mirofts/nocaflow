@@ -164,9 +164,14 @@ const QuickAddTaskModal = ({ date, onSave, onClose, t }) => {
         if (!title.trim()) return;
         setLoading(true);
 
-        if (type === 'task') {
-            onSave(title, 'normal', format(date, 'yyyy-MM-dd')); 
-        } else if (type === 'note') {
+      if (type === 'task') {
+    await onSave({
+        title: title.trim(),
+        completed: false, // Default for new tasks
+        priority: 'normal', // Default priority for quick add
+        deadline: format(date, 'yyyy-MM-dd') // Deadline from the selected date
+    });
+} else if (type === 'note') {
             alert(t('note_feature_placeholder', 'Fonctionnalité d\'ajout de note non implémentée directement ici.'));
         } else if (type === 'meeting') {
             alert(t('meeting_feature_placeholder', 'Fonctionnalité d\'ajout de réunion non implémentée directement ici.'));
@@ -929,10 +934,17 @@ const AssignTaskProjectDeadlineModal = ({ member, onClose, t, allStaffMembers = 
             deadline: deadline || null,
         };
 
-        if (assignmentType === 'task') {
-            await onAddTask(assignmentData.title, 'normal', assignmentData.deadline); 
-            alert(t('task_assigned_success', `Tâche "${assignmentData.title}" assignée à ${assignedTo} et ajoutée !`));
-        } else if (assignmentType === 'project') {
+      // In AssignTaskProjectDeadlineModal, inside handleSubmit
+if (assignmentType === 'task') {
+    await onAddTask({
+        title: assignmentData.title,
+        completed: false, // Default for new tasks
+        priority: 'normal', // Default priority for assigned tasks
+        deadline: assignmentData.deadline, // Deadline from the form
+        assignedTo: assignmentData.assignedTo // Include assignedTo in the task object
+    });
+    alert(t('task_assigned_success', `Tâche "${assignmentData.title}" assignée à ${assignedTo} et ajoutée !`));
+} else if (assignmentType === 'project') {
             alert(t('project_assignment_placeholder', `Attribution de projet à ${assignedTo} : "${assignmentData.title}" - Non implémentée.`));
         } else if (assignmentType === 'deadline') {
             alert(t('deadline_assignment_placeholder', `Attribution de deadline à ${assignedTo} : "${assignmentData.title}" - Non implémentée.`));
@@ -1034,16 +1046,17 @@ const GanttTaskFormModal = ({ initialData = {}, onSave, onClose, allStaffMembers
         onClose();
     };
 
-    const allPeople = [...new Set([
-        ...(Array.isArray(allStaffMembers) ? allStaffMembers : []).map(m => m.name), // Added Array.isArray
-        ...(Array.isArray(allClients) ? allClients : []).map(c => c.name) // Added Array.isArray
-    ])].sort();
+// In GanttTaskFormModal
+const allPeople = [...new Set([
+    ...(Array.isArray(allStaffMembers) ? allStaffMembers.map(m => m.name) : []),
+    ...(Array.isArray(allClients) ? allClients.map(c => c.name) : [])
+])].sort();
 
-    const availablePeople = [...new Set([
-        ...(Array.isArray(allStaffMembers) ? allStaffMembers : []).map(m => m.name), // Added Array.isArray
-        ...(Array.isArray(allClients) ? allClients : []).map(c => c.name), // Added Array.isArray
-        ...(initialData.person ? [initialData.person] : []) 
-    ])].sort();
+const availablePeople = [...new Set([
+    ...(Array.isArray(allStaffMembers) ? allStaffMembers.map(m => m.name) : []),
+    ...(Array.isArray(allClients) ? allClients.map(c => c.name) : []),
+    ...(initialData.person ? [initialData.person] : [])
+])].sort();
 
 
     return (

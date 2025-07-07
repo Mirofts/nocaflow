@@ -1,5 +1,5 @@
 // components/dashboard/DashboardCard.js
-import React, { useState, forwardRef } from 'react'; // Added forwardRef
+import React, { useState, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -14,21 +14,32 @@ export const DashboardCard = ({
     noContentPadding = false // Prop pour désactiver le padding interne du contenu
 }) => {
     const [isMinimized, setIsMinimized] = useState(initialMinimized);
-    const { isDarkMode } = useTheme(); // Get isDarkMode from context
+    const { isDarkMode } = useTheme();
 
     const handleMinimizeToggle = () => {
         setIsMinimized(!isMinimized);
     };
 
+    // Define card variants for smooth height transition
+    // When not minimized, height is 'auto' to allow content to dictate size.
+    // When minimized, height is fixed to 72px (header height).
+    const cardVariants = {
+        minimized: { height: '72px', transition: { duration: 0.3, ease: 'easeInOut' } },
+        maximized: { height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } }
+    };
+
+    // Variants for content opacity/visibility
+    const contentVariants = {
+        hidden: { opacity: 0, y: -10, transition: { duration: 0.2 } },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.2, delay: 0.1 } }
+    };
+
     return (
         <motion.div
-            // Removed variants here as layout prop is often sufficient for these transitions
-            // The key to smooth height transition is 'layout' prop on the parent and
-            // animating 'height: 0' to 'height: auto' on the content
-            className={`relative overflow-hidden border border-color-border-primary rounded-2xl flex flex-col ${className} ${isMinimized ? 'minimized-card' : ''}`}
+            className={`relative overflow-hidden border border-color-border-primary rounded-2xl flex flex-col ${className}`}
             style={{ backgroundColor: 'var(--color-bg-secondary)' }}
-            layout // Enable Framer Motion layout animations for the card itself
-            transition={{ duration: 0.3, ease: 'easeInOut' }} // Apply transition to the card for overall size changes
+            variants={cardVariants}
+            animate={isMinimized ? 'minimized' : 'maximized'}
         >
             {/* Header for the DashboardCard */}
             <div className={`flex justify-between items-center px-6 py-4 border-b border-color-border-primary shadow-sm flex-shrink-0 bg-color-bg-tertiary`}>
@@ -68,12 +79,12 @@ export const DashboardCard = ({
                 {!isMinimized && (
                     <motion.div
                         key="card-content"
-                        initial={{ opacity: 0, height: 0, paddingBottom: 0, paddingTop: 0 }} // Start with no padding for smooth collapse
-                        animate={{ opacity: 1, height: 'auto', paddingBottom: noContentPadding ? 0 : 24, paddingTop: noContentPadding ? 0 : 24, paddingLeft: noContentPadding ? 0 : 24, paddingRight: noContentPadding ? 0 : 24 }} // Animate to auto height and correct padding (p-6 = 24px)
-                        exit={{ opacity: 0, height: 0, paddingBottom: 0, paddingTop: 0 }} // Exit with no padding
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        className={`flex-grow text-color-text-secondary overflow-hidden`} 
-                        style={{ overflowY: 'auto' }} // Allows internal scrolling if content is too large
+                        variants={contentVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="hidden"
+                        className={`flex-grow text-color-text-secondary overflow-hidden ${noContentPadding ? '' : 'p-6'}`}
+                        style={{ overflowY: 'auto' }}
                     >
                         {children}
                     </motion.div>

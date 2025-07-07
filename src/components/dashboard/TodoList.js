@@ -12,7 +12,14 @@ const TodoList = ({ todos, loading, onAdd, onToggle, onEdit, onDelete, t, classN
     const handleAddTask = useCallback((e) => {
         e.preventDefault();
         if (newTaskText.trim()) {
-            onAdd({ text: newTaskText.trim(), completed: false });
+            // Changed this line to pass a consistent task object structure
+            // Assuming `addTodo` expects { title, completed, priority, deadline }
+            onAdd({
+                title: newTaskText.trim(),
+                completed: false,
+                priority: 'normal', // Default priority for quick add
+                deadline: null // No deadline by default for quick add
+            });
             setNewTaskText('');
         }
     }, [newTaskText, onAdd]);
@@ -31,7 +38,6 @@ const TodoList = ({ todos, loading, onAdd, onToggle, onEdit, onDelete, t, classN
             noContentPadding={true}
         >
             <div className="flex flex-col h-full">
-                {/* Modified form to include a button and text-sm for input/placeholder */}
                 <form onSubmit={handleAddTask} className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex gap-2 items-center`}>
                     <input
                         type="text"
