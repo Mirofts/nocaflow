@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/context/AuthContext'; // Utilise les alias
-import { useTheme } from '@/context/ThemeContext'; // Utilise les alias
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useUserTodos } from '../hooks/useUserTodos';
-import { initialMockData } from '@/lib/mockData'; // Utilise les alias
+import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { format, parseISO, isValid } from 'date-fns';
@@ -35,7 +35,7 @@ import {
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal
 } from '../components/dashboard/modals/modals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
-import DetailsModal from '@/components/dashboard/modals/DetailsModal'; // Utilise l'alias
+import DetailsModal from '@/components/dashboard/modals/DetailsModal';
 
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
@@ -91,6 +91,17 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
         return initialValue;
     });
+
+    // --- TEMPORARY FIX FOR SCROLL ISSUE (REMOVE AFTER ROOT CAUSE IS FOUND) ---
+    // If you need to force scroll to top on page load, uncomment this useEffect.
+    // It's placed correctly here, at the top level of the functional component.
+    /*
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+    */
+    // -------------------------------------------------------------------------
+
 
     useEffect(() => {
         const USE_LOCAL_STORAGE_FOR_GUEST = false; // Temporarily disabled, set to true once #130 is resolved
