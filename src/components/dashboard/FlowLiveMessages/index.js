@@ -17,13 +17,13 @@ import FlowLiveMessagesInput from './FlowLiveMessagesInput';
 
 // IMPORTS DES MODALES VIA dashboardModals.js (le fichier central d'exportation)
 import {
-    NewDiscussionModal, // NewDiscussionModal est maintenant importé de dashboardModals.js
-    TaskEditModal, // Utilisé comme AddTaskModal
+    NewDiscussionModal,
+    TaskEditModal,
     AddMeetingModal,
     AddDeadlineModal,
     BlockContactModal,
     ConfirmDeleteMessageModal
-} from '@/components/dashboard/dashboardModals'; // <-- Chemin corrigé pour les modales via dashboardModals.js
+} from '@/components/dashboard/dashboardModals';
 
 // IMPORTS DES HOOKS : UTILISATION DES ALIAS
 import { useFullScreen } from '@/hooks/useFullScreen';
@@ -147,7 +147,8 @@ const FlowLiveMessages = forwardRef(({
         );
 
         const unsubscribe = onSnapshot(q, async (snapshot) => {
-            const convs = await Promise.all(snapshot.docs.map(async d => {
+            const convsMap = new Map(); // Use a Map to store unique conversations by ID
+            await Promise.all(snapshot.docs.map(async d => {
                 const data = d.data();
                 let displayName = '';
                 let photoURL = '';
@@ -197,7 +198,7 @@ const FlowLiveMessages = forwardRef(({
                     unreadCount = 1;
                 }
 
-                return {
+                convsMap.set(d.id, {
                     id: d.id,
                     ...data,
                     name: displayName,
@@ -206,12 +207,17 @@ const FlowLiveMessages = forwardRef(({
                     unread: unreadCount,
                     initials: (displayName || 'U').charAt(0).toUpperCase(),
                     participantsDetails: participantsDetails
-                };
+                });
             }));
-            setConversations(convs.sort((a,b) => (b.lastMessageTime?.toMillis() || 0) - (a.lastMessageTime?.toMillis() || 0)));
+            const uniqueConvs = Array.from(convsMap.values()).sort((a,b) => (b.lastMessageTime?.toMillis() || 0) - (a.lastMessageTime?.toMillis() || 0));
+            setConversations(uniqueConvs);
 
-            if (!selectedConversationId && convs.length > 0) {
-                setSelectedConversationId(convs[0].id);
+            if (!selectedConversationId && uniqueConvs.length > 0) {
+                setSelectedConversationId(uniqueConvs[0].id);
+            }
+            if (!selectedConversationId && uniqueConvs.length === 0) { // Handle case where there are no conversations
+                setIsLoadingChat(false);
+                return;
             }
             setIsLoadingChat(false);
         }, (error) => {
@@ -550,7 +556,9 @@ const FlowLiveMessages = forwardRef(({
 
 
     return (
-        <div ref={chatContainerRef} className={`flex h-full rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : 'max-h-[700px]'}`}>
+        // The main chat container, enforcing its fixed height and acting as a flex parent
+        // 'overflow-hidden' here is key to trapping scroll within the component's children.
+        <div ref={chatContainerRef} className={`flex h-[700px] rounded-lg overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 bg-color-bg-primary' : 'max-h-[700px]'}`}>
             {isGuestMode && (
                 <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-40 text-white text-center p-4">
                     <p className="text-xl font-semibold mb-4">{t('access_restricted', 'Accès Restreint.')}</p>
@@ -599,147 +607,143 @@ const FlowLiveMessages = forwardRef(({
                         handleSelectUserOnMobile={handleSelectUserOnMobile}
                     />
 
-                    <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'} min-h-0`}>
+                    {/* This div is the main chat content area (header + display + input). It's a flex column. */}
+                    {/* Crucially, this flex-col should take up all available height, and its children manage their distribution */}
+                    <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'} h-full`}> {/* Changed min-h-0 to h-full here */}
                         {selectedConversationId ? (
-                            <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
-                                {!showMobileSidebar && (
-                                    <button className={`p-2 rounded-full mr-2 md:hidden ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`} onClick={() => setShowMobileSidebar(true)} aria-label={t('back_to_conversations', 'Retour aux conversations')}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                                    </button>
-                                )}
-                                <div className="flex items-center">
-                                    <img
-                                        src={displayChatAvatar}
-                                        alt={displayChatName}
-                                        className="w-10 h-10 rounded-full mr-3 object-cover"
-                                    />
-                                    <h3 className="text-lg font-semibold text-color-text-primary mr-2">
-                                        {displayChatName}
-                                    </h3>
-                                    {activeConversationInfo?.isGroup && <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>{t('group', 'Groupe')}</span>}
-                                </div>
-                                <div className="relative flex-grow mx-4 max-w-sm">
-                                    <input
-                                        type="text"
-                                        placeholder={t('search_messages_placeholder', 'Rechercher un message...')}
-                                        className={`w-full p-2 rounded-md ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'} border ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                                        value={messageSearchQuery}
-                                        onChange={handleMessageSearchChange}
-                                    />
-                                    {messageSearchQuery && (
-                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">
-                                            {messageSearchResultsCount} {t('results', 'résultats')}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
-                                        title={t('schedule_meeting', 'Planifier une réunion')}
-                                        onClick={handleOpenMeetingModal}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><path d="M14 12H2V4h12v8Z"/></svg>
-                                    </button>
-                                    <button
-                                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
-                                        title={t('assign_task', 'Assigner une tâche')}
-                                        onClick={() => {
-                                            const activeConv = conversations.find(c => c.id === selectedConversationId);
-                                            setAddTaskInitialData({
-                                                assignedTo: activeConv?.isGroup ? null : activeConv?.participantsDetails?.find(p => p.uid !== currentFirebaseUid)?.displayName,
-                                            });
-                                            handleOpenAddTaskModal();
-                                        }}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M3 14h18"/><path d="M3 18h18"/><rect width="18" height="18" x="3" y="4" rx="2"/></svg>
-                                    </button>
-                                    <button
-                                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
-                                        title={t('add_deadline', 'Ajouter une deadline')}
-                                        onClick={handleOpenDeadlineModal}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                    </button>
-                                     {/* Block/Unblock Contact Icon */}
-                                    {otherChatParticipant && !activeConversationInfo.isGroup && (
-                                        <button
-                                            className={`p-2 rounded-full transition-colors ${isPartnerBlocked ? 'bg-red-700 text-white hover:bg-red-800' : (isDarkMode ? 'hover:bg-slate-700 text-red-400 hover:text-white' : 'hover:bg-red-100 text-red-500 hover:text-red-600')}`}
-                                            title={isPartnerBlocked ? t('unblock_contact', `Débloquer ${otherChatParticipant.displayName}`) : t('block_contact', `Bloquer ${otherChatParticipant.displayName}`)}
-                                            onClick={() => {
-                                                setContactToBlock(otherChatParticipant);
-                                                setShowBlockContactModal(true);
-                                            }}
-                                        >
-                                            {isPartnerBlocked ? (
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m13 17 5-5-5-5"/><path d="M16 12H2"/><path d="M22 12h-2"/></svg>
-                                            ) : (
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+                            <>
+                                {/* HEADER FIXE - Ensure shrink-0 to keep it fixed at the top */}
+                                <div className="shrink-0">
+                                    <div className={`px-4 py-3 border-b border-color-border-primary flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
+                                        <div className="flex items-center">
+                                            {/* Mobile sidebar toggle button */}
+                                            {!showMobileSidebar && (
+                                                <button
+                                                    className={`p-2 rounded-full mr-2 md:hidden ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`}
+                                                    onClick={() => setShowMobileSidebar(true)}
+                                                    aria-label={t('back_to_conversations', 'Retour aux conversations')}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                                                </button>
                                             )}
-                                        </button>
-                                    )}
+                                            <img src={displayChatAvatar} alt={displayChatName} className="w-10 h-10 rounded-full mr-3 object-cover" />
+                                            <h3 className="text-lg font-semibold text-color-text-primary mr-2">{displayChatName}</h3>
+                                            {activeConversationInfo?.isGroup && (
+                                                <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>
+                                                    {t('group', 'Groupe')}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* BOUTONS D'ACTION (Ajouté ici pour être fixe dans l'en-tête) */}
+                                        <div className="flex items-center space-x-2">
+                                            {/* Bouton Ajouter Tâche */}
+                                            {!isGuestMode && selectedConversationId && !activeConversationInfo?.isGroup && ( // Typically, tasks are assigned to individuals
+                                                <button
+                                                    onClick={handleOpenAddTaskModal}
+                                                    title={t('add_task', 'Ajouter une tâche')}
+                                                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/><path d="M16 12H8"/></svg>
+                                                </button>
+                                            )}
+
+                                            {/* Bouton Ajouter Réunion */}
+                                            {!isGuestMode && selectedConversationId && (
+                                                <button
+                                                    onClick={handleOpenMeetingModal}
+                                                    title={t('add_meeting', 'Ajouter une réunion')}
+                                                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path></svg>
+                                                </button>
+                                            )}
+
+                                            {/* Bouton Ajouter Échéance */}
+                                            {!isGuestMode && selectedConversationId && (
+                                                <button
+                                                    onClick={handleOpenDeadlineModal}
+                                                    title={t('add_deadline', 'Ajouter une échéance')}
+                                                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                                </button>
+                                            )}
+
+                                            {/* Bouton Bloquer/Débloquer Contact */}
+                                            {selectedConversationId && !activeConversationInfo?.isGroup && !isGuestMode && otherChatParticipant && (
+                                                <button
+                                                    onClick={() => {
+                                                        setContactToBlock(otherChatParticipant);
+                                                        setShowBlockContactModal(true);
+                                                    }}
+                                                    title={isPartnerBlocked ? t('unblock_contact', 'Débloquer le contact') : t('block_contact', 'Bloquer le contact')}
+                                                    className={`p-2 rounded-full transition-colors ${isPartnerBlocked ? 'text-red-500 hover:text-red-600' : (isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary')} hover:bg-color-bg-hover`}
+                                                >
+                                                    {isPartnerBlocked ? (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m13 17 5-5-5-5"/><path d="M16 12H2"/><path d="M22 12h-2"/></svg> // Unblock icon (info/warning)
+                                                    ) : (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> // Block icon
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+
+                                {/* CONTENU SCROLLABLE - This is the ONLY part that should scroll */}
+                                {/* flex-1 to take available space, overflow-y-auto for scrolling */}
+                                {/* Removed min-h-0 here, as flex-1 should handle it relative to parent */}
+                                <div className="flex-1 overflow-y-auto"> 
+                                    <FlowLiveMessagesDisplay
+                                        messages={messages || []}
+                                        currentUser={currentActiveUser}
+                                        onMessageAction={handleMessageAction}
+                                        availableTeamMembers={internalAvailableTeamMembers}
+                                        t={t}
+                                        isFullScreen={isFullScreen}
+                                        handleSelectUserOnMobile={handleSelectUserOnMobile}
+                                        openEphemeralImagePreview={openEphemeralImagePreview}
+                                        currentFirebaseUid={currentFirebaseUid}
+                                        onEditMessage={handleEditMessage}
+                                        onDeleteMessage={handleConfirmDeleteMessage}
+                                        messageSearchQuery={messageSearchQuery}
+                                        activeConversationIsGroup={activeConversationInfo?.isGroup}
+                                    />
+                                </div>
+
+                                {/* FOOTER FIXE - Ensure shrink-0 to keep it fixed at the bottom */}
+                                <div className="shrink-0">
+                                    <FlowLiveMessagesInput
+                                        newMessage={newMessage}
+                                        setNewMessage={setNewMessage}
+                                        handleSendNormalMessage={handleSendNormalMessage}
+                                        handleAttachNormalFile={handleAttachNormalFile}
+                                        handleEmoticonClick={handleEmoticonClick}
+                                        emojis={ALL_EMOJIS}
+                                        showEmojiPicker={showEmojiPicker}
+                                        setShowEmojiPicker={setShowEmojiPicker}
+                                        emojiButtonRef={emojiButtonRef}
+                                        fileInputRef={fileInputRef}
+                                        isDarkMode={isDarkMode}
+                                        t={t}
+                                        activeConversationId={selectedConversationId}
+                                        isGuestMode={isGuestMode}
+                                        handleSendEphemeralMessage={handleSendEphemeralMessage}
+                                        handleAttachEphemeralFile={handleAttachEphemeralFile}
+                                    />
+                                </div>
+                            </>
                         ) : (
-                            <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-center text-center ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary text-color-text-secondary'}`}>
+                            // Display if no conversation is selected
+                            <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-center text-center ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary text-color-text-secondary'} flex-grow h-full`}> {/* Added flex-grow h-full to center content here */}
                                 <h3 className="text-lg font-semibold">{t('select_conversation', 'Sélectionnez une conversation pour commencer.')}</h3>
                             </div>
                         )}
-
-                        <FlowLiveMessagesDisplay
-                            messages={messages || []}
-                            currentUser={currentActiveUser}
-                            onMessageAction={handleMessageAction}
-                            availableTeamMembers={internalAvailableTeamMembers}
-                            t={t}
-                            isFullScreen={isFullScreen}
-                            handleSelectUserOnMobile={handleSelectUserOnMobile}
-                            openEphemeralImagePreview={openEphemeralImagePreview}
-                            currentFirebaseUid={currentFirebaseUid}
-                            onEditMessage={handleEditMessage}
-                            onDeleteMessage={handleConfirmDeleteMessage}
-                            messageSearchQuery={messageSearchQuery}
-                            activeConversationIsGroup={activeConversationInfo?.isGroup} // Pass isGroup to display component
-                        />
-
-                        {/* Champ de saisie des messages (vérifié pour la visibilité) */}
-                        <div className="flex-shrink-0">
-                            <FlowLiveMessagesInput
-                                newMessage={newMessage}
-                                setNewMessage={setNewMessage}
-                                handleSendNormalMessage={handleSendNormalMessage}
-                                handleAttachNormalFile={handleAttachNormalFile}
-                                handleEmoticonClick={handleEmoticonClick}
-                                emojis={ALL_EMOJIS}
-                                showEmojiPicker={showEmojiPicker}
-                                setShowEmojiPicker={setShowEmojiPicker}
-                                emojiButtonRef={emojiButtonRef}
-                                fileInputRef={fileInputRef}
-                                isDarkMode={isDarkMode}
-                                t={t}
-                                activeConversationId={selectedConversationId}
-                                isGuestMode={isGuestMode}
-                                handleSendEphemeralMessage={handleSendEphemeralMessage}
-                                handleAttachEphemeralFile={handleAttachEphemeralFile}
-                            />
-                        </div>
                     </div>
                 </>
             )}
 
-            {/* Le bouton Fullscreen est à son emplacement unique ici. */}
-            <div className="absolute top-0 right-0 p-2 z-50">
-                <button
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
-                    onClick={toggleFullScreen}
-                    title={isFullScreen ? t('exit_fullscreen', 'Quitter le mode plein écran') : t('enter_fullscreen', 'Passer en plein écran')}
-                >
-                    {isFullScreen ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3m-18 0h3a2 2 0 0 1 2 2v3"/></svg>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h2m14 0h-2a2 2 0 0 1-2 2v2m0 14v-2a2 2 0 0 1 2-2h2m-14 0h2a2 2 0 0 1 2 2v2"/></svg>
-                    )}
-                </button>
-            </div>
 
             {/* Modales diverses */}
             <AnimatePresence>

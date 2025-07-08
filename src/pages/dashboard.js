@@ -3,8 +3,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext'; // Chemin corrigé
-import { useUserTodos } from '@/hooks/useUserTodos'; // Chemin corrigé
+import { useTheme } from '@/context/ThemeContext';
+import { useUserTodos } from '@/hooks/useUserTodos';
 import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -33,10 +33,10 @@ import {
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
     GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal,
-    BlockContactModal, ConfirmDeleteMessageModal, NewDiscussionModal // Inclut NewDiscussionModal
-} from '../components/dashboard/dashboardModals'; // <-- CHEMIN CORRIGÉ pour votre arborescence
-import CalculatorModal from '../components/dashboard/CalculatorModal'; // C'est un fichier séparé
-import DetailsModal from '@/components/dashboard/modals/DetailsModal'; // C'est un fichier séparé dans /modals/
+    BlockContactModal, ConfirmDeleteMessageModal, NewDiscussionModal
+} from '../components/dashboard/dashboardModals';
+import CalculatorModal from '../components/dashboard/CalculatorModal';
+import DetailsModal from '@/components/dashboard/modals/DetailsModal';
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
     const { user: authUser, logout } = useAuth();
@@ -49,10 +49,10 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const userUid = authUser?.uid;
 
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
-    const [isClient, setIsClient] = useState(false); // État pour le rendu côté client
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        setIsClient(true); // Définit à true après le premier rendu côté client (CLIENT-SIDE ONLY)
+        setIsClient(true);
     }, []);
 
     const [localData, setLocalData] = useState(() => {
@@ -359,7 +359,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 }
                                 title={t('flow_messages_title', 'Flow Live Messages')}
                                 className="flex-1 min-h-[500px]"
-                                onFullscreenClick={handleFlowLiveMessagesFullscreen}
+                                onFullscreenClick={handleFlowLiveMessagesFullscreen} // KEEP this for DashboardCard's internal fullscreen button
                                 t={t}
                                 noContentPadding={true}
                             >
@@ -568,7 +568,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 )}
 
                 {/* MODALES SPÉCIFIQUES AU CHAT - Assurez-vous d'avoir les imports corrects ci-dessus */}
-                {/* Ces modales sont gérées directement par FlowLiveMessages/index.js */}
                 {/* Exemple: BlockContactModal, ConfirmDeleteMessageModal */}
 
             </AnimatePresence>

@@ -18,16 +18,31 @@ const NewDiscussionModal = ({
   const [newDiscussionName, setNewDiscussionName] = useState('');
   const newContactNameRef = useRef(null);
 
+  // Auto-select current user in new discussion when not adding a new contact
+  // This effect ensures the current user is always part of the conversation unless explicitly adding a new contact.
+  useEffect(() => {
+    if (!showNewContactInput && currentFirebaseUid && !selectedTeamMemberUids.includes(currentFirebaseUid)) {
+      setSelectedTeamMemberUids(prev => [...prev, currentFirebaseUid]);
+    } else if (showNewContactInput && selectedTeamMemberUids.includes(currentFirebaseUid)) {
+      // If switching to new contact input, deselect current user if they were automatically selected
+      setSelectedTeamMemberUids(prev => prev.filter(uid => uid !== currentFirebaseUid));
+    }
+  }, [showNewContactInput, currentFirebaseUid, selectedTeamMemberUids]);
+
+
   if (!showModal) return null;
 
   const handleSubmit = async () => {
-    if (showNewContactInput && (!newDiscussionName.trim() || !newContactEmail.trim())) {
-        alert(t('fill_all_new_contact_fields', 'Veuillez remplir le nom et l\'email pour le nouveau contact.'));
-        return;
-    }
-    if (!showNewContactInput && selectedTeamMemberUids.length === 0) {
-        alert(t('select_members_for_discussion', 'Veuillez sélectionner au moins un membre pour la discussion.'));
-        return;
+    if (showNewContactInput) {
+        if (!newDiscussionName.trim() || !newContactEmail.trim()) {
+            alert(t('fill_all_new_contact_fields', 'Veuillez remplir le nom et l\'email pour le nouveau contact.'));
+            return;
+        }
+    } else { // Choosing team member
+        if (selectedTeamMemberUids.length === 0) {
+            alert(t('select_members_for_discussion', 'Veuillez sélectionner au moins un membre pour la discussion.'));
+            return;
+        }
     }
 
     await onCreate({
@@ -95,6 +110,7 @@ const NewDiscussionModal = ({
               autoFocus={true}
             />
             <div className="max-h-60 overflow-y-auto custom-scrollbar mb-4 border border-gray-700 rounded-md">
+              {/* Current user is implicitly included via the onCreate function's logic */}
               {internalAvailableTeamMembers.filter(member => member.uid !== currentFirebaseUid).map(member => (
                 <div key={member.uid} className="flex items-center p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0" onClick={() => {
                     setSelectedTeamMemberUids(prev =>
@@ -107,7 +123,7 @@ const NewDiscussionModal = ({
                     type="checkbox"
                     className="mr-3 form-checkbox text-pink-500 rounded"
                     checked={selectedTeamMemberUids.includes(member.uid)}
-                    onChange={() => {}}
+                    onChange={() => {}} // Empty onChange as click handler on parent div manages state
                   />
                   {member.photoURL ? (
                     <Image src={member.photoURL} alt={member.displayName || member.name} width={28} height={28} className="rounded-full mr-3 object-cover" />
@@ -119,16 +135,17 @@ const NewDiscussionModal = ({
                   <span className="text-white">{member.displayName || member.name}</span>
                 </div>
               ))}
-              {currentFirebaseUid && !selectedTeamMemberUids.includes(currentFirebaseUid) && (
+              {/* Display current user as selected/included */}
+              {currentFirebaseUid && (
                   <div className="flex items-center p-3 text-slate-500">
                       <input type="checkbox" className="mr-3" checked disabled />
-                 {currentUserPhotoURL ? (
-  <Image src={currentUserPhotoURL} alt={currentUserName} width={28} height={28} className="rounded-full mr-3 object-cover" />
-) : (
-  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gray-500 mr-3 text-sm`}>
-    {currentUserName.charAt(0).toUpperCase()}
-  </div>
-)}
+                      {currentUserPhotoURL ? (
+                          <Image src={currentUserPhotoURL} alt={currentUserName} width={28} height={28} className="rounded-full mr-3 object-cover" />
+                      ) : (
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white bg-gray-500 mr-3 text-sm`}>
+                              {currentUserName.charAt(0).toUpperCase()}
+                          </div>
+                      )}
                       <span>{currentUserName} ({t('you', 'Vous')})</span>
                   </div>
               )}

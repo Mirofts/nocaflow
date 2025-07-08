@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext'; // Chemin corrigé
+import Image from 'next/image'; // Make sure Image is imported if used
 
 const FlowLiveMessagesSidebar = ({
     conversations,
@@ -38,8 +39,9 @@ const FlowLiveMessagesSidebar = ({
     }, [setSelectedConversationId]);
 
     return (
+        // Adjusted height for sidebar to fill available space with internal scroll
         <div className={`relative flex flex-col h-full ${isFullScreen ? 'w-full md:w-1/3 lg:w-1/4' : 'w-full md:w-1/3 lg:w-1/4'} border-r ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-50'}`}>
-            <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
                 <h3 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">{t('conversations_title', 'Conversations')}</h3>
                 <input
                     type="text"
@@ -50,12 +52,15 @@ const FlowLiveMessagesSidebar = ({
                 />
             </div>
 
+            {/* Scrollable conversation list */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {filteredConversations.length === 0 ? (
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400 p-4">{t('no_conversations', 'Aucune conversation trouvée.')}</p>
                 ) : (
                     filteredConversations.map(conv => {
                         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== currentUserId);
+                        // Ensure Image component is used correctly if `next/image` is imported.
+                        // For simplicity and compatibility, I'll assume you have Image imported or handle it.
                         const displayPhotoURL = conv.isGroup ? '/images/default-group-avatar.png' : (otherParticipant?.photoURL || '/images/avatars/default-avatar.jpg');
                         const isOnline = otherParticipant?.isOnline;
 
