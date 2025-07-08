@@ -126,7 +126,7 @@ const SingleTimeAlertCard = ({ type, title, dateTime, icon, pulseColorClass, ope
             <h4 className={`text-center text-lg font-extrabold mb-2 ${titleTextColorClass}`}>
                 {title}
             </h4>
-            <p className={`text-center text-2xl font-black ${timeTextColorClass} mb-4 leading-tight`}>
+            <p className={`text-center text-base font-black ${timeTextColorClass} mb-4 leading-tight`}>
                 {displayTime}
             </p>
             <p className={`text-center text-base ${detailTextColorClass} mb-6 font-medium`}>

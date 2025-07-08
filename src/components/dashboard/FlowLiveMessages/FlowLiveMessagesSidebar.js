@@ -1,8 +1,8 @@
 // src/components/dashboard/FlowLiveMessages/FlowLiveMessagesSidebar.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/context/ThemeContext'; // Chemin corrigé
-import Image from 'next/image'; // Make sure Image is imported if used
+import { useTheme } from '@/context/ThemeContext';
+import Image from 'next/image';
 
 const FlowLiveMessagesSidebar = ({
     conversations,
@@ -45,7 +45,7 @@ const FlowLiveMessagesSidebar = ({
                 <h3 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">{t('conversations_title', 'Conversations')}</h3>
                 <input
                     type="text"
-                    placeholder={t('search_conversations', 'Rechercher des conversations...')}
+                    placeholder={t('search_short', 'Recherche')} // Corrected placeholder
                     className={`w-full p-2 rounded-md ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'} border ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                     value={activeSearchQuery}
                     onChange={(e) => setActiveSearchQuery(e.target.value)}
@@ -60,7 +60,6 @@ const FlowLiveMessagesSidebar = ({
                     filteredConversations.map(conv => {
                         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== currentUserId);
                         // Ensure Image component is used correctly if `next/image` is imported.
-                        // For simplicity and compatibility, I'll assume you have Image imported or handle it.
                         const displayPhotoURL = conv.isGroup ? '/images/default-group-avatar.png' : (otherParticipant?.photoURL || '/images/avatars/default-avatar.jpg');
                         const isOnline = otherParticipant?.isOnline;
 

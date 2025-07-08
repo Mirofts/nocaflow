@@ -24,6 +24,21 @@ const FlowLiveMessagesDisplay = ({
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null); // Ref for the messages container
 
+const hasMountedRef = useRef(false);
+
+useEffect(() => {
+  if (hasMountedRef.current) {
+if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  } else {
+    hasMountedRef.current = true; // évite le scroll au premier chargement
+  }
+}, [messages]);
+
     const getSenderDisplayName = (senderId, senderName) => {
         if (senderId === (currentUser?.uid || 'guest_noca_flow')) {
             return t('you', 'You');
@@ -82,7 +97,6 @@ const FlowLiveMessagesDisplay = ({
     return (
         // flex-1 will make this div take up all available vertical space
         // overflow-y-auto will make its content scroll if it exceeds the height
-        // A minimal padding-bottom is still beneficial here for the last message
         <div className={`flex-1 flex flex-col ${isDarkMode ? 'bg-gray-800' : 'bg-white'} overflow-hidden`}>
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 custom-scrollbar pb-4">
                 {messages?.length === 0 ? (
@@ -96,13 +110,14 @@ const FlowLiveMessagesDisplay = ({
                         const prevMsg = index > 0 ? messages[index - 1] : null;
                         const isFirstMessageInSequence = msg.senderUid !== prevMsg?.senderUid;
                         const shouldShowSenderName = activeConversationIsGroup || isFirstMessageInSequence;
+                        const isMyMessage = msg.senderUid === currentFirebaseUid;
 
                         return (
                             <div
                                 key={msg.id}
-                                className={`flex mb-4 ${msg.senderUid === currentFirebaseUid ? 'justify-end' : 'justify-start'}`}
+                                className={`flex mb-4 ${isMyMessage ? 'justify-end' : 'justify-start'}`}
                             >
-                                {msg.senderUid !== currentFirebaseUid && (
+                                {!isMyMessage && (
                                     <img
                                         src={getSenderAvatar(msg.senderUid, msg.senderPhotoURL)}
                                         alt={getSenderDisplayName(msg.senderUid, msg.senderName)}
@@ -111,7 +126,7 @@ const FlowLiveMessagesDisplay = ({
                                 )}
                                 <motion.div
                                     className={`p-3 rounded-lg max-w-xs relative group ${
-                                        msg.senderUid === currentFirebaseUid
+                                        isMyMessage
                                             ? 'bg-blue-600 text-white'
                                             : (isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-gray-200 text-gray-800')
                                     }`}
@@ -131,6 +146,15 @@ const FlowLiveMessagesDisplay = ({
                                             className="w-full text-sm resize-none p-1 rounded bg-gray-800 text-white"
                                             rows={Math.max(1, Math.ceil(editingMessageContent.length / 20))}
                                             autoFocus
+                                            onBlur={() => saveEditedMessage(msg.id)} // Save on blur
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    saveEditedMessage(msg.id);
+                                                } else if (e.key === 'Escape') {
+                                                    cancelEditingMessage();
+                                                }
+                                            }}
                                         />
                                     ) : (
                                         msg.type === 'text' && <p className="text-sm break-words">{highlightText(msg.content || '', messageSearchQuery)}</p>
@@ -145,7 +169,43 @@ const FlowLiveMessagesDisplay = ({
                                             style={{ maxWidth: '200px' }}
                                         />
                                     )}
-                                    {/* Removed h-4 div, as padding-bottom on container handles spacing */}
+
+                                    {/* Message Time and Status (Read/Unread) */}
+                                    <div className={`text-xs mt-1 ${isMyMessage ? 'text-blue-200' : (isDarkMode ? 'text-gray-400' : 'text-gray-600')} flex items-center justify-end`}>
+                                        <span>{msg.displayTime}</span>
+                                        {isMyMessage && (
+                                            <span className="ml-1 flex items-center">
+                                                {/* Single checkmark for sent/delivered (not read by all) */}
+                                                {!msg.isReadByAllRecipients && (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                )}
+                                                {/* Double checkmark for read by all */}
+                                                {msg.isReadByAllRecipients && (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline><polyline points="15 6 9 12 4 7"></polyline></svg>
+                                                )}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Action Buttons (Edit, Delete) - Visible on hover for my messages */}
+                                    {isMyMessage && editingMessageId !== msg.id && (
+                                        <div className="absolute top-0 -left-16 flex opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            <button
+                                                onClick={() => startEditingMessage(msg)}
+                                                title={t('edit_message', 'Modifier le message')}
+                                                className={`p-1 rounded-full ${isDarkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                            </button>
+                                            <button
+                                                onClick={() => onDeleteMessage(msg.id)}
+                                                title={t('delete_message', 'Supprimer le message')}
+                                                className={`p-1 rounded-full ml-1 ${isDarkMode ? 'bg-gray-800 text-red-400 hover:bg-gray-700' : 'bg-gray-100 text-red-600 hover:bg-gray-200'}`}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg>
+                                            </button>
+                                        </div>
+                                    )}
                                 </motion.div>
                             </div>
                         );

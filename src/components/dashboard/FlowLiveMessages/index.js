@@ -488,15 +488,12 @@ const FlowLiveMessages = forwardRef(({
     const handleMessageSearchChange = useCallback((e) => {
         const query = e.target.value;
         setMessageSearchQuery(query);
-        if (query.trim() === '') {
-            setMessageSearchResultsCount(0);
-            return;
-        }
         const results = messages.filter(msg =>
             msg.content?.toLowerCase().includes(query.toLowerCase())
         );
         setMessageSearchResultsCount(results.length);
     }, [messages]);
+
 
     const handleEditMessage = useCallback(async (messageId, newContent) => {
         if (!selectedConversationId || !currentFirebaseUid) return;
@@ -545,7 +542,7 @@ const FlowLiveMessages = forwardRef(({
         if (activeConversationInfo.isGroup) return false;
 
         const otherParticipant = activeConversationInfo.participantsDetails.find(p => p.uid !== currentFirebaseUid);
-        return activeConversationInfo.blockedBy?.includes(currentFirebaseUid);
+        return (activeConversationInfo.blockedBy || []).includes(currentFirebaseUid);
     }, [selectedConversationId, currentFirebaseUid, activeConversationInfo]);
 
 
@@ -608,14 +605,16 @@ const FlowLiveMessages = forwardRef(({
                     />
 
                     {/* This div is the main chat content area (header + display + input). It's a flex column. */}
-                    {/* Crucially, this flex-col should take up all available height, and its children manage their distribution */}
-                    <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'} h-full`}> {/* Changed min-h-0 to h-full here */}
+                    {/* The `flex-1` here makes it take up all available space horizontally within the parent flex container. */}
+                    {/* `h-full` ensures it uses 100% of the parent's height, allowing its internal flex children to distribute space. */}
+                    <div className={`flex flex-col flex-1 ${showMobileSidebar ? 'hidden md:flex' : 'flex'} h-full`}>
                         {selectedConversationId ? (
                             <>
-                                {/* HEADER FIXE - Ensure shrink-0 to keep it fixed at the top */}
-                                <div className="shrink-0">
-                                    <div className={`px-4 py-3 border-b border-color-border-primary flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'}`}>
-                                        <div className="flex items-center">
+                                {/* HEADER FIXE */}
+                                {/* `shrink-0` ensures it doesn't shrink. `min-h-[64px]` gives it a fixed minimum height. */}
+                                <div className="shrink-0 min-h-[64px]">
+                                    <div className={`px-4 py-3 border-b border-color-border-primary flex items-center justify-between ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary'} h-full`}> {/* h-full ensures content fills this header div */}
+                                        <div className="flex items-center min-w-0">
                                             {/* Mobile sidebar toggle button */}
                                             {!showMobileSidebar && (
                                                 <button
@@ -627,7 +626,7 @@ const FlowLiveMessages = forwardRef(({
                                                 </button>
                                             )}
                                             <img src={displayChatAvatar} alt={displayChatName} className="w-10 h-10 rounded-full mr-3 object-cover" />
-                                            <h3 className="text-lg font-semibold text-color-text-primary mr-2">{displayChatName}</h3>
+                                            <h3 className="text-lg font-semibold text-color-text-primary mr-2 truncate">{displayChatName}</h3>
                                             {activeConversationInfo?.isGroup && (
                                                 <span className={`text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>
                                                     {t('group', 'Groupe')}
@@ -635,10 +634,29 @@ const FlowLiveMessages = forwardRef(({
                                             )}
                                         </div>
 
-                                        {/* BOUTONS D'ACTION (Ajouté ici pour être fixe dans l'en-tête) */}
-                                        <div className="flex items-center space-x-2">
+                                        {/* BOUTONS D'ACTION ET RECHERCHE MESSAGES (FIXES) */}
+                                        {/* `flex-shrink-0` ensures these buttons don't shrink and `ml-auto` pushes them to the right. */}
+                                        <div className="flex items-center space-x-2 flex-shrink-0 ml-auto">
+                                            {/* Champ de recherche de messages */}
+                                            {selectedConversationId && messages.length > 0 && (
+                                                <div className="relative">
+                                                    <input
+                                                        type="text"
+                                                        placeholder={t('search_short', 'Recherche')} // Corrected placeholder
+                                                        className={`w-32 px-3 py-1.5 rounded-md text-sm ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                                                        value={messageSearchQuery}
+                                                        onChange={handleMessageSearchChange}
+                                                    />
+                                                    {messageSearchQuery && (
+                                                        <span className={`absolute right-1 top-1/2 -translate-y-1/2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                            ({messageSearchResultsCount})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {/* Bouton Ajouter Tâche */}
-                                            {!isGuestMode && selectedConversationId && !activeConversationInfo?.isGroup && ( // Typically, tasks are assigned to individuals
+                                            {!isGuestMode && selectedConversationId && !activeConversationInfo?.isGroup && (
                                                 <button
                                                     onClick={handleOpenAddTaskModal}
                                                     title={t('add_task', 'Ajouter une tâche')}
@@ -691,10 +709,10 @@ const FlowLiveMessages = forwardRef(({
                                     </div>
                                 </div>
 
-                                {/* CONTENU SCROLLABLE - This is the ONLY part that should scroll */}
-                                {/* flex-1 to take available space, overflow-y-auto for scrolling */}
-                                {/* Removed min-h-0 here, as flex-1 should handle it relative to parent */}
-                                <div className="flex-1 overflow-y-auto"> 
+                                {/* CONTENU SCROLLABLE (AREA MESSAGES) */}
+                                {/* flex-1: allows it to grow and shrink. overflow-y-auto: enables vertical scrolling if content overflows. */}
+                                {/* min-h-0: crucial for flex items in a column to prevent content from pushing their minimum size larger than available space. */}
+                                <div className="flex-1 overflow-y-auto min-h-0">
                                     <FlowLiveMessagesDisplay
                                         messages={messages || []}
                                         currentUser={currentActiveUser}
@@ -712,8 +730,9 @@ const FlowLiveMessages = forwardRef(({
                                     />
                                 </div>
 
-                                {/* FOOTER FIXE - Ensure shrink-0 to keep it fixed at the bottom */}
-                                <div className="shrink-0">
+                                {/* FOOTER FIXE (INPUT MESSAGE) */}
+                                {/* `shrink-0` ensures it doesn't shrink. `min-h-[72px]` gives it a fixed minimum height. */}
+                                <div className="shrink-0 min-h-[72px]">
                                     <FlowLiveMessagesInput
                                         newMessage={newMessage}
                                         setNewMessage={setNewMessage}
@@ -736,7 +755,8 @@ const FlowLiveMessages = forwardRef(({
                             </>
                         ) : (
                             // Display if no conversation is selected
-                            <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-center text-center ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary text-color-text-secondary'} flex-grow h-full`}> {/* Added flex-grow h-full to center content here */}
+                            // `flex-grow h-full` ensures this div fills the entire right panel when no conversation is active.
+                            <div className={`px-4 py-3 border-b border-color-border-primary flex-shrink-0 flex items-center justify-center text-center ${isDarkMode ? 'bg-gray-800' : 'bg-color-bg-tertiary text-color-text-secondary'} flex-grow h-full`}>
                                 <h3 className="text-lg font-semibold">{t('select_conversation', 'Sélectionnez une conversation pour commencer.')}</h3>
                             </div>
                         )}
