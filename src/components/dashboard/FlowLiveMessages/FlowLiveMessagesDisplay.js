@@ -170,6 +170,21 @@ if (messagesEndRef.current) {
                                         />
                                     )}
 
+                                    {msg.type === 'file' && msg.fileURL && (
+  <div className="flex items-center space-x-2 mt-1">
+    <span className="text-xl">📄</span>
+    <a
+      href={msg.fileURL}
+      target="_blank"
+      rel="noopener noreferrer"
+      download={msg.content || 'fichier'}
+      className="underline hover:text-blue-200 truncate max-w-[180px]"
+    >
+      {msg.content || 'Fichier'}
+    </a>
+  </div>
+)}
+
                                     {/* Message Time and Status (Read/Unread) */}
                                     <div className={`text-xs mt-1 ${isMyMessage ? 'text-blue-200' : (isDarkMode ? 'text-gray-400' : 'text-gray-600')} flex items-center justify-end`}>
                                         <span>{msg.displayTime}</span>

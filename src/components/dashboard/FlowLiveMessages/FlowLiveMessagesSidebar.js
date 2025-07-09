@@ -81,12 +81,15 @@ const FlowLiveMessagesSidebar = ({
                                         <span className="absolute bottom-0 right-3 block w-2.5 h-2.5 bg-green-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
                                     )}
                                 </div>
-                                <div className="flex-1">
-                                    <h4 className="font-semibold text-gray-800 dark:text-white">{conv.name || t('new_chat', 'Nouveau chat')}</h4>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                                        {conv.lastMessage || t('no_messages_yet', 'Aucun message pour l\'instant.')}
-                                    </p>
-                                </div>
+                           <div className="flex-1 overflow-hidden">
+    <h4 className="font-semibold text-gray-800 dark:text-white truncate">
+        {conv.name || t('new_chat', 'Nouveau chat')}
+    </h4>
+   <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+  {conv.lastMessage?.includes('file__') ? '📎 Fichier' :
+        {conv.lastMessage || t('no_messages_yet', 'Aucun message pour l\'instant.')}
+    </p>
+</div>
                                 {conv.unread > 0 && (
                                     <span className="ml-2 px-2 py-0.5 bg-purple-500 text-white text-xs font-bold rounded-full">
                                         {conv.unread}
