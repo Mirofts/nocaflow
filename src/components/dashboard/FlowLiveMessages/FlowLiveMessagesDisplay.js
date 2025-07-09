@@ -1,9 +1,12 @@
 // src/components/dashboard/FlowLiveMessages/FlowLiveMessagesDisplay.js
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, forwardRef } from 'react';
+
 import { motion } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+
+
 
 const FlowLiveMessagesDisplay = ({
     messages,
@@ -23,8 +26,25 @@ const FlowLiveMessagesDisplay = ({
     const { isDarkMode } = useTheme();
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null); // Ref for the messages container
+    const [activeSearchIndex, setActiveSearchIndex] = useState(0);
+const searchResultRefs = useRef([]);
 
 const hasMountedRef = useRef(false);
+
+// Fonction qui fait défiler jusqu'au résultat suivant
+const goToNextSearchResult = () => {
+  if (searchResultRefs.current.length > 0) {
+    setActiveSearchIndex((prev) => (prev + 1) % searchResultRefs.current.length);
+  }
+};
+
+const goToPreviousSearchResult = () => {
+  if (searchResultRefs.current.length > 0) {
+    setActiveSearchIndex((prev) =>
+      (prev - 1 + searchResultRefs.current.length) % searchResultRefs.current.length
+    );
+  }
+};
 
 useEffect(() => {
   if (hasMountedRef.current) {
@@ -38,6 +58,14 @@ if (messagesEndRef.current) {
     hasMountedRef.current = true; // évite le scroll au premier chargement
   }
 }, [messages]);
+useEffect(() => {
+  if (searchResultRefs.current[activeSearchIndex]) {
+    searchResultRefs.current[activeSearchIndex].scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  }
+}, [activeSearchIndex]);
 
     const getSenderDisplayName = (senderId, senderName) => {
         if (senderId === (currentUser?.uid || 'guest_noca_flow')) {
@@ -53,6 +81,8 @@ if (messagesEndRef.current) {
         return senderPhotoURL || '/images/default-avatar.jpg';
     };
 
+    searchResultRefs.current = [];
+
     const highlightText = useCallback((text, query) => {
         if (!query) return text;
         const parts = text.split(new RegExp(`(${query})`, 'gi'));
@@ -60,7 +90,15 @@ if (messagesEndRef.current) {
             <span>
                 {parts.map((part, index) =>
                     part.toLowerCase() === query.toLowerCase() ? (
-                        <mark key={index} className="bg-yellow-400 text-black px-0.5 rounded">
+                        <mark
+  key={index}
+  ref={(el) => {
+    if (el) {
+      searchResultRefs.current.push(el);
+    }
+  }}
+  className="bg-yellow-400 text-black px-0.5 rounded"
+>
                             {part}
                         </mark>
                     ) : (
@@ -94,10 +132,38 @@ if (messagesEndRef.current) {
         setEditingMessageContent('');
     }, [editingMessageContent, onEditMessage, t]);
 
+useEffect(() => {
+  // Si on efface la recherche, on repart de zéro
+  if (!messageSearchQuery) {
+    setActiveSearchIndex(0);
+  }
+}, [messageSearchQuery]);
+
+
+
     return (
         // flex-1 will make this div take up all available vertical space
         // overflow-y-auto will make its content scroll if it exceeds the height
         <div className={`flex-1 flex flex-col ${isDarkMode ? 'bg-gray-800' : 'bg-white'} overflow-hidden`}>
+            {messageSearchQuery && searchResultRefs.current.length > 0 && (
+  <div className="flex justify-center gap-4 items-center p-2 bg-gray-100 dark:bg-gray-700 rounded-md mb-2">
+    <button
+      onClick={goToPreviousSearchResult}
+      className="bg-gray-300 text-black px-2 py-1 rounded hover:bg-gray-400"
+    >
+      ◀ Précédent
+    </button>
+    <p className="text-sm text-gray-700 dark:text-gray-200">
+      Résultat {activeSearchIndex + 1} sur {searchResultRefs.current.length}
+    </p>
+    <button
+      onClick={goToNextSearchResult}
+      className="bg-gray-300 text-black px-2 py-1 rounded hover:bg-gray-400"
+    >
+      Suivant ▶
+    </button>
+  </div>
+)}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 custom-scrollbar pb-4">
                 {messages?.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
@@ -233,4 +299,9 @@ if (messagesEndRef.current) {
     );
 };
 
-export default FlowLiveMessagesDisplay;
+
+const FlowLiveMessagesDisplayWithRef = forwardRef((props, ref) => (
+  <FlowLiveMessagesDisplay {...props} forwardedRef={ref} />
+));
+
+export default FlowLiveMessagesDisplayWithRef;

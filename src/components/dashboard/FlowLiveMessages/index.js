@@ -38,16 +38,17 @@ const ALL_EMOJIS = [
 const FlowLiveMessages = forwardRef(({
     onLoginClick,
     onRegisterClick,
-    onOpenAddTaskFromChat,
-    onAddMeeting,
-    onAddDeadline,
+    onOpenAddTaskFromChat, // Not used in provided code, consider removing if truly unused.
+    onAddMeeting, // Prop for external meeting handling, not used internally for saving
+    onAddDeadline, // Prop for external deadline handling, not used internally for saving
     availableTeamMembers,
-    messages: messagesProp,
+    messages: messagesProp, // Prop messages, but component fetches its own
     user,
     initialMockData,
     handleSelectUserOnMobile,
     onUpdateGuestData
 }, ref) => {
+    const displayRef = useRef(null);
     const { currentUser: authUser } = useAuth();
     const { isDarkMode } = useTheme();
     const { t, i18n } = useTranslation('common');
@@ -85,20 +86,16 @@ const FlowLiveMessages = forwardRef(({
         } catch (e) {
             console.error("Error marking messages as read:", e);
         }
-    }, [currentFirebaseUid, db]);
-
+    }, [currentFirebaseUid]); // db is stable, no need as dependency
 
     const {
         conversations,
         selectedConversationId,
-        filteredMessages,
         setSelectedConversationId,
         setConversations,
-        setMessages: setMessagesFromLogic,
         isNewDiscussionModalOpen,
         setIsNewDiscussionModalOpen,
-        newDiscussionModalInitialContact,
-        setNewDiscussionModalInitialContact,
+        setNewDiscussionModalInitialContact, // Not used, consider removing
         activeSearchQuery,
         setActiveSearchQuery
     } = useChatLogic(currentActiveUser, initialMockData, messagesProp);
@@ -109,7 +106,7 @@ const FlowLiveMessages = forwardRef(({
     const {
         sendMessage,
         startNewConversation,
-        handleMessageAction,
+        handleMessageAction, // Not directly used in this file's JSX for message actions
         handleFileUpload,
         editMessage,
         deleteMessage: deleteMessageFromActions,
@@ -133,8 +130,11 @@ const FlowLiveMessages = forwardRef(({
     const [showConfirmDeleteMessageModal, setShowConfirmDeleteMessageModal] = useState(false);
     const [messageToDeleteId, setMessageToDeleteId] = useState(null);
 
+    // Ref to prevent re-selecting conversation on every re-render of conversations effect
+    const hasInitialConversationBeenSet = useRef(false);
+
     useEffect(() => {
-        if (!currentFirebaseUid || !db) {
+        if (!currentFirebaseUid) {
             setConversations([]);
             setIsLoadingChat(false);
             return;
@@ -147,8 +147,8 @@ const FlowLiveMessages = forwardRef(({
         );
 
         const unsubscribe = onSnapshot(q, async (snapshot) => {
-            const convsMap = new Map(); // Use a Map to store unique conversations by ID
-            await Promise.all(snapshot.docs.map(async d => {
+            const convsMap = new Map();
+            const participantLookupPromises = snapshot.docs.map(async d => {
                 const data = d.data();
                 let displayName = '';
                 let photoURL = '';
@@ -190,13 +190,12 @@ const FlowLiveMessages = forwardRef(({
                 }
 
                 let unreadCount = 0;
-                if (data.messages && Array.isArray(data.messages)) {
-                    unreadCount = data.messages.filter(msg =>
-                        msg.senderUid !== currentFirebaseUid && !(msg.readBy || []).includes(currentFirebaseUid)
-                    ).length;
-                } else if (data.lastMessageTime && data.lastMessageReadBy && !data.lastMessageReadBy.includes(currentFirebaseUid) && data.lastMessageSenderUid !== currentFirebaseUid) {
-                    unreadCount = 1;
+                // Only count unread messages if messages subcollection exists or check lastMessageReadBy
+                if (data.lastMessageTime && data.lastMessageReadBy && !data.lastMessageReadBy.includes(currentFirebaseUid) && data.lastMessageSenderUid !== currentFirebaseUid) {
+                    unreadCount = 1; // Simplistic count based on last message, more robust would query messages subcollection
                 }
+                // If you want actual unread count for ALL messages, you'd need to fetch messages
+                // or ensure 'unreadCount' is updated server-side for performance.
 
                 convsMap.set(d.id, {
                     id: d.id,
@@ -206,18 +205,22 @@ const FlowLiveMessages = forwardRef(({
                     isGroup: isGroup,
                     unread: unreadCount,
                     initials: (displayName || 'U').charAt(0).toUpperCase(),
-                    participantsDetails: participantsDetails
+                    participantsDetails: participantsDetails // Store details directly for later use
                 });
-            }));
+            });
+            await Promise.all(participantLookupPromises); // Wait for all participant lookups
+
             const uniqueConvs = Array.from(convsMap.values()).sort((a,b) => (b.lastMessageTime?.toMillis() || 0) - (a.lastMessageTime?.toMillis() || 0));
             setConversations(uniqueConvs);
 
-            if (!selectedConversationId && uniqueConvs.length > 0) {
+            // Only set initial selected conversation if none is selected yet
+            if (!hasInitialConversationBeenSet.current && uniqueConvs.length > 0) {
                 setSelectedConversationId(uniqueConvs[0].id);
+                hasInitialConversationBeenSet.current = true;
             }
-            if (!selectedConversationId && uniqueConvs.length === 0) { // Handle case where there are no conversations
-                setIsLoadingChat(false);
-                return;
+            if (uniqueConvs.length === 0) {
+                setSelectedConversationId(null); // Clear selected if no conversations exist
+                hasInitialConversationBeenSet.current = false;
             }
             setIsLoadingChat(false);
         }, (error) => {
@@ -226,10 +229,11 @@ const FlowLiveMessages = forwardRef(({
         });
 
         return () => unsubscribe();
-    }, [currentFirebaseUid, currentActiveUser, t, db, selectedConversationId, setSelectedConversationId]);
+    }, [currentFirebaseUid, currentActiveUser, t, setConversations, setSelectedConversationId]); // Removed db, selectedConversationId from deps as they are stable or managed by ref
 
+    // This effect listens to messages for the selected conversation
     useEffect(() => {
-        if (!selectedConversationId || !db || conversations.length === 0) {
+        if (!selectedConversationId || !db) { // conversations.length === 0 is not a strict condition for message fetching
             setMessages([]);
             return;
         }
@@ -238,9 +242,11 @@ const FlowLiveMessages = forwardRef(({
         const q = query(messagesColRef, orderBy('timestamp'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
+            // Find the active conversation details here to ensure it's fresh
+            const activeConv = conversations.find(conv => conv.id === selectedConversationId);
+
             const newMessages = snapshot.docs.map(d => {
                 const data = d.data();
-                const activeConv = conversations.find(conv => conv.id === selectedConversationId);
                 
                 const senderDetail = activeConv?.participantsDetails?.find(p => p.uid === data.senderUid) || {
                     displayName: t('unknown_user', 'Utilisateur'),
@@ -257,7 +263,7 @@ const FlowLiveMessages = forwardRef(({
                 if (data.senderUid === currentFirebaseUid) {
                     isReadByAllRecipients = otherParticipants.length > 0 ?
                         otherParticipants.every(p => (data.readBy || []).includes(p.uid)) :
-                        true;
+                        true; // If sender is current user and no other participants, it's considered read
                 }
 
                 return {
@@ -268,7 +274,7 @@ const FlowLiveMessages = forwardRef(({
                     from: senderName,
                     senderPhotoURL: senderDetail?.photoURL,
                     senderName: senderName,
-                    isGroup: activeConv?.isGroup // Pass isGroup to FlowLiveMessagesDisplay for name display logic
+                    isGroup: activeConv?.isGroup
                 };
             });
             setMessages(newMessages);
@@ -283,19 +289,19 @@ const FlowLiveMessages = forwardRef(({
         });
 
         return () => unsubscribe();
-    }, [selectedConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, db, conversations]);
-
+    }, [selectedConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, conversations]); // Added conversations as dependency because activeConv is used
 
     const [newMessage, setNewMessage] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null);
+    const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null); // Not used in provided JSX
     const fileInputRef = useRef(null);
     const emojiButtonRef = useRef(null);
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+    const [fileUploadType, setFileUploadType] = useState(null); // 'normal' or 'ephemeral'
 
     const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-    const [showMeetingModal, setShowMeetingModal] = useState(false);
-    const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+    const [showAddMeetingModal, setShowAddMeetingModal] = useState(false); // Renamed from showMeetingModal for consistency
+    const [showAddDeadlineModal, setShowAddDeadlineModal] = useState(false); // Renamed from showDeadlineModal for consistency
     const [addTaskInitialData, setAddTaskInitialData] = useState(null);
 
     const handleLoginPrompt = useCallback(() => {
@@ -334,52 +340,38 @@ const FlowLiveMessages = forwardRef(({
         setNewMessage('');
     }, [newMessage, selectedConversationId, currentFirebaseUid, sendMessage, handleLoginPrompt, t]);
 
-    const handleAttachNormalFile = useCallback(() => {
+    const handleTriggerFileInput = useCallback((type) => {
         if (!currentFirebaseUid) { handleLoginPrompt(); return; }
         if (!selectedConversationId) {
             alert(t('select_conversation_to_send', 'Veuillez sélectionner une conversation pour envoyer un fichier.'));
             return;
         }
-        if (fileInputRef.current) {
-            fileInputRef.current.onchange = async (e) => {
-                if (e.target.files && e.target.files[0]) {
-                    await handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, false);
-                }
-                e.target.value = null;
-            };
-            fileInputRef.current.click();
-        }
-    }, [fileInputRef, handleFileUpload, selectedConversationId, currentFirebaseUid, handleLoginPrompt, t]);
+        setFileUploadType(type); // Set the type before opening file dialog
+        fileInputRef.current?.click();
+    }, [currentFirebaseUid, selectedConversationId, handleLoginPrompt, t]);
 
-    const handleAttachEphemeralFile = useCallback(() => {
-        if (!currentFirebaseUid) { handleLoginPrompt(); return; }
-        if (!selectedConversationId) {
-            alert(t('select_conversation_to_send', 'Veuillez sélectionner une conversation pour envoyer un fichier éphémère.'));
-            return;
+    const handleFileChange = useCallback(async (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const isEphemeral = fileUploadType === 'ephemeral';
+            await handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, isEphemeral);
         }
-        if (fileInputRef.current) {
-            fileInputRef.current.onchange = async (e) => {
-                if (e.target.files && e.target.files[0]) {
-                    await handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, true);
-                }
-                e.target.value = null;
-            };
-            fileInputRef.current.click();
-        }
-    }, [fileInputRef, handleFileUpload, selectedConversationId, currentFirebaseUid, handleLoginPrompt, t]);
+        e.target.value = null; // Clear the input value to allow re-uploading the same file
+        setFileUploadType(null); // Reset upload type
+    }, [fileUploadType, handleFileUpload, selectedConversationId, currentFirebaseUid]);
 
 
     const handleEmoticonClick = useCallback((emoji) => {
         setNewMessage(prev => prev + emoji);
     }, []);
 
-    const openEphemeralImagePreview = useCallback(async (fileURL, messageId) => {
-        setEphemeralImagePreview({ url: fileURL, messageId: messageId });
-    }, []);
+    // These preview functions are not used in JSX, so commented out unless needed elsewhere
+    // const openEphemeralImagePreview = useCallback(async (fileURL, messageId) => {
+    //     setEphemeralImagePreview({ url: fileURL, messageId: messageId });
+    // }, []);
 
-    const closeEphemeralImagePreview = useCallback(() => {
-        setEphemeralImagePreview(null);
-    }, []);
+    // const closeEphemeralImagePreview = useCallback(() => {
+    //     setEphemeralImagePreview(null);
+    // }, []);
 
 
     const handleCreateNewDiscussion = useCallback(async ({ name, email, selectedUids, showNewContact }) => {
@@ -438,11 +430,14 @@ const FlowLiveMessages = forwardRef(({
             console.error("Failed to start new conversation:", error);
             alert(t('error_starting_conversation', 'Erreur lors du démarrage de la conversation.'));
         }
-    }, [currentActiveUser, currentFirebaseUid, t, startNewConversation, setIsNewDiscussionModalOpen, setNewMessage, setSelectedConversationId, db]);
+    }, [currentActiveUser, currentFirebaseUid, t, startNewConversation, setIsNewDiscussionModalOpen, setNewMessage, setSelectedConversationId]);
 
 
     const handleSelectConversation = useCallback((convId) => {
         setSelectedConversationId(convId);
+        // Reset search query when changing conversation
+        setMessageSearchQuery('');
+        setMessageSearchResultsCount(0);
         if (window.innerWidth < 768) {
             setShowMobileSidebar(false);
         }
@@ -462,27 +457,34 @@ const FlowLiveMessages = forwardRef(({
     }, []);
 
     const handleOpenMeetingModal = useCallback(() => {
-        setShowMeetingModal(true);
+        setShowAddMeetingModal(true);
     }, []);
 
     const handleOpenDeadlineModal = useCallback(() => {
-        setShowDeadlineModal(true);
+        setShowAddDeadlineModal(true);
     }, []);
 
     const handleSaveTask = useCallback(async (taskData) => {
         await addTodo(taskData.title, taskData.priority || 'normal', taskData.deadline || null);
         alert(t('task_saved_success', `Tâche "${taskData.title}" sauvegardée !`));
+        setShowAddTaskModal(false); // Close modal after saving
     }, [addTodo, t]);
 
     const handleSaveMeeting = useCallback(async (meetingData) => {
         console.log("Meeting to save:", meetingData);
         alert(t('meeting_scheduled_success', `Réunion "${meetingData.title}" planifiée (simulé)!`));
-    }, [t]);
+        setShowAddMeetingModal(false); // Close modal after saving
+        // Call the external prop if provided
+        onAddMeeting && onAddMeeting(meetingData);
+    }, [t, onAddMeeting]);
 
     const handleSaveDeadline = useCallback(async (deadlineData) => {
         console.log("Deadline to save:", deadlineData);
         alert(t('deadline_added_success', `Deadline "${deadlineData.title}" ajoutée (simulé)!`));
-    }, [t]);
+        setShowAddDeadlineModal(false); // Close modal after saving
+        // Call the external prop if provided
+        onAddDeadline && onAddDeadline(deadlineData);
+    }, [t, onAddDeadline]);
 
 
     const handleMessageSearchChange = useCallback((e) => {
@@ -514,13 +516,13 @@ const FlowLiveMessages = forwardRef(({
 
 
     const handleBlockUnblockContact = useCallback(async () => {
-        if (!contactToBlock || !currentFirebaseUid || !selectedConversationId) return;
+        if (!contactToBlock || !currentFirebaseUid || !selectedConversationId || !activeConversationInfo) return;
 
-        const isCurrentlyBlocked = activeConversationInfo?.blockedBy?.includes(currentFirebaseUid);
+        const isCurrentlyBlockedByMe = (activeConversationInfo.blockedBy || []).includes(currentFirebaseUid);
         const targetUserId = contactToBlock.uid;
 
         try {
-            if (isCurrentlyBlocked) {
+            if (isCurrentlyBlockedByMe) {
                 await unblockUser(targetUserId, selectedConversationId);
                 alert(t('contact_unblocked', `${contactToBlock.displayName} a été débloqué.`));
             } else {
@@ -537,19 +539,28 @@ const FlowLiveMessages = forwardRef(({
     }, [contactToBlock, currentFirebaseUid, selectedConversationId, activeConversationInfo, blockUser, unblockUser, t]);
 
 
-    const isPartnerBlocked = useMemo(() => {
-        if (!selectedConversationId || !currentFirebaseUid || !activeConversationInfo) return false;
-        if (activeConversationInfo.isGroup) return false;
-
-        const otherParticipant = activeConversationInfo.participantsDetails.find(p => p.uid !== currentFirebaseUid);
-        return (activeConversationInfo.blockedBy || []).includes(currentFirebaseUid);
-    }, [selectedConversationId, currentFirebaseUid, activeConversationInfo]);
-
-
     const otherChatParticipant = useMemo(() => {
         if (!selectedConversationId || !activeConversationInfo || activeConversationInfo.isGroup) return null;
         return activeConversationInfo.participantsDetails.find(p => p.uid !== currentFirebaseUid);
     }, [selectedConversationId, activeConversationInfo, currentFirebaseUid]);
+
+    const isPartnerBlockedByCurrentUser = useMemo(() => {
+        if (!otherChatParticipant || !activeConversationInfo) return false;
+        return (activeConversationInfo.blockedBy || []).includes(currentFirebaseUid);
+    }, [otherChatParticipant, activeConversationInfo, currentFirebaseUid]);
+
+    // Determine if the current user is blocked by the other participant
+    const isCurrentUserBlockedByPartner = useMemo(() => {
+        if (!otherChatParticipant || !activeConversationInfo) return false;
+        // Check if the other participant has blocked the current user
+        return (activeConversationInfo.blockedUsers || []).includes(currentFirebaseUid); // Assuming blockedUsers is an array on the conversation documenting who blocked whom
+    }, [otherChatParticipant, activeConversationInfo, currentFirebaseUid]);
+
+    const isChatBlocked = useMemo(() => {
+        if (!selectedConversationId || !activeConversationInfo) return false;
+        // If the current user has blocked the partner OR the partner has blocked the current user
+        return isPartnerBlockedByCurrentUser || isCurrentUserBlockedByPartner;
+    }, [selectedConversationId, activeConversationInfo, isPartnerBlockedByCurrentUser, isCurrentUserBlockedByPartner]);
 
 
     return (
@@ -589,7 +600,8 @@ const FlowLiveMessages = forwardRef(({
                 )}
             </AnimatePresence>
 
-            {!isLoadingChat && (
+            {/* Render core chat UI only if not loading AND not in guest mode */}
+            {!isLoadingChat && !isGuestMode && (
                 <>
                     <FlowLiveMessagesSidebar
                         conversations={conversations || []}
@@ -635,28 +647,52 @@ const FlowLiveMessages = forwardRef(({
                                         </div>
 
                                         {/* BOUTONS D'ACTION ET RECHERCHE MESSAGES (FIXES) */}
-                                        {/* `flex-shrink-0` ensures these buttons don't shrink and `ml-auto` pushes them to the right. */}
                                         <div className="flex items-center space-x-2 flex-shrink-0 ml-auto">
                                             {/* Champ de recherche de messages */}
-                                            {selectedConversationId && messages.length > 0 && (
-                                                <div className="relative">
-                                                    <input
-                                                        type="text"
-                                                        placeholder={t('search_short', 'Recherche')} // Corrected placeholder
-                                                        className={`w-32 px-3 py-1.5 rounded-md text-sm ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-100 text-gray-900 border-gray-300'} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                                                        value={messageSearchQuery}
-                                                        onChange={handleMessageSearchChange}
-                                                    />
-                                                    {messageSearchQuery && (
-                                                        <span className={`absolute right-1 top-1/2 -translate-y-1/2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                                            ({messageSearchResultsCount})
-                                                        </span>
+                                            {messages.length > 0 && ( // Conditionally render search only if there are messages
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder={t('search_short', 'Recherche')}
+                                                            className={`w-32 px-3 py-1.5 rounded-md text-sm ${
+                                                                isDarkMode
+                                                                ? 'bg-gray-700 text-white border-gray-600'
+                                                                : 'bg-gray-100 text-gray-900 border-gray-300'
+                                                            } focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                                                            value={messageSearchQuery}
+                                                            onChange={handleMessageSearchChange}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    displayRef.current?.goToNextSearchResult();
+                                                                }
+                                                            }}
+                                                        />
+                                                        {messageSearchQuery && (
+                                                            <span
+                                                                className={`absolute right-1 top-1/2 -translate-y-1/2 text-xs pr-6 ${
+                                                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                                                }`}
+                                                            >
+                                                                ({messageSearchResultsCount})
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {messageSearchQuery && messageSearchResultsCount > 0 && (
+                                                        <button
+                                                            onClick={() => displayRef.current?.goToNextSearchResult()}
+                                                            className="text-sm px-2 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-600"
+                                                            title={t('next_result', 'Résultat suivant')}
+                                                        >
+                                                            ➡️
+                                                        </button>
                                                     )}
                                                 </div>
                                             )}
 
                                             {/* Bouton Ajouter Tâche */}
-                                            {!isGuestMode && selectedConversationId && !activeConversationInfo?.isGroup && (
+                                            {!isGuestMode && !activeConversationInfo?.isGroup && ( // Only for individual chats
                                                 <button
                                                     onClick={handleOpenAddTaskModal}
                                                     title={t('add_task', 'Ajouter une tâche')}
@@ -667,7 +703,7 @@ const FlowLiveMessages = forwardRef(({
                                             )}
 
                                             {/* Bouton Ajouter Réunion */}
-                                            {!isGuestMode && selectedConversationId && (
+                                            {!isGuestMode && (
                                                 <button
                                                     onClick={handleOpenMeetingModal}
                                                     title={t('add_meeting', 'Ajouter une réunion')}
@@ -678,7 +714,7 @@ const FlowLiveMessages = forwardRef(({
                                             )}
 
                                             {/* Bouton Ajouter Échéance */}
-                                            {!isGuestMode && selectedConversationId && (
+                                            {!isGuestMode && (
                                                 <button
                                                     onClick={handleOpenDeadlineModal}
                                                     title={t('add_deadline', 'Ajouter une échéance')}
@@ -688,23 +724,32 @@ const FlowLiveMessages = forwardRef(({
                                                 </button>
                                             )}
 
-                                            {/* Bouton Bloquer/Débloquer Contact */}
-                                            {selectedConversationId && !activeConversationInfo?.isGroup && !isGuestMode && otherChatParticipant && (
+                                            {/* Bouton Bloquer/Débloquer Contact (only for 1:1 chats) */}
+                                            {!isGuestMode && otherChatParticipant && (
                                                 <button
                                                     onClick={() => {
                                                         setContactToBlock(otherChatParticipant);
                                                         setShowBlockContactModal(true);
                                                     }}
-                                                    title={isPartnerBlocked ? t('unblock_contact', 'Débloquer le contact') : t('block_contact', 'Bloquer le contact')}
-                                                    className={`p-2 rounded-full transition-colors ${isPartnerBlocked ? 'text-red-500 hover:text-red-600' : (isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary')} hover:bg-color-bg-hover`}
+                                                    title={isPartnerBlockedByCurrentUser ? t('unblock_contact', 'Débloquer ce contact') : t('block_contact', 'Bloquer ce contact')}
+                                                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`}
                                                 >
-                                                    {isPartnerBlocked ? (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m13 17 5-5-5-5"/><path d="M16 12H2"/><path d="M22 12h-2"/></svg> // Unblock icon (info/warning)
-                                                    ) : (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> // Block icon
-                                                    )}
+                                                    {isPartnerBlockedByCurrentUser ? '🔓' : '🚫'}
                                                 </button>
                                             )}
+
+                                            {/* Full Screen Toggle */}
+                                            <button
+                                                onClick={toggleFullScreen}
+                                                title={isFullScreen ? t('exit_fullscreen', 'Quitter le plein écran') : t('enter_fullscreen', 'Passer en plein écran')}
+                                                className={`p-2 rounded-full transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-color-text-secondary hover:text-color-text-primary hover:bg-color-bg-hover'}`}
+                                            >
+                                                {isFullScreen ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3m-18 0h3a2 2 0 0 1 2 2v3"/></svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h2m0 16H5a2 2 0 0 1-2-2v-2m18 0v2a2 2 0 0 1-2 2h-2m0-16h2a2 2 0 0 1 2 2v2"/></svg>
+                                                )}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -714,6 +759,7 @@ const FlowLiveMessages = forwardRef(({
                                 {/* min-h-0: crucial for flex items in a column to prevent content from pushing their minimum size larger than available space. */}
                                 <div className="flex-1 overflow-y-auto min-h-0">
                                     <FlowLiveMessagesDisplay
+                                        ref={displayRef}
                                         messages={messages || []}
                                         currentUser={currentActiveUser}
                                         onMessageAction={handleMessageAction}
@@ -721,12 +767,13 @@ const FlowLiveMessages = forwardRef(({
                                         t={t}
                                         isFullScreen={isFullScreen}
                                         handleSelectUserOnMobile={handleSelectUserOnMobile}
-                                        openEphemeralImagePreview={openEphemeralImagePreview}
+                                        // openEphemeralImagePreview={openEphemeralImagePreview} // Not used in messages display logic
                                         currentFirebaseUid={currentFirebaseUid}
                                         onEditMessage={handleEditMessage}
                                         onDeleteMessage={handleConfirmDeleteMessage}
                                         messageSearchQuery={messageSearchQuery}
                                         activeConversationIsGroup={activeConversationInfo?.isGroup}
+                                        isChatBlocked={isChatBlocked} // Pass block status
                                     />
                                 </div>
 
@@ -737,7 +784,8 @@ const FlowLiveMessages = forwardRef(({
                                         newMessage={newMessage}
                                         setNewMessage={setNewMessage}
                                         handleSendNormalMessage={handleSendNormalMessage}
-                                        handleAttachNormalFile={handleAttachNormalFile}
+                                        handleTriggerFileInput={handleTriggerFileInput} // Use the new handler
+                                        handleFileChange={handleFileChange} // Pass file change handler
                                         handleEmoticonClick={handleEmoticonClick}
                                         emojis={ALL_EMOJIS}
                                         showEmojiPicker={showEmojiPicker}
@@ -749,7 +797,7 @@ const FlowLiveMessages = forwardRef(({
                                         activeConversationId={selectedConversationId}
                                         isGuestMode={isGuestMode}
                                         handleSendEphemeralMessage={handleSendEphemeralMessage}
-                                        handleAttachEphemeralFile={handleAttachEphemeralFile}
+                                        isChatBlocked={isChatBlocked} // Pass block status
                                     />
                                 </div>
                             </>
@@ -763,7 +811,6 @@ const FlowLiveMessages = forwardRef(({
                     </div>
                 </>
             )}
-
 
             {/* Modales diverses */}
             <AnimatePresence>
@@ -793,60 +840,45 @@ const FlowLiveMessages = forwardRef(({
             </AnimatePresence>
 
             <AnimatePresence>
-                {showMeetingModal && (
+                {showAddMeetingModal && (
                     <AddMeetingModal
-                        onSave={handleSaveMeeting}
-                        onClose={() => setShowMeetingModal(false)}
+                        onClose={() => setShowAddMeetingModal(false)}
+                        onAddMeeting={handleSaveMeeting} // Call internal handler which also calls prop
                         t={t}
                     />
                 )}
             </AnimatePresence>
 
             <AnimatePresence>
-                {showDeadlineModal && (
+                {showAddDeadlineModal && (
                     <AddDeadlineModal
-                        onSave={handleSaveDeadline}
-                        onClose={() => setShowDeadlineModal(false)}
+                        onClose={() => setShowAddDeadlineModal(false)}
+                        onAddDeadline={handleSaveDeadline} // Call internal handler which also calls prop
                         t={t}
                     />
                 )}
             </AnimatePresence>
 
             <AnimatePresence>
-                {showBlockContactModal && contactToBlock && (
+                {showBlockContactModal && (
                     <BlockContactModal
-                        showModal={showBlockContactModal}
-                        onClose={() => { setShowBlockContactModal(false); setContactToBlock(null); }}
-                        onConfirm={handleBlockUnblockContact}
-                        contactName={contactToBlock.displayName}
-                        isBlocked={isPartnerBlocked}
+                        contact={contactToBlock}
+                        onClose={() => setShowBlockContactModal(false)}
+                        onConfirm={handleBlockUnblockContact} // Pass the handler
+                        isBlocked={isPartnerBlockedByCurrentUser} // Pass current block status
                         t={t}
                     />
                 )}
             </AnimatePresence>
 
             <AnimatePresence>
-                {showConfirmDeleteMessageModal && messageToDeleteId && (
+                {showConfirmDeleteMessageModal && (
                     <ConfirmDeleteMessageModal
-                        showModal={showConfirmDeleteMessageModal}
-                        onClose={() => { setShowConfirmDeleteMessageModal(false); setMessageToDeleteId(null); }}
-                        onConfirm={handleDeleteMessage}
+                        messageId={messageToDeleteId} // Pass ID, modal can fetch/display if needed
+                        onClose={() => setShowConfirmDeleteMessageModal(false)}
+                        onConfirm={handleDeleteMessage} // Direct call to delete function
                         t={t}
                     />
-                )}
-            </AnimatePresence>
-
-             <AnimatePresence>
-                {ephemeralImagePreview && (
-                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[101]" onClick={closeEphemeralImagePreview}>
-                        <div className="relative p-4 rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
-                            <img src={ephemeralImagePreview.url} alt={t('ephemeral_image_warning', 'Cette image est éphémère et ne peut pas être sauvegardée.')} className="max-w-full max-h-[80vh] object-contain" />
-                            <button onClick={closeEphemeralImagePreview} className="absolute top-2 right-2 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors" title={t('close_ephemeral_image', 'Fermer l\'image éphémère')}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                            </button>
-                            <p className="text-white text-center text-sm mt-2">{t('ephemeral_image_warning', 'Cette image est éphémère et ne peut pas être sauvegardée.')}</p>
-                        </div>
-                    </div>
                 )}
             </AnimatePresence>
         </div>
@@ -854,5 +886,4 @@ const FlowLiveMessages = forwardRef(({
 });
 
 FlowLiveMessages.displayName = 'FlowLiveMessages';
-
 export default FlowLiveMessages;
