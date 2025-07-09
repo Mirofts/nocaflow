@@ -1,71 +1,114 @@
 // src/components/dashboard/FlowLiveMessages/FlowLiveMessagesDisplay.js
-import React, { useRef, useState, useCallback, useEffect, forwardRef } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useImperativeHandle, forwardRef } from 'react';
 
 import { motion } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+// format and fr are not used directly in this component, so they can be removed if not needed elsewhere
+// import { format } from 'date-fns';
+// import { fr } from 'date-fns/locale';
 
-
-
-const FlowLiveMessagesDisplay = ({
+const FlowLiveMessagesDisplay = forwardRef(({ // Use forwardRef to accept a ref
     messages,
     currentUser,
-    onMessageAction,
-    availableTeamMembers,
+    // onMessageAction, // Appears unused, consider removing
+    // availableTeamMembers, // Appears unused, consider removing
     t,
-    isFullScreen,
-    handleSelectUserOnMobile,
-    openEphemeralImagePreview,
+    isFullScreen, // Appears unused, consider removing
+    // handleSelectUserOnMobile, // Appears unused, consider removing
+    openEphemeralImagePreview, // This prop IS used for ephemeral images
     currentFirebaseUid,
     onEditMessage,
     onDeleteMessage,
     messageSearchQuery,
-    activeConversationIsGroup
-}) => {
+    activeConversationIsGroup,
+    isChatBlocked // This prop was passed in the previous correction but unused, consider using or removing
+}, ref) => { // Accept ref as the second argument
     const { isDarkMode } = useTheme();
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null); // Ref for the messages container
-    const [activeSearchIndex, setActiveSearchIndex] = useState(0);
-const searchResultRefs = useRef([]);
 
-const hasMountedRef = useRef(false);
+    // State to keep track of the current search result index
+    const [activeSearchIndex, setActiveSearchIndex] = useState(-1); // Initialize with -1, meaning no result is active
+    // Use an object to store refs by message ID, which is more robust than an array if messages reorder
+    const searchResultRefs = useRef({}); 
 
-// Fonction qui fait défiler jusqu'au résultat suivant
-const goToNextSearchResult = () => {
-  if (searchResultRefs.current.length > 0) {
-    setActiveSearchIndex((prev) => (prev + 1) % searchResultRefs.current.length);
-  }
-};
+    const hasMountedRef = useRef(false);
 
-const goToPreviousSearchResult = () => {
-  if (searchResultRefs.current.length > 0) {
-    setActiveSearchIndex((prev) =>
-      (prev - 1 + searchResultRefs.current.length) % searchResultRefs.current.length
-    );
-  }
-};
+    // Effect for auto-scrolling to the bottom of messages
+    useEffect(() => {
+        if (hasMountedRef.current && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+            });
+        } else {
+            hasMountedRef.current = true; // Prevents initial scroll on first mount
+        }
+    }, [messages]);
 
-useEffect(() => {
-  if (hasMountedRef.current) {
-if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
-    }
-  } else {
-    hasMountedRef.current = true; // évite le scroll au premier chargement
-  }
-}, [messages]);
-useEffect(() => {
-  if (searchResultRefs.current[activeSearchIndex]) {
-    searchResultRefs.current[activeSearchIndex].scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    });
-  }
-}, [activeSearchIndex]);
+    // Effect to scroll to the active search result and apply visual feedback
+    useEffect(() => {
+        const highlightedMessageIds = Object.keys(searchResultRefs.current).filter(id => searchResultRefs.current[id]);
+
+        if (highlightedMessageIds.length > 0 && activeSearchIndex !== -1) {
+            const targetId = highlightedMessageIds[activeSearchIndex];
+            const targetElement = searchResultRefs.current[targetId];
+
+            if (targetElement) {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+                // Add a temporary visual highlight
+                targetElement.classList.add('animate-pulse-once');
+                setTimeout(() => {
+                    targetElement.classList.remove('animate-pulse-once');
+                }, 1000); // Remove the class after 1 second
+            }
+        }
+    }, [activeSearchIndex, messageSearchQuery, messages]); // Re-trigger if search query or messages change
+
+    // Function to navigate to the next search result
+    const goToNextSearchResult = useCallback(() => {
+        const highlightedMessageIds = Object.keys(searchResultRefs.current).filter(id => searchResultRefs.current[id]);
+        if (highlightedMessageIds.length === 0) {
+            setActiveSearchIndex(-1); // No results
+            return;
+        }
+
+        let nextIndex = activeSearchIndex + 1;
+        if (nextIndex >= highlightedMessageIds.length) {
+            nextIndex = 0; // Loop back to the beginning
+        }
+        setActiveSearchIndex(nextIndex);
+    }, [activeSearchIndex]); // Dependency on activeSearchIndex is correct here
+
+    // Function to navigate to the previous search result
+    const goToPreviousSearchResult = useCallback(() => {
+        const highlightedMessageIds = Object.keys(searchResultRefs.current).filter(id => searchResultRefs.current[id]);
+        if (highlightedMessageIds.length === 0) {
+            setActiveSearchIndex(-1); // No results
+            return;
+        }
+
+        let prevIndex = activeSearchIndex - 1;
+        if (prevIndex < 0) {
+            prevIndex = highlightedMessageIds.length - 1; // Loop to the end
+        }
+        setActiveSearchIndex(prevIndex);
+    }, [activeSearchIndex]); // Dependency on activeSearchIndex is correct here
+
+    // Expose search navigation functions via ref to the parent component
+    useImperativeHandle(ref, () => ({
+        goToNextSearchResult: goToNextSearchResult,
+        goToPreviousSearchResult: goToPreviousSearchResult // Expose previous too
+    }));
+
+    // Reset search index and clear refs when search query changes or messages reset (e.g., new conversation)
+    useEffect(() => {
+        setActiveSearchIndex(-1); // No result active initially
+        searchResultRefs.current = {}; // Clear all stored refs
+    }, [messageSearchQuery, messages]); // Depend on messages to clear when conversation changes
 
     const getSenderDisplayName = (senderId, senderName) => {
         if (senderId === (currentUser?.uid || 'guest_noca_flow')) {
@@ -81,8 +124,6 @@ useEffect(() => {
         return senderPhotoURL || '/images/default-avatar.jpg';
     };
 
-    searchResultRefs.current = [];
-
     const highlightText = useCallback((text, query) => {
         if (!query) return text;
         const parts = text.split(new RegExp(`(${query})`, 'gi'));
@@ -91,14 +132,9 @@ useEffect(() => {
                 {parts.map((part, index) =>
                     part.toLowerCase() === query.toLowerCase() ? (
                         <mark
-  key={index}
-  ref={(el) => {
-    if (el) {
-      searchResultRefs.current.push(el);
-    }
-  }}
-  className="bg-yellow-400 text-black px-0.5 rounded"
->
+                            key={index}
+                            className="bg-yellow-400 text-black px-0.5 rounded"
+                        >
                             {part}
                         </mark>
                     ) : (
@@ -132,38 +168,31 @@ useEffect(() => {
         setEditingMessageContent('');
     }, [editingMessageContent, onEditMessage, t]);
 
-useEffect(() => {
-  // Si on efface la recherche, on repart de zéro
-  if (!messageSearchQuery) {
-    setActiveSearchIndex(0);
-  }
-}, [messageSearchQuery]);
-
-
 
     return (
         // flex-1 will make this div take up all available vertical space
         // overflow-y-auto will make its content scroll if it exceeds the height
         <div className={`flex-1 flex flex-col ${isDarkMode ? 'bg-gray-800' : 'bg-white'} overflow-hidden`}>
-            {messageSearchQuery && searchResultRefs.current.length > 0 && (
-  <div className="flex justify-center gap-4 items-center p-2 bg-gray-100 dark:bg-gray-700 rounded-md mb-2">
-    <button
-      onClick={goToPreviousSearchResult}
-      className="bg-gray-300 text-black px-2 py-1 rounded hover:bg-gray-400"
-    >
-      ◀ Précédent
-    </button>
-    <p className="text-sm text-gray-700 dark:text-gray-200">
-      Résultat {activeSearchIndex + 1} sur {searchResultRefs.current.length}
-    </p>
-    <button
-      onClick={goToNextSearchResult}
-      className="bg-gray-300 text-black px-2 py-1 rounded hover:bg-gray-400"
-    >
-      Suivant ▶
-    </button>
-  </div>
-)}
+            {/* Search navigation controls */}
+            {messageSearchQuery && Object.keys(searchResultRefs.current).length > 0 && (
+                <div className="flex justify-center gap-4 items-center p-2 bg-gray-100 dark:bg-gray-700 rounded-md mb-2">
+                    <button
+                        onClick={goToPreviousSearchResult}
+                        className="bg-gray-300 text-black px-2 py-1 rounded hover:bg-gray-400"
+                    >
+                        ◀ {t('previous', 'Précédent')}
+                    </button>
+                    <p className="text-sm text-gray-700 dark:text-gray-200">
+                        {t('result_count', 'Résultat {{current}} sur {{total}}', { current: activeSearchIndex + 1, total: Object.keys(searchResultRefs.current).length })}
+                    </p>
+                    <button
+                        onClick={goToNextSearchResult}
+                        className="bg-gray-300 text-black px-2 py-1 rounded hover:bg-gray-400"
+                    >
+                        {t('next', 'Suivant')} ▶
+                    </button>
+                </div>
+            )}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 custom-scrollbar pb-4">
                 {messages?.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
@@ -177,6 +206,7 @@ useEffect(() => {
                         const isFirstMessageInSequence = msg.senderUid !== prevMsg?.senderUid;
                         const shouldShowSenderName = activeConversationIsGroup || isFirstMessageInSequence;
                         const isMyMessage = msg.senderUid === currentFirebaseUid;
+                        const messageMatchesSearch = messageSearchQuery && msg.content?.toLowerCase().includes(messageSearchQuery.toLowerCase());
 
                         return (
                             <div
@@ -191,11 +221,20 @@ useEffect(() => {
                                     />
                                 )}
                                 <motion.div
+                                    // Assign ref conditionally for search results
+                                    ref={el => {
+                                        if (messageMatchesSearch && el) { // Only assign if it matches and element exists
+                                            searchResultRefs.current[msg.id] = el;
+                                        } else {
+                                            delete searchResultRefs.current[msg.id]; // Remove if no longer a match
+                                        }
+                                    }}
                                     className={`p-3 rounded-lg max-w-xs relative group ${
                                         isMyMessage
                                             ? 'bg-blue-600 text-white'
                                             : (isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-gray-200 text-gray-800')
-                                    }`}
+                                    }
+                                    ${messageMatchesSearch ? 'relative animate-pulse-once' : ''} `} // Add pulse animation here for current result
                                     initial={{ opacity: 0, scale: 0.8 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: 0.15 }}
@@ -208,7 +247,7 @@ useEffect(() => {
                                     {editingMessageId === msg.id ? (
                                         <textarea
                                             value={editingMessageContent}
-                                           onChange={(e) => setEditingMessageContent(e.target.value)}
+                                            onChange={(e) => setEditingMessageContent(e.target.value)}
                                             className="w-full text-sm resize-none p-1 rounded bg-gray-800 text-white"
                                             rows={Math.max(1, Math.ceil(editingMessageContent.length / 20))}
                                             autoFocus
@@ -223,33 +262,37 @@ useEffect(() => {
                                             }}
                                         />
                                     ) : (
-                                        msg.type === 'text' && <p className="text-sm break-words">{highlightText(msg.content || '', messageSearchQuery)}</p>
-                                    )}
+                                        // The actual message content
+                                        <>
+                                            {msg.type === 'text' && <p className="text-sm break-words">{highlightText(msg.content || '', messageSearchQuery)}</p>}
 
-                                    {msg.type === 'image' && msg.fileURL && (
-                                        <img
-                                            src={msg.fileURL}
-                                            alt={msg.content || 'Image'}
-                                            className="max-w-full h-auto rounded-md cursor-pointer"
-                                            onClick={() => msg.isEphemeral ? openEphemeralImagePreview(msg.fileURL, msg.id) : window.open(msg.fileURL, '_blank')}
-                                            style={{ maxWidth: '200px' }}
-                                        />
-                                    )}
+                                            {msg.type === 'image' && msg.fileURL && (
+                                                <img
+                                                    src={msg.fileURL}
+                                                    alt={msg.content || 'Image'}
+                                                    className="max-w-full h-auto rounded-md cursor-pointer"
+                                                    // Re-enabled the click handler that uses the openEphemeralImagePreview prop
+                                                    onClick={() => openEphemeralImagePreview && openEphemeralImagePreview(msg.fileURL, msg.id)}
+                                                    style={{ maxWidth: '200px' }}
+                                                />
+                                            )}
 
-                                    {msg.type === 'file' && msg.fileURL && (
-  <div className="flex items-center space-x-2 mt-1">
-    <span className="text-xl">📄</span>
-    <a
-      href={msg.fileURL}
-      target="_blank"
-      rel="noopener noreferrer"
-      download={msg.content || 'fichier'}
-      className="underline hover:text-blue-200 truncate max-w-[180px]"
-    >
-      {msg.content || 'Fichier'}
-    </a>
-  </div>
-)}
+                                            {msg.type === 'file' && msg.fileURL && (
+                                                <div className="flex items-center space-x-2 mt-1">
+                                                    <span className="text-xl">📄</span>
+                                                    <a
+                                                        href={msg.fileURL}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        download={msg.content || 'fichier'}
+                                                        className="underline hover:text-blue-200 truncate max-w-[180px]"
+                                                    >
+                                                        {msg.content || 'Fichier'}
+                                                    </a>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
 
                                     {/* Message Time and Status (Read/Unread) */}
                                     <div className={`text-xs mt-1 ${isMyMessage ? 'text-blue-200' : (isDarkMode ? 'text-gray-400' : 'text-gray-600')} flex items-center justify-end`}>
@@ -297,11 +340,6 @@ useEffect(() => {
             </div>
         </div>
     );
-};
+});
 
-
-const FlowLiveMessagesDisplayWithRef = forwardRef((props, ref) => (
-  <FlowLiveMessagesDisplay {...props} forwardedRef={ref} />
-));
-
-export default FlowLiveMessagesDisplayWithRef;
+export default FlowLiveMessagesDisplay;
