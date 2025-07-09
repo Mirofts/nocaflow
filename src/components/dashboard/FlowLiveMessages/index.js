@@ -86,7 +86,7 @@ const FlowLiveMessages = forwardRef(({
         } catch (e) {
             console.error("Error marking messages as read:", e);
         }
-    }, [currentFirebaseUid]); // db is stable, no need as dependency
+    }, [currentFirebaseUid]);
 
     const {
         conversations,
@@ -95,7 +95,7 @@ const FlowLiveMessages = forwardRef(({
         setConversations,
         isNewDiscussionModalOpen,
         setIsNewDiscussionModalOpen,
-        setNewDiscussionModalInitialContact, // Not used, consider removing
+        setNewDiscussionModalInitialContact,
         activeSearchQuery,
         setActiveSearchQuery
     } = useChatLogic(currentActiveUser, initialMockData, messagesProp);
@@ -106,7 +106,7 @@ const FlowLiveMessages = forwardRef(({
     const {
         sendMessage,
         startNewConversation,
-        handleMessageAction, // Not directly used in this file's JSX for message actions
+        handleMessageAction,
         handleFileUpload,
         editMessage,
         deleteMessage: deleteMessageFromActions,
@@ -129,6 +129,35 @@ const FlowLiveMessages = forwardRef(({
 
     const [showConfirmDeleteMessageModal, setShowConfirmDeleteMessageModal] = useState(false);
     const [messageToDeleteId, setMessageToDeleteId] = useState(null);
+
+    // STATE AND CALLBACK FOR EPHEMERAL IMAGE PREVIEW
+    const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null);
+
+    const openEphemeralImagePreview = useCallback((fileURL, messageId) => {
+        setEphemeralImagePreview({ url: fileURL, messageId: messageId });
+    }, []);
+
+    const closeEphemeralImagePreview = useCallback(() => {
+        setEphemeralImagePreview(null);
+    }, []);
+
+    // Effect to handle keyboard events for closing ephemeral image preview
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' || e.key === 'Enter') {
+                closeEphemeralImagePreview();
+            }
+        };
+
+        if (ephemeralImagePreview) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [ephemeralImagePreview, closeEphemeralImagePreview]);
+
 
     // Ref to prevent re-selecting conversation on every re-render of conversations effect
     const hasInitialConversationBeenSet = useRef(false);
@@ -190,12 +219,9 @@ const FlowLiveMessages = forwardRef(({
                 }
 
                 let unreadCount = 0;
-                // Only count unread messages if messages subcollection exists or check lastMessageReadBy
                 if (data.lastMessageTime && data.lastMessageReadBy && !data.lastMessageReadBy.includes(currentFirebaseUid) && data.lastMessageSenderUid !== currentFirebaseUid) {
-                    unreadCount = 1; // Simplistic count based on last message, more robust would query messages subcollection
+                    unreadCount = 1;
                 }
-                // If you want actual unread count for ALL messages, you'd need to fetch messages
-                // or ensure 'unreadCount' is updated server-side for performance.
 
                 convsMap.set(d.id, {
                     id: d.id,
@@ -205,21 +231,20 @@ const FlowLiveMessages = forwardRef(({
                     isGroup: isGroup,
                     unread: unreadCount,
                     initials: (displayName || 'U').charAt(0).toUpperCase(),
-                    participantsDetails: participantsDetails // Store details directly for later use
+                    participantsDetails: participantsDetails
                 });
             });
-            await Promise.all(participantLookupPromises); // Wait for all participant lookups
+            await Promise.all(participantLookupPromises);
 
             const uniqueConvs = Array.from(convsMap.values()).sort((a,b) => (b.lastMessageTime?.toMillis() || 0) - (a.lastMessageTime?.toMillis() || 0));
             setConversations(uniqueConvs);
 
-            // Only set initial selected conversation if none is selected yet
             if (!hasInitialConversationBeenSet.current && uniqueConvs.length > 0) {
                 setSelectedConversationId(uniqueConvs[0].id);
                 hasInitialConversationBeenSet.current = true;
             }
             if (uniqueConvs.length === 0) {
-                setSelectedConversationId(null); // Clear selected if no conversations exist
+                setSelectedConversationId(null);
                 hasInitialConversationBeenSet.current = false;
             }
             setIsLoadingChat(false);
@@ -229,11 +254,10 @@ const FlowLiveMessages = forwardRef(({
         });
 
         return () => unsubscribe();
-    }, [currentFirebaseUid, currentActiveUser, t, setConversations, setSelectedConversationId]); // Removed db, selectedConversationId from deps as they are stable or managed by ref
+    }, [currentFirebaseUid, currentActiveUser, t, setConversations, setSelectedConversationId]);
 
-    // This effect listens to messages for the selected conversation
     useEffect(() => {
-        if (!selectedConversationId || !db) { // conversations.length === 0 is not a strict condition for message fetching
+        if (!selectedConversationId || !db) {
             setMessages([]);
             return;
         }
@@ -242,7 +266,6 @@ const FlowLiveMessages = forwardRef(({
         const q = query(messagesColRef, orderBy('timestamp'));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            // Find the active conversation details here to ensure it's fresh
             const activeConv = conversations.find(conv => conv.id === selectedConversationId);
 
             const newMessages = snapshot.docs.map(d => {
@@ -263,7 +286,7 @@ const FlowLiveMessages = forwardRef(({
                 if (data.senderUid === currentFirebaseUid) {
                     isReadByAllRecipients = otherParticipants.length > 0 ?
                         otherParticipants.every(p => (data.readBy || []).includes(p.uid)) :
-                        true; // If sender is current user and no other participants, it's considered read
+                        true;
                 }
 
                 return {
@@ -289,19 +312,19 @@ const FlowLiveMessages = forwardRef(({
         });
 
         return () => unsubscribe();
-    }, [selectedConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, conversations]); // Added conversations as dependency because activeConv is used
+    }, [selectedConversationId, currentFirebaseUid, currentUserName, formatMessageTimeDisplay, markMessagesAsRead, t, conversations]);
 
     const [newMessage, setNewMessage] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null); // Not used in provided JSX
+    // const [ephemeralImagePreview, setEphemeralImagePreview] = useState(null); // Already defined above
     const fileInputRef = useRef(null);
     const emojiButtonRef = useRef(null);
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
     const [fileUploadType, setFileUploadType] = useState(null); // 'normal' or 'ephemeral'
 
     const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-    const [showAddMeetingModal, setShowAddMeetingModal] = useState(false); // Renamed from showMeetingModal for consistency
-    const [showAddDeadlineModal, setShowAddDeadlineModal] = useState(false); // Renamed from showDeadlineModal for consistency
+    const [showAddMeetingModal, setShowAddMeetingModal] = useState(false);
+    const [showAddDeadlineModal, setShowAddDeadlineModal] = useState(false);
     const [addTaskInitialData, setAddTaskInitialData] = useState(null);
 
     const handleLoginPrompt = useCallback(() => {
@@ -346,7 +369,7 @@ const FlowLiveMessages = forwardRef(({
             alert(t('select_conversation_to_send', 'Veuillez sélectionner une conversation pour envoyer un fichier.'));
             return;
         }
-        setFileUploadType(type); // Set the type before opening file dialog
+        setFileUploadType(type);
         fileInputRef.current?.click();
     }, [currentFirebaseUid, selectedConversationId, handleLoginPrompt, t]);
 
@@ -355,23 +378,14 @@ const FlowLiveMessages = forwardRef(({
             const isEphemeral = fileUploadType === 'ephemeral';
             await handleFileUpload(e.target.files[0], selectedConversationId, currentFirebaseUid, isEphemeral);
         }
-        e.target.value = null; // Clear the input value to allow re-uploading the same file
-        setFileUploadType(null); // Reset upload type
+        e.target.value = null;
+        setFileUploadType(null);
     }, [fileUploadType, handleFileUpload, selectedConversationId, currentFirebaseUid]);
 
 
     const handleEmoticonClick = useCallback((emoji) => {
         setNewMessage(prev => prev + emoji);
     }, []);
-
-    // These preview functions are not used in JSX, so commented out unless needed elsewhere
-    // const openEphemeralImagePreview = useCallback(async (fileURL, messageId) => {
-    //     setEphemeralImagePreview({ url: fileURL, messageId: messageId });
-    // }, []);
-
-    // const closeEphemeralImagePreview = useCallback(() => {
-    //     setEphemeralImagePreview(null);
-    // }, []);
 
 
     const handleCreateNewDiscussion = useCallback(async ({ name, email, selectedUids, showNewContact }) => {
@@ -435,7 +449,6 @@ const FlowLiveMessages = forwardRef(({
 
     const handleSelectConversation = useCallback((convId) => {
         setSelectedConversationId(convId);
-        // Reset search query when changing conversation
         setMessageSearchQuery('');
         setMessageSearchResultsCount(0);
         if (window.innerWidth < 768) {
@@ -467,22 +480,20 @@ const FlowLiveMessages = forwardRef(({
     const handleSaveTask = useCallback(async (taskData) => {
         await addTodo(taskData.title, taskData.priority || 'normal', taskData.deadline || null);
         alert(t('task_saved_success', `Tâche "${taskData.title}" sauvegardée !`));
-        setShowAddTaskModal(false); // Close modal after saving
+        setShowAddTaskModal(false);
     }, [addTodo, t]);
 
     const handleSaveMeeting = useCallback(async (meetingData) => {
         console.log("Meeting to save:", meetingData);
         alert(t('meeting_scheduled_success', `Réunion "${meetingData.title}" planifiée (simulé)!`));
-        setShowAddMeetingModal(false); // Close modal after saving
-        // Call the external prop if provided
+        setShowAddMeetingModal(false);
         onAddMeeting && onAddMeeting(meetingData);
     }, [t, onAddMeeting]);
 
     const handleSaveDeadline = useCallback(async (deadlineData) => {
         console.log("Deadline to save:", deadlineData);
         alert(t('deadline_added_success', `Deadline "${deadlineData.title}" ajoutée (simulé)!`));
-        setShowAddDeadlineModal(false); // Close modal after saving
-        // Call the external prop if provided
+        setShowAddDeadlineModal(false);
         onAddDeadline && onAddDeadline(deadlineData);
     }, [t, onAddDeadline]);
 
@@ -767,7 +778,7 @@ const FlowLiveMessages = forwardRef(({
                                         t={t}
                                         isFullScreen={isFullScreen}
                                         handleSelectUserOnMobile={handleSelectUserOnMobile}
-                                        // openEphemeralImagePreview={openEphemeralImagePreview} // Not used in messages display logic
+                                        openEphemeralImagePreview={openEphemeralImagePreview}
                                         currentFirebaseUid={currentFirebaseUid}
                                         onEditMessage={handleEditMessage}
                                         onDeleteMessage={handleConfirmDeleteMessage}
@@ -843,7 +854,7 @@ const FlowLiveMessages = forwardRef(({
                 {showAddMeetingModal && (
                     <AddMeetingModal
                         onClose={() => setShowAddMeetingModal(false)}
-                        onAddMeeting={handleSaveMeeting} // Call internal handler which also calls prop
+                        onAddMeeting={handleSaveMeeting}
                         t={t}
                     />
                 )}
@@ -853,7 +864,7 @@ const FlowLiveMessages = forwardRef(({
                 {showAddDeadlineModal && (
                     <AddDeadlineModal
                         onClose={() => setShowAddDeadlineModal(false)}
-                        onAddDeadline={handleSaveDeadline} // Call internal handler which also calls prop
+                        onAddDeadline={handleSaveDeadline}
                         t={t}
                     />
                 )}
@@ -864,8 +875,8 @@ const FlowLiveMessages = forwardRef(({
                     <BlockContactModal
                         contact={contactToBlock}
                         onClose={() => setShowBlockContactModal(false)}
-                        onConfirm={handleBlockUnblockContact} // Pass the handler
-                        isBlocked={isPartnerBlockedByCurrentUser} // Pass current block status
+                        onConfirm={handleBlockUnblockContact}
+                        isBlocked={isPartnerBlockedByCurrentUser}
                         t={t}
                     />
                 )}
@@ -874,11 +885,42 @@ const FlowLiveMessages = forwardRef(({
             <AnimatePresence>
                 {showConfirmDeleteMessageModal && (
                     <ConfirmDeleteMessageModal
-                        messageId={messageToDeleteId} // Pass ID, modal can fetch/display if needed
+                        messageId={messageToDeleteId}
                         onClose={() => setShowConfirmDeleteMessageModal(false)}
-                        onConfirm={handleDeleteMessage} // Direct call to delete function
+                        onConfirm={handleDeleteMessage}
                         t={t}
                     />
+                )}
+            </AnimatePresence>
+
+            {/* Ephemeral Image Preview Modal */}
+            <AnimatePresence>
+                {ephemeralImagePreview && (
+                    <motion.div
+                        className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100] p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={closeEphemeralImagePreview} // Click anywhere to close
+                    >
+                        <motion.img
+                            src={ephemeralImagePreview.url}
+                            alt="Ephemeral Preview"
+                            className="max-w-full max-h-full object-contain cursor-pointer"
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.8 }}
+                            transition={{ duration: 0.2 }}
+                 
+                        />
+                        <button
+                            onClick={closeEphemeralImagePreview}
+                            className="absolute top-4 right-4 text-white text-3xl font-bold p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75"
+                            aria-label={t('close_preview', 'Fermer l\'aperçu')}
+                        >
+                            &times;
+                        </button>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

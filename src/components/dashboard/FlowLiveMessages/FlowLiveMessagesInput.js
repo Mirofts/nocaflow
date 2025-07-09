@@ -5,7 +5,8 @@ const FlowLiveMessagesInput = ({
   newMessage,
   setNewMessage,
   handleSendNormalMessage,
-  handleAttachNormalFile,
+  handleTriggerFileInput, // Corrected: This prop is now passed from index.js
+  handleFileChange,       // Corrected: This prop is now passed from index.js
   handleEmoticonClick,
   emojis,
   showEmojiPicker,
@@ -15,7 +16,7 @@ const FlowLiveMessagesInput = ({
   isDarkMode,
   t,
   handleSendEphemeralMessage,
-  handleAttachEphemeralFile,
+  // Removed handleAttachEphemeralFile as it's replaced by handleTriggerFileInput('ephemeral')
   activeConversationId,
   isGuestMode
 }) => {
@@ -30,10 +31,12 @@ const FlowLiveMessagesInput = ({
         ref={fileInputRef}
         className="hidden"
         accept="image/*,application/pdf"
+        onChange={handleFileChange} // Connect the onChange handler here
       />
+      {/* Normal File Button */}
       <button
         className="text-gray-400 hover:text-purple-500 p-2 rounded"
-        onClick={handleAttachNormalFile}
+        onClick={() => handleTriggerFileInput('normal')} // Call the new trigger function
         title={t('attach_file', 'Joindre un fichier')}
         disabled={isAttachDisabled || isGuestMode}
       >
@@ -43,7 +46,7 @@ const FlowLiveMessagesInput = ({
       {/* Ephemeral File Button */}
       <button
         className="text-gray-400 hover:text-orange-500 p-2 rounded ml-1"
-        onClick={handleAttachEphemeralFile}
+        onClick={() => handleTriggerFileInput('ephemeral')} // Call the new trigger function
         title={t('attach_ephemeral_file', 'Joindre un fichier éphémère (disparaît après lecture)')}
         disabled={isAttachDisabled || isGuestMode}
       >
