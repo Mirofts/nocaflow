@@ -13,7 +13,7 @@ const FlowLiveMessagesDisplay = forwardRef(({ // Use forwardRef to accept a ref
     // onMessageAction, // Appears unused, consider removing
     // availableTeamMembers, // Appears unused, consider removing
     t,
-    isFullScreen, // Appears unused, consider removing
+    // isFullScreen, // Appears unused, consider removing
     // handleSelectUserOnMobile, // Appears unused, consider removing
     openEphemeralImagePreview, // This prop IS used for ephemeral images
     currentFirebaseUid,
@@ -21,7 +21,7 @@ const FlowLiveMessagesDisplay = forwardRef(({ // Use forwardRef to accept a ref
     onDeleteMessage,
     messageSearchQuery,
     activeConversationIsGroup,
-    isChatBlocked // This prop was passed in the previous correction but unused, consider using or removing
+    // isChatBlocked // This prop was passed in the previous correction but unused, consider using or removing
 }, ref) => { // Accept ref as the second argument
     const { isDarkMode } = useTheme();
     const messagesEndRef = useRef(null);
@@ -30,7 +30,7 @@ const FlowLiveMessagesDisplay = forwardRef(({ // Use forwardRef to accept a ref
     // State to keep track of the current search result index
     const [activeSearchIndex, setActiveSearchIndex] = useState(-1); // Initialize with -1, meaning no result is active
     // Use an object to store refs by message ID, which is more robust than an array if messages reorder
-    const searchResultRefs = useRef({}); 
+    const searchResultRefs = useRef({});
 
     const hasMountedRef = useRef(false);
 
@@ -206,7 +206,11 @@ const FlowLiveMessagesDisplay = forwardRef(({ // Use forwardRef to accept a ref
                         const isFirstMessageInSequence = msg.senderUid !== prevMsg?.senderUid;
                         const shouldShowSenderName = activeConversationIsGroup || isFirstMessageInSequence;
                         const isMyMessage = msg.senderUid === currentFirebaseUid;
-                        const messageMatchesSearch = messageSearchQuery && msg.content?.toLowerCase().includes(messageSearchQuery.toLowerCase());
+                        // For search, we now need to check msg.content OR attachment names
+                        const messageMatchesSearch = messageSearchQuery && (
+                            (msg.content?.toLowerCase().includes(messageSearchQuery.toLowerCase())) ||
+                            (msg.attachments && msg.attachments.some(att => att.name?.toLowerCase().includes(messageSearchQuery.toLowerCase())))
+                        );
 
                         return (
                             <div
@@ -244,6 +248,7 @@ const FlowLiveMessagesDisplay = forwardRef(({ // Use forwardRef to accept a ref
                                             {getSenderDisplayName(msg.senderUid, msg.senderName)}
                                         </p>
                                     )}
+                                    {/* --- DÉBUT : LOGIQUE DE RENDU DES MESSAGES ET PIÈCES JOINTES --- */}
                                     {editingMessageId === msg.id ? (
                                         <textarea
                                             value={editingMessageContent}
@@ -262,37 +267,45 @@ const FlowLiveMessagesDisplay = forwardRef(({ // Use forwardRef to accept a ref
                                             }}
                                         />
                                     ) : (
-                                        // The actual message content
                                         <>
-                                            {msg.type === 'text' && <p className="text-sm break-words">{highlightText(msg.content || '', messageSearchQuery)}</p>}
-
-                                            {msg.type === 'image' && msg.fileURL && (
-                                                <img
-                                                    src={msg.fileURL}
-                                                    alt={msg.content || 'Image'}
-                                                    className="max-w-full h-auto rounded-md cursor-pointer"
-                                                    // Re-enabled the click handler that uses the openEphemeralImagePreview prop
-                                                    onClick={() => openEphemeralImagePreview && openEphemeralImagePreview(msg.fileURL, msg.id)}
-                                                    style={{ maxWidth: '200px' }}
-                                                />
+                                            {/* Rendu du contenu textuel du message (s'il existe) */}
+                                            {msg.content && msg.content.trim() !== '' && (
+                                                <p className="text-sm break-words">{highlightText(msg.content, messageSearchQuery)}</p>
                                             )}
 
-                                            {msg.type === 'file' && msg.fileURL && (
-                                                <div className="flex items-center space-x-2 mt-1">
-                                                    <span className="text-xl">📄</span>
-                                                    <a
-                                                        href={msg.fileURL}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        download={msg.content || 'fichier'}
-                                                        className="underline hover:text-blue-200 truncate max-w-[180px]"
-                                                    >
-                                                        {msg.content || 'Fichier'}
-                                                    </a>
+                                            {/* Rendu des pièces jointes (s'il y en a) */}
+                                            {msg.attachments && msg.attachments.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                    {msg.attachments.map((attachment, attIndex) => (
+                                                        <div key={attIndex} className="attachment-item">
+                                                            {attachment.type === 'image' ? (
+                                                                <img
+                                                                    src={attachment.url}
+                                                                    alt={attachment.name || 'Image jointe'}
+                                                                    className="max-w-full h-auto rounded-md cursor-pointer"
+                                                                    style={{ maxWidth: '200px' }} // Adjusted for a consistent size
+                                                                    onClick={() => openEphemeralImagePreview && openEphemeralImagePreview(attachment.url, msg.id)}
+                                                                />
+                                                            ) : (
+                                                                <a
+                                                                    href={attachment.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    download={attachment.name || 'fichier'}
+                                                                    className={`flex items-center p-2 rounded-md transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' : 'bg-blue-100 text-blue-800 hover:bg-blue-200'}`}
+                                                                >
+                                                                    {/* Icône de fichier générique */}
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                                                    <span className="text-sm truncate max-w-[150px]">{attachment.name || 'Fichier'}</span>
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
                                         </>
                                     )}
+                                    {/* --- FIN : LOGIQUE DE RENDU DES MESSAGES ET PIÈCES JOINTES --- */}
 
                                     {/* Message Time and Status (Read/Unread) */}
                                     <div className={`text-xs mt-1 ${isMyMessage ? 'text-blue-200' : (isDarkMode ? 'text-gray-400' : 'text-gray-600')} flex items-center justify-end`}>

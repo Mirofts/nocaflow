@@ -28,6 +28,7 @@ import BlockContactModal from './modals/BlockContactModal';
 import ConfirmDeleteMessageModal from './modals/ConfirmDeleteMessageModal';
 // Import spécifique pour NewDiscussionModal, car il est dans un sous-dossier de FlowLiveMessages
 import NewDiscussionModal from './FlowLiveMessages/modals/NewDiscussionModal'; // <-- Chemin corrigé
+import AssignTeamModal from './modals/AssignTeamModal';
 import ClientFormModal from './modals/ClientFormModal';
 
 // Exportation de toutes les modales pour une importation centralisée
@@ -53,5 +54,6 @@ export {
     BlockContactModal,
     ConfirmDeleteMessageModal,
     NewDiscussionModal,
+    AssignTeamModal,
     ClientFormModal
 };

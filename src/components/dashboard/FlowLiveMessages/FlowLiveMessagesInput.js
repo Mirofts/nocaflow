@@ -5,8 +5,8 @@ const FlowLiveMessagesInput = ({
   newMessage,
   setNewMessage,
   handleSendNormalMessage,
-  handleTriggerFileInput, // Corrected: This prop is now passed from index.js
-  handleFileChange,       // Corrected: This prop is now passed from index.js
+  handleTriggerFileInput, // Ce prop est correctement passé depuis index.js
+  handleFileChange,       // Ce prop est correctement passé depuis index.js
   handleEmoticonClick,
   emojis,
   showEmojiPicker,
@@ -16,13 +16,13 @@ const FlowLiveMessagesInput = ({
   isDarkMode,
   t,
   handleSendEphemeralMessage,
-  // Removed handleAttachEphemeralFile as it's replaced by handleTriggerFileInput('ephemeral')
   activeConversationId,
-  isGuestMode
+  isGuestMode,
+  isChatBlocked // Receive isChatBlocked prop
 }) => {
 
-  const isSendDisabled = !activeConversationId || !newMessage.trim();
-  const isAttachDisabled = !activeConversationId;
+  const isSendDisabled = !activeConversationId || (!newMessage.trim() && !fileInputRef.current?.files?.length) || isChatBlocked; // Disable if chat is blocked
+  const isAttachDisabled = !activeConversationId || isChatBlocked; // Disable if chat is blocked
 
   return (
     <div className="flex items-end p-3 sm:p-4 border-t border-color-border-primary glass-card-input flex-shrink-0 relative">
@@ -30,23 +30,25 @@ const FlowLiveMessagesInput = ({
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept="image/*,application/pdf"
-        onChange={handleFileChange} // Connect the onChange handler here
+        // Types de fichiers acceptés : images, PDF, Word, Excel, PowerPoint, texte brut
+        accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain"
+        multiple // Permet la sélection de plusieurs fichiers
+        onChange={handleFileChange} // L'écouteur onChange pour traiter les fichiers sélectionnés
       />
-      {/* Normal File Button */}
+      {/* Bouton pour joindre un fichier normal */}
       <button
         className="text-gray-400 hover:text-purple-500 p-2 rounded"
-        onClick={() => handleTriggerFileInput('normal')} // Call the new trigger function
+        onClick={() => handleTriggerFileInput('normal')} // Déclenche l'ouverture du sélecteur de fichiers en mode normal
         title={t('attach_file', 'Joindre un fichier')}
         disabled={isAttachDisabled || isGuestMode}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.2"/></svg>
       </button>
 
-      {/* Ephemeral File Button */}
+      {/* Bouton pour joindre un fichier éphémère */}
       <button
         className="text-gray-400 hover:text-orange-500 p-2 rounded ml-1"
-        onClick={() => handleTriggerFileInput('ephemeral')} // Call the new trigger function
+        onClick={() => handleTriggerFileInput('ephemeral')} // Déclenche l'ouverture du sélecteur de fichiers en mode éphémère
         title={t('attach_ephemeral_file', 'Joindre un fichier éphémère (disparaît après lecture)')}
         disabled={isAttachDisabled || isGuestMode}
       >
@@ -64,7 +66,7 @@ const FlowLiveMessagesInput = ({
           className="text-gray-400 hover:text-purple-500 p-2 rounded"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           title={t('pick_emoji', 'Choisir un emoji')}
-          disabled={isGuestMode}
+          disabled={isGuestMode || isChatBlocked} // Disable if chat is blocked
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>
         </button>
@@ -103,9 +105,9 @@ const FlowLiveMessagesInput = ({
             }
           }
         }}
-        disabled={!activeConversationId || isGuestMode}
+        disabled={!activeConversationId || isGuestMode || isChatBlocked} // Disable if chat is blocked
       />
-      {/* Normal Send Button */}
+      {/* Bouton d'envoi normal */}
       <button
         className={`main-action-button bg-purple-500 hover:bg-purple-600 text-white p-2 rounded transition-colors duration-200 ${isSendDisabled || isGuestMode ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={handleSendNormalMessage}
@@ -114,7 +116,7 @@ const FlowLiveMessagesInput = ({
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg>
       </button>
-      {/* Ephemeral Send Button */}
+      {/* Bouton d'envoi éphémère */}
       <button
         className={`main-action-button bg-orange-500 hover:bg-orange-600 text-white p-2 rounded transition-colors duration-200 ml-2 ${isSendDisabled || isGuestMode ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={handleSendEphemeralMessage}

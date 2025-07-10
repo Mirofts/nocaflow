@@ -32,7 +32,7 @@ import {
     TaskEditModal, DayDetailsModal, QuickAddTaskModal, GuestNameEditModal, AvatarEditModal,
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
     QuickChatModal, AssignTaskProjectDeadlineModal, ClientFormModal, UserNameEditModal,
-    GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal,
+    GanttTaskFormModal, GoogleDriveLinkModal, AddDeadlineModal, AddMeetingModal, AssignTeamModal,
     BlockContactModal, ConfirmDeleteMessageModal, NewDiscussionModal
 } from '../components/dashboard/dashboardModals';
 import CalculatorModal from '../components/dashboard/CalculatorModal';
@@ -156,8 +156,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return isGuestMode ? (localData.tasks || []) : [];
     }, [isGuestMode, localData.tasks]);
 
-    const { todos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
-        useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
+const { todos, setTodos, loading: loadingTodos, addTodo, editTodo, deleteTodo, toggleTodo } =
+    useUserTodos(userUid, isGuestMode, onUpdateGuestData, stableGuestInitialTasks);
 
     const data = useMemo(() => {
         let currentData = { ...localData };
@@ -184,6 +184,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         return currentData;
     }, [isGuestMode, localData, todos, guestName, authUser]);
 
+  const visibleTodos = useMemo(() => {
+        if (isGuestMode || !authUser) {
+            return todos;
+        }
+        return todos.filter(task => 
+            !task.assignedTo || task.assignedTo.length === 0 || task.assignedTo.includes(authUser.uid)
+        );
+    }, [todos, isGuestMode, authUser]);
 
     const [activeModal, setActiveModal] = useState(null);
     const [modalProps, setModalProps] = useState(null);
@@ -404,16 +412,18 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                                 onAlertCardClick={handleOpenAlertDetails}
                             />
 
-                            <TodoList
-                                todos={data.tasks || []}
-                                loading={loadingTodos}
-                                onAdd={addTodo}
-                                onToggle={toggleTodo}
-                                onEdit={(task) => openModal('taskEdit', task)}
-                                onDelete={deleteTodo}
-                                t={t}
-                                className="flex-1 h-auto"
-                            />
+                         <TodoList
+    todos={visibleTodos} // Utilise la liste filtrée
+    setTodos={setTodos} // Ajout pour le drag-and-drop
+    loading={loadingTodos}
+    onAdd={addTodo}
+    onToggle={toggleTodo}
+    onEdit={(task) => openModal('taskEdit', task)}
+    onDelete={deleteTodo}
+    onAssignTeam={(task) => openModal('assignTeam', task)} // Ajout pour la modale d'équipe
+    t={t}
+    className="flex-1 h-auto"
+/>
                             <Projects
                                 projects={data.projects || []}
                                 t={t}
@@ -482,6 +492,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {activeModal === 'taskEdit' && <TaskEditModal t={t} task={modalProps} onSave={editTodo} onClose={closeModal} />}
                 {activeModal === 'dayDetails' && <DayDetailsModal t={t} data={modalProps} onAddTask={(date) => openModal('quickTask', date)} onClose={closeModal} />}
                 {activeModal === 'quickTask' && <QuickAddTaskModal t={t} date={modalProps} onSave={addTodo} onClose={closeModal} />}
+
+    {activeModal === 'assignTeam' && modalProps && (
+            <AssignTeamModal
+                t={t}
+                task={modalProps}
+                onSave={editTodo}
+                onClose={closeModal}
+                allStaffMembers={data.staffMembers || []}
+            />
+        )}
 
                 {activeModal === 'guestName' && isGuestMode && (
                     <GuestNameEditModal
