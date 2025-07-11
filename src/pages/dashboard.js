@@ -90,9 +90,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         initialValue.projects = Array.isArray(initialValue.projects) ? initialValue.projects : [];
         initialValue.staffMembers = Array.isArray(initialValue.staffMembers) ? initialValue.staffMembers : [];
         initialValue.clients = Array.isArray(initialValue.clients) ? initialValue.clients : [];
-        initialValue.ganttTasks = Array.isArray(initialValue.ganttTasks) ? initialValue.ganttTasks : [];
+         initialValue.ganttTasks = Array.isArray(initialValue.ganttTasks) ? initialValue.ganttTasks : [];
         initialValue.invoices = Array.isArray(initialValue.invoices) ? initialValue.invoices : [];
-        initialValue.notes = typeof initialValue.notes === 'string' ? initialValue.notes : '';
+        initialValue.notes = Array.isArray(initialValue.notes) ? initialValue.notes : []; // <-- CORRECTED LINE
         initialValue.user = initialValue.user || {};
 
         return initialValue;
@@ -124,9 +124,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             sanitizedData.projects = Array.isArray(sanitizedData.projects) ? sanitizedData.projects : [];
             sanitizedData.staffMembers = Array.isArray(sanitizedData.staffMembers) ? sanitizedData.staffMembers : [];
             sanitizedData.clients = Array.isArray(sanitizedData.clients) ? sanitizedData.clients : [];
-            sanitizedData.ganttTasks = Array.isArray(sanitizedData.ganttTasks) ? sanitizedData.ganttTasks : [];
+     sanitizedData.ganttTasks = Array.isArray(sanitizedData.ganttTasks) ? sanitizedData.ganttTasks : [];
             sanitizedData.invoices = Array.isArray(sanitizedData.invoices) ? sanitizedData.invoices : [];
-            sanitizedData.notes = typeof sanitizedData.notes === 'string' ? sanitizedData.notes : (prevLocalData.notes || initialMockData.notes || '');
+            sanitizedData.notes = Array.isArray(newData.notes) ? newData.notes : (prevLocalData.notes || []); // <-- CORRECTED LINE
 
             sanitizedData.user = {
                 ...(prevLocalData.user || {}),
@@ -178,8 +178,8 @@ const { todos, setTodos, loading: loadingTodos, addTodo, editTodo, deleteTodo, t
         currentData.staffMembers = Array.isArray(currentData.staffMembers) ? currentData.staffMembers : [];
         currentData.clients = Array.isArray(currentData.clients) ? currentData.clients : [];
         currentData.ganttTasks = Array.isArray(currentData.ganttTasks) ? currentData.ganttTasks : [];
-        currentData.invoices = Array.isArray(currentData.invoices) ? currentData.invoices : [];
-        currentData.notes = typeof currentData.notes === 'string' ? currentData.notes : '';
+ currentData.invoices = Array.isArray(currentData.invoices) ? currentData.invoices : [];
+        currentData.notes = Array.isArray(currentData.notes) ? currentData.notes : []; // <-- FINAL SOLUTION
 
         return currentData;
     }, [isGuestMode, localData, todos, guestName, authUser]);
