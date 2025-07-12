@@ -202,17 +202,9 @@ export const AuthContextProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+  // MODIFIÉ : On lève une erreur si le contexte n'est pas trouvé, c'est plus propre.
   if (context === undefined) {
-    return { 
-      currentUser: null, 
-      loadingAuth: true,
-      login: async () => {},
-      register: async () => {},
-      logout: async () => {},
-      loginWithGoogle: async () => {},
-      loginAsGuest: async () => {},
-      refreshUser: async () => {},
-    };
+    throw new Error('useAuth must be used within an AuthContextProvider');
   }
   return context;
 };

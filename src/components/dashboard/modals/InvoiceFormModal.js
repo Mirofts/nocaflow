@@ -1,6 +1,5 @@
 // src/components/dashboard/modals/InvoiceFormModal.js
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ModalWrapper } from './ModalWrapper';
 import { InvoicePreview } from './InvoicePreview';
@@ -18,18 +17,21 @@ const useDebounce = (value, delay) => {
 
 const InvoiceFormModal = ({ authUser, initialDraft, onUpdateDraft, onAdd, onClose, t }) => {
     const [invoice, setInvoice] = useState(() => ({
+        title: '',
         status: 'Draft',
         issueDate: format(new Date(), 'yyyy-MM-dd'),
         dueDate: '',
-        clientInfo: { name: '', email: '', address: '' },
+        clientInfo: { name: '', email: '', address: '', taxId: '' },
         lineItems: [{ id: Date.now(), description: '', quantity: 1, unitPrice: '0' }],
+        currency: { code: 'EUR', symbol: '€' },
         vatRate: '20',
+        depositRequested: '0',
         depositPaid: '0',
         notes: "Paiement à réception de la facture. Merci de votre confiance.",
         ...initialDraft
     }));
     
-    const [companyInfo, setCompanyInfo] = useState({
+    const [companyInfo, setCompanyInfo] = useState(initialDraft?.companyInfo || {
         name: authUser?.displayName || "Votre Nom",
         address: "123 Rue de l'Exemple\n75001 Paris",
         email: authUser?.email || "contact@monentreprise.com",
@@ -43,9 +45,7 @@ const InvoiceFormModal = ({ authUser, initialDraft, onUpdateDraft, onAdd, onClos
 
     const debouncedData = useDebounce({ invoice, companyInfo }, 1500);
     useEffect(() => {
-        if (debouncedData && onUpdateDraft) {
-            onUpdateDraft(debouncedData);
-        }
+        if (debouncedData && onUpdateDraft) onUpdateDraft(debouncedData);
     }, [debouncedData, onUpdateDraft]);
 
     useEffect(() => {
@@ -94,20 +94,28 @@ const InvoiceFormModal = ({ authUser, initialDraft, onUpdateDraft, onAdd, onClos
             </ModalWrapper>
         );
     }
-    console.log("Auth Check:", { authUser });
+    
     return (
         <ModalWrapper onClose={onClose} size="max-w-4xl">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-white">Créer une Facture</h2>
-                <div className="flex justify-center gap-2">
-                    <button type="button" onClick={() => setInvoiceLang('fr')} className={`px-3 py-1 text-sm rounded-md ${invoiceLang === 'fr' ? 'bg-pink-600 text-white' : 'bg-slate-700'}`}>Français</button>
-                    <button type="button" onClick={() => setInvoiceLang('en')} className={`px-3 py-1 text-sm rounded-md ${invoiceLang === 'en' ? 'bg-pink-600 text-white' : 'bg-slate-700'}`}>English</button>
+                <h2 className="text-2xl font-bold text-white">Créer / Modifier une Facture</h2>
+                <div className="flex items-center gap-4">
+                    <select name="currency" value={invoice.currency.code} onChange={(e) => {
+                        const C = {EUR: '€', USD: '$', JPY: '¥'}[e.target.value] || '€';
+                        handleChange({ target: { name: 'currency', value: { code: e.target.value, symbol: C } } });
+                    }} className="form-input w-32 bg-slate-700">
+                        <option value="EUR">EUR (€)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="JPY">JPY (¥)</option>
+                    </select>
+                    <div className="flex justify-center gap-2">
+                        <button type="button" onClick={() => setInvoiceLang('fr')} className={`px-3 py-1 text-sm rounded-md ${invoiceLang === 'fr' ? 'bg-pink-600 text-white' : 'bg-slate-700'}`}>Français</button>
+                        <button type="button" onClick={() => setInvoiceLang('en')} className={`px-3 py-1 text-sm rounded-md ${invoiceLang === 'en' ? 'bg-pink-600 text-white' : 'bg-slate-700'}`}>English</button>
+                    </div>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto p-2 custom-scrollbar">
-                
-                {/* SECTION INFOS ÉMETTEUR ET RÉCEPTEUR */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <fieldset className="border border-slate-700 p-4 rounded-lg space-y-2">
                         <legend>Vos Informations (Émetteur)</legend>
@@ -123,22 +131,20 @@ const InvoiceFormModal = ({ authUser, initialDraft, onUpdateDraft, onAdd, onClos
                     <fieldset className="border border-slate-700 p-4 rounded-lg space-y-2">
                         <legend>Informations Client (Récepteur)</legend>
                         <input name="name" value={invoice.clientInfo.name} onChange={handleClientChange} placeholder="Nom du client" className="form-input" required />
+                        <input name="taxId" value={invoice.clientInfo.taxId} onChange={handleClientChange} placeholder="SIRET / N° de société client" className="form-input" />
                         <input name="email" value={invoice.clientInfo.email} onChange={handleClientChange} placeholder="Email du client" className="form-input" />
                         <textarea name="address" value={invoice.clientInfo.address} onChange={handleClientChange} placeholder="Adresse du client" className="form-input" rows="3"></textarea>
                     </fieldset>
                 </div>
-
-                {/* SECTION DÉTAILS DE LA FACTURE */}
-                <fieldset className="border border-slate-700 p-4 rounded-lg">
+                 <fieldset className="border border-slate-700 p-4 rounded-lg">
                     <legend>Détails de la Facture</legend>
+                    <input type="text" name="title" value={invoice.title || ''} onChange={handleChange} placeholder="Titre de la facture (ex: Création site web)" className="form-input mb-4" required />
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <input type="text" name="invoiceNumber" value={invoice.invoiceNumber} onChange={handleChange} placeholder="N° de Facture" className="form-input" />
                         <input type="date" name="issueDate" value={invoice.issueDate} onChange={handleChange} className="form-input" />
                         <input type="date" name="dueDate" value={invoice.dueDate} onChange={handleChange} className="form-input" />
                     </div>
                 </fieldset>
-
-                {/* SECTION LIGNES DE FACTURE */}
                 <fieldset className="border border-slate-700 p-4 rounded-lg">
                     <legend>Missions / Produits</legend>
                     {invoice.lineItems.map((item, index) => (
@@ -151,40 +157,23 @@ const InvoiceFormModal = ({ authUser, initialDraft, onUpdateDraft, onAdd, onClos
                     ))}
                     <button type="button" onClick={addLineItem} className="text-green-400 text-sm mt-2 font-semibold">+ Ajouter une ligne</button>
                 </fieldset>
-                
-                {/* SECTION NOTES ET ACOMPTE */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <textarea name="notes" value={invoice.notes} onChange={handleChange} placeholder="Notes, mentions légales..." className="form-input" rows="3"></textarea>
-                     <input type="number" name="depositPaid" value={invoice.depositPaid} onChange={handleChange} placeholder="Acompte versé (€)" className="form-input self-start" step="0.01" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <textarea name="notes" value={invoice.notes} onChange={handleChange} placeholder="Notes, mentions légales..." className="form-input md:col-span-1" rows="4"></textarea>
+                     <input type="number" name="depositRequested" value={invoice.depositRequested} onChange={handleChange} placeholder="Acompte demandé" className="form-input self-start" step="0.01" />
+                     <input type="number" name="depositPaid" value={invoice.depositPaid} onChange={handleChange} placeholder="Acompte déjà perçu" className="form-input self-start" step="0.01" />
                 </div>
-
-                {/* SECTION CALCUL */}
                 <fieldset className="border border-slate-700 p-4 rounded-lg">
                     <legend>Calcul</legend>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div className="p-2 bg-slate-800 rounded">
-                            <label className="text-xs text-slate-400">Sous-total</label>
-                            <p className="font-mono">{invoice.subtotal?.toFixed(2)} €</p>
-                        </div>
-                         <div className="p-2 bg-slate-800 rounded flex items-center gap-2">
-                            <input type="number" name="vatRate" value={invoice.vatRate} onChange={handleChange} className="form-input p-0 bg-transparent border-none focus:ring-0 font-mono w-12" />
-                            <label className="text-xs text-slate-400">% TVA ({invoice.vatAmount?.toFixed(2)}€)</label>
-                        </div>
-                        <div className="p-2 bg-slate-800 rounded">
-                            <label className="text-xs text-slate-400">Total</label>
-                            <p className="font-mono font-bold">{invoice.totalAmount?.toFixed(2)} €</p>
-                        </div>
-                         <div className="p-2 rounded bg-pink-600/20 text-pink-300">
-                            <label className="text-xs">Solde Dû</label>
-                            <p className="font-mono font-bold text-lg">{invoice.amountDue?.toFixed(2)} €</p>
-                        </div>
+                        <div className="p-2 bg-slate-800 rounded"><label className="text-xs text-slate-400">Sous-total</label><p className="font-mono">{invoice.subtotal?.toFixed(2)} {invoice.currency.symbol}</p></div>
+                        <div className="p-2 bg-slate-800 rounded flex items-center gap-2"><input type="number" name="vatRate" value={invoice.vatRate} onChange={handleChange} className="form-input p-0 bg-transparent border-none focus:ring-0 font-mono w-12" /><label className="text-xs text-slate-400">% TVA ({invoice.vatAmount?.toFixed(2)} {invoice.currency.symbol})</label></div>
+                        <div className="p-2 bg-slate-800 rounded"><label className="text-xs text-slate-400">Total</label><p className="font-mono font-bold">{invoice.totalAmount?.toFixed(2)} {invoice.currency.symbol}</p></div>
+                        <div className="p-2 rounded bg-pink-600/20 text-pink-300"><label className="text-xs">Solde Dû</label><p className="font-mono font-bold text-lg">{invoice.amountDue?.toFixed(2)} {invoice.currency.symbol}</p></div>
                     </div>
                 </fieldset>
-                
-                {/* SECTION BOUTONS D'ACTION */}
                 <div className="flex flex-col sm:flex-row gap-2 pt-4">
                      <button type="button" onClick={() => setIsPreviewing(true)} className="main-button-secondary w-full sm:w-auto">Aperçu</button>
-                    <button type="submit" disabled={isGuest} className="main-action-button w-full flex-grow disabled:bg-slate-600 disabled:cursor-not-allowed">Enregistrer la Facture</button>
+                    <button type="submit" className="main-action-button w-full flex-grow">Enregistrer la Facture</button>
                 </div>
             </form>
         </ModalWrapper>

@@ -39,7 +39,7 @@ import CalculatorModal from '../components/dashboard/CalculatorModal';
 import DetailsModal from '@/components/dashboard/modals/DetailsModal';
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
-    const { user: authUser, logout } = useAuth();
+     const { currentUser: authUser, loadingAuth, logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
     const { t } = useTranslation('common');
 
@@ -58,11 +58,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         setIsClient(true);
     }, []);
 
-    const [localData, setLocalData] = useState(() => {
+const [localData, setLocalData] = useState(() => {
+        // Votre structure de base (c'est parfait)
         let initialValue = {
             tasks: [], messages: [], meetings: [], projects: [],
             staffMembers: [], clients: [], ganttTasks: [], invoices: [],
-            notes: '',
+            notes: [], // Assurez-vous que c'est bien un tableau vide
             user: { displayName: initialGuestNameSSR, photoURL: '/images/avatars/avatarguest.jpg' },
         };
 
@@ -94,7 +95,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         initialValue.staffMembers = Array.isArray(initialValue.staffMembers) ? initialValue.staffMembers : [];
         initialValue.clients = Array.isArray(initialValue.clients) ? initialValue.clients : [];
          initialValue.ganttTasks = Array.isArray(initialValue.ganttTasks) ? initialValue.ganttTasks : [];
-        initialValue.invoices = Array.isArray(initialValue.invoices) ? initialValue.invoices : [];
+         initialValue.invoices = []; 
         initialValue.notes = Array.isArray(initialValue.notes) ? initialValue.notes : [];
         initialValue.user = initialValue.user || {};
 
@@ -245,11 +246,15 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     // =======================================================================
     //    BLOC DE LOGIQUE POUR LA GESTION DES FACTURES (CORRIGÉ ET COMPLET)
     // =======================================================================
-    const handleAddOrEditInvoice = useCallback((invoiceData) => {
+ const handleAddOrEditInvoice = useCallback((invoiceData) => {
         console.log("Sauvegarde de la facture :", invoiceData);
+        
         setLocalData(prev => {
             const invoices = prev.invoices || [];
+            
+            // On s'assure que la variable est bien déclarée ici
             const existingIndex = invoices.findIndex(inv => inv.id === invoiceData.id);
+            
             let newInvoices;
 
             if (existingIndex > -1) {
@@ -257,9 +262,19 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 newInvoices = [...invoices];
                 newInvoices[existingIndex] = invoiceData;
             } else {
-                // Mode ajout
-                newInvoices = [...invoices, { ...invoiceData, id: `inv-${Date.now()}` }];
+                // Mode ajout : on ajoute la nouvelle facture au début de la liste
+                newInvoices = [{ ...invoiceData, id: `inv-${Date.now()}` }, ...invoices];
             }
+            
+            return { ...prev, invoices: newInvoices };
+        });
+    }, []);
+
+        const handleUpdateInvoiceStatus = useCallback((invoiceId, newStatus) => {
+        setLocalData(prev => {
+            const newInvoices = prev.invoices.map(inv => 
+                inv.id === invoiceId ? { ...inv, status: newStatus } : inv
+            );
             return { ...prev, invoices: newInvoices };
         });
     }, []);
@@ -309,6 +324,13 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const handleOpenAlertDetails = useCallback((alertItem) => { /* ... */ }, [openModal, t]);
     const handleSelectUserOnMobile = useCallback((conv) => { /* ... */ }, [openModal, authUser?.uid]);
 
+        if (loadingAuth) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <p>Chargement...</p> {/* Vous pouvez mettre un spinner ici */}
+            </div>
+        );
+    }
 
     return (
         <>
@@ -478,26 +500,28 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {activeModal === 'project' && <ProjectFormModal t={t} onSave={modalProps?.project ? editProject : addProject} initialData={modalProps?.project} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />}
                 
                 {/* MODALES DE FACTURATION CORRECTEMENT CONNECTÉES */}
-                {activeModal === 'invoiceForm' && (
-                    <InvoiceFormModal
-                        t={t}
-                        authUser={authUser}
-                        initialDraft={invoiceDraft}
-                        onUpdateDraft={setInvoiceDraft}
-                        onAdd={handleAddOrEditInvoice}
-                        onClose={closeModal}
-                    />
-                )}
+             {activeModal === 'invoiceForm' && (
+    <InvoiceFormModal
+        t={t}
+        authUser={authUser}
+        initialDraft={invoiceDraft}
+        onUpdateDraft={setInvoiceDraft}
+        client={modalProps?.client}
+        onAdd={handleAddOrEditInvoice} // <-- CORRECTION APPLIQUÉE
+        onClose={closeModal}
+    />
+)}
                 
-                {activeModal === 'invoiceList' && (
-                     <InvoiceListModal 
-                        t={t} 
-                        invoices={modalProps?.client ? (data.invoices || []).filter(inv => inv.clientInfo.name === modalProps.client.name) : (data.invoices || [])} 
-                        onEdit={openInvoiceModal}
-                        onDelete={handleDeleteInvoice}
-                        onClose={closeModal} 
-                    />
-                )}
+{activeModal === 'invoiceList' && (
+     <InvoiceListModal 
+        t={t} 
+        invoices={data.invoices || []} 
+        onEdit={openInvoiceModal}
+        onDelete={handleDeleteInvoice}
+        onUpdateStatus={handleUpdateInvoiceStatus} // <-- AJOUTEZ CETTE LIGNE
+        onClose={closeModal} 
+    />
+)}
                 
                 {activeModal === 'teamMember' && modalProps && <TeamMemberModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
                 {activeModal === 'quickChat' && modalProps && <QuickChatModal t={t} member={modalProps} onClose={closeModal} />}

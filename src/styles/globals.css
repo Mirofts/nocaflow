@@ -189,6 +189,8 @@
     transition: all 0.3s ease-in-out; /* Transition plus fluide */
   }
 
+  
+
   .form-input::placeholder {
     color: var(--color-text-secondary);
     opacity: 0.7;
@@ -199,6 +201,44 @@
     border-color: var(--color-border-active);
     box-shadow: 0 0 0 3px var(--color-border-active-shadow);
   }
+
+  .notepad-card .ql-editor {
+    padding: 1rem;
+    font-size: 14px;
+    line-height: 1.6;
+    height: 100%;
+}
+
+/* Force la couleur du texte tapé en fonction du thème */
+[data-theme='light'] .notepad-card .ql-editor {
+    color: #553c9a !important; /* Violet */
+}
+[data-theme='dark'] .notepad-card .ql-editor {
+    color: #fdb974 !important; /* Orange */
+}
+
+/* Force la couleur du texte de placeholder ("Vos idées...") */
+.notepad-card .ql-editor.ql-blank::before {
+    color: var(--color-text-tertiary) !important;
+    font-style: normal !important;
+    opacity: 0.6;
+}
+
+/* Assure que la barre d'outils est correctement stylée */
+.notepad-card .ql-toolbar {
+    background-color: var(--color-bg-tertiary) !important;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+    border: none !important;
+    border-bottom: 1px solid var(--color-border-primary) !important;
+}
+
+/* Assure que le conteneur principal de l'éditeur n'a pas de bordures inutiles */
+.notepad-card .ql-container {
+    border: none !important;
+    height: calc(100% - 43px); /* Laisse de la place pour la barre d'outils */
+    flex-grow: 1;
+}
 
   /* Form input avec effet de lueur (glow) */
   .form-input-glow {
