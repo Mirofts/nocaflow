@@ -1,8 +1,9 @@
 // src/components/dashboard/modals/QuickAddTaskModal.js
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale'; // Pour la langue de formatage
+// MODIFIÉ : On importe 'isValid' pour vérifier la date
+import { format, isValid } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { ModalWrapper } from './ModalWrapper';
 
 const QuickAddTaskModal = ({ date, onSave, onClose, t }) => {
@@ -10,19 +11,23 @@ const QuickAddTaskModal = ({ date, onSave, onClose, t }) => {
     const [type, setType] = useState('task');
     const [loading, setLoading] = useState(false);
 
+    // CORRECTION : On vérifie si la date est valide. Si non, on utilise la date du jour.
+    const validDate = date && isValid(new Date(date)) ? new Date(date) : new Date();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!title.trim()) return;
         setLoading(true);
 
         if (type === 'task') {
-            onSave(title, 'normal', format(date, 'yyyy-MM-dd'));
-        } else if (type === 'note') {
-            alert(t('note_feature_placeholder', 'Fonctionnalité d\'ajout de note non implémentée directement ici.'));
-        } else if (type === 'meeting') {
-            alert(t('meeting_feature_placeholder', 'Fonctionnalité d\'ajout de réunion non implémentée directement ici.'));
-        } else if (type === 'project-deadline') {
-            alert(t('project_deadline_feature_placeholder', 'Fonctionnalité d\'ajout de deadline de projet non implémentée directement ici.'));
+            // CORRECTION : On envoie un seul objet contenant toutes les informations
+            onSave({
+                title: title,
+                priority: 'Normale', // On donne une priorité par défaut
+                deadline: format(validDate, 'yyyy-MM-dd')
+            });
+        } else {
+            alert(t('feature_not_implemented_here', `La fonctionnalité "${type}" n'est pas implémentée ici.`));
         }
 
         setLoading(false);
@@ -38,7 +43,9 @@ const QuickAddTaskModal = ({ date, onSave, onClose, t }) => {
 
     return (
         <ModalWrapper onClose={onClose} size="max-w-sm">
-            <h2 className="text-xl font-bold text-white mb-4 text-center">{t('add_event_title_for', 'Ajouter un événement pour le')} {format(date, 'dd MMMM', { locale: fr })}</h2>
+            <h2 className="text-xl font-bold text-white mb-4 text-center">
+                {t('add_event_title_for', 'Ajouter pour le')} {format(validDate, 'dd MMMM', { locale: fr })}
+            </h2>
 
             <div className="mb-4 flex justify-center space-x-2 bg-slate-800/50 border border-slate-700 rounded-lg p-1.5">
                 {eventTypeOptions.map(option => (

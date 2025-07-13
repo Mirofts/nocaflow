@@ -1,18 +1,33 @@
 // components/dashboard/ClientManagement.js
-import React, { useState, useEffect, useCallback } from 'react'; // Re-verified: useCallback explicitly imported
+import React from 'react';
 import { DashboardCard } from './DashboardCard';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
-import { initialMockData } from '../../lib/mockData';
 import { useTheme } from '../../context/ThemeContext';
+// NOUVEAU : Imports pour le glisser-déposer
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+
 
 const ClientItem = ({ client, onEditClient, onDeleteClient, onInvoiceForm, onClientInvoices, t }) => {
     const { isDarkMode } = useTheme();
 
+    // NOUVEAU : On rend le composant "draggable"
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: client.id, // ID unique
+        data: { type: 'client', person: client }, // Données pour savoir que c'est un client
+    });
+
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 999 : 'auto',
+    };
+
     return (
-        <div className={`p-3 flex items-center justify-between gap-3 group ${isDarkMode ? 'bg-slate-700' : 'bg-color-bg-tertiary border border-color-border-primary'} rounded-lg shadow-sm`}>
+        // NOUVEAU : On applique les propriétés de dnd-kit à la div principale
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={`p-3 flex items-center justify-between gap-3 group ${isDarkMode ? 'bg-slate-700' : 'bg-color-bg-tertiary border border-color-border-primary'} rounded-lg shadow-sm cursor-grab`}>
             <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${isDarkMode ? 'bg-slate-700 text-color-text-primary' : 'bg-color-bg-tertiary text-color-text-primary'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'} text-color-text-primary`}>
                     {client.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -21,62 +36,20 @@ const ClientItem = ({ client, onEditClient, onDeleteClient, onInvoiceForm, onCli
                 </div>
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <motion.button
-                    onClick={() => alert(t('link_project_alert', 'Fonctionnalité "Lier un projet" à ') + `${client.name}` + t('not_implemented', ' non implémentée.'))}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-sky-600 text-white' : 'hover:bg-sky-200 text-sky-600'}`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    title={t('link_project_tooltip', 'Lier un projet')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07L9.54 5.46a5 5 0 0 0 .54 7.54Z"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07L14.46 18.54a5 5 0 0 0-.54-7.54Z"/></svg>
-                </motion.button>
-                <motion.button
-                    onClick={() => onClientInvoices(client)}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-emerald-600 text-white' : 'hover:bg-emerald-200 text-emerald-600'}`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    title={t('view_invoices_tooltip', 'Voir les factures')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-                </motion.button>
-                <motion.button
-                    onClick={() => onInvoiceForm(client)}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-yellow-600 text-white' : 'hover:bg-yellow-200 text-yellow-600'}`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    title={t('new_invoice_tooltip', 'Nouvelle facture')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                </motion.button>
-                <motion.button
-                    onClick={() => onEditClient(client)}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-color-bg-hover text-color-text-secondary hover:text-color-text-primary'}`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    title={t('edit', 'Modifier')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 0 1 2.92 2.92L10 16.5l-4 1.5 1.5-4L17 3Z"/><path d="M7.5 7.5 10 10"/></svg>
-                </motion.button>
-                <motion.button
-                    onClick={() => onDeleteClient(client.id)}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-red-600 text-red-400 hover:text-white' : 'hover:bg-red-100 text-red-500 hover:text-red-600'}`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    title={t('delete', 'Supprimer')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </motion.button>
+                {/* Actions pour le client */}
+                <motion.button onClick={() => onClientInvoices(client)} title="Voir les factures" className="p-2 rounded-full hover:bg-emerald-500/20"><svg width="16" height="16" fill="currentColor" className="text-emerald-400" viewBox="0 0 16 16"><path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1"/></svg></motion.button>
+                <motion.button onClick={() => onEditClient(client)} title="Modifier" className="p-2 rounded-full hover:bg-slate-600"><svg width="16" height="16" fill="currentColor" className="text-blue-400" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg></motion.button>
+                <motion.button onClick={() => onDeleteClient(client.id)} title="Supprimer" className="p-2 rounded-full hover:bg-red-500/20"><svg width="16" height="16" fill="currentColor" className="text-red-500" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></motion.button>
             </div>
         </div>
     );
 };
 
-const ClientManagement = ({ onAddClient, onEditClient, onDeleteClient, onInvoiceForm, onClientInvoices, t }) => {
-    const [clients, setClients] = useState([]);
+// MODIFIÉ : Le composant principal est maintenant plus simple
+const ClientManagement = ({ clients, onAddClient, onEditClient, onDeleteClient, onInvoiceForm, onClientInvoices, t }) => {
 
-    useEffect(() => {
-        setClients(initialMockData.clients);
-    }, []);
+    // NOUVEAU : On filtre pour n'afficher que les clients non assignés
+    const unassignedClients = (clients || []).filter(c => !c.groupId);
 
     return (
         <DashboardCard icon={
@@ -84,12 +57,12 @@ const ClientManagement = ({ onAddClient, onEditClient, onDeleteClient, onInvoice
         } title={t('my_clients', 'Mes Clients')} className="h-full">
             <div className="flex flex-col h-full justify-between">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold text-color-text-primary">{t('total_clients', 'Clients Totaux')}</h3>
-                    <span className="text-pink-400 text-3xl font-extrabold">{(clients || []).length}</span>
+                    <h3 className="text-xl font-bold text-color-text-primary">{t('unassigned_clients', 'Clients non assignés')}</h3>
+                    <span className="text-pink-400 text-3xl font-extrabold">{unassignedClients.length}</span>
                 </div>
                 <div className="space-y-3 flex-grow overflow-y-auto custom-scrollbar pr-2">
-                    {clients.length > 0 ? (
-                        clients.map(client => (
+                    {unassignedClients.length > 0 ? (
+                        unassignedClients.map(client => (
                             <ClientItem
                                 key={client.id}
                                 client={client}
@@ -101,7 +74,7 @@ const ClientManagement = ({ onAddClient, onEditClient, onDeleteClient, onInvoice
                             />
                         ))
                     ) : (
-                        <p className="text-center p-8 text-sm text-color-text-secondary">{t('no_clients', 'Aucun client à afficher. Ajoutez-en un !')}</p>
+                        <p className="text-center p-8 text-sm text-color-text-secondary">{t('no_unassigned_clients', 'Aucun client non assigné.')}</p>
                     )}
                 </div>
                 <div className="mt-4 flex-shrink-0">

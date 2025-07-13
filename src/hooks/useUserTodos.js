@@ -40,31 +40,27 @@ export const useUserTodos = (userUid, isGuestMode, onUpdateGuestData, initialGue
         }
     }, [userUid, isGuestMode, initialGuestTasks]);
 
-    const addTodo = async (title, priority, deadline) => {
+    const addTodo = async (taskData) => { // MODIFIÉ : Accepte un seul objet
         if (!userUid && !isGuestMode) return;
+        
+        // On prépare la nouvelle tâche avec des valeurs par défaut robustes
+        const newTodo = {
+            title: taskData.title,
+            completed: false,
+            createdAt: serverTimestamp(),
+            ownerUid: userUid,
+            priority: taskData.priority || 'Normale', // Valeur par défaut
+            deadline: taskData.deadline || null,      // Valeur par défaut
+        };
+
         if (isGuestMode) {
             onUpdateGuestData(prev => ({
                 ...prev,
-                tasks: [...(prev.tasks || []), {
-                    id: `guest-task-${Date.now()}`,
-                    title,
-                    priority,
-                    deadline,
-                    ownerUid: 'guest_noca_flow',
-                    completed: false,
-                    createdAt: new Date().toISOString()
-                }]
+                tasks: [...(prev.tasks || []), { ...newTodo, id: `guest-task-${Date.now()}`, createdAt: new Date().toISOString() }]
             }));
         } else {
             try {
-                await addDoc(collection(db, 'users', userUid, 'todos'), {
-                    title,
-                    priority,
-                    deadline,
-                    ownerUid: userUid,
-                    completed: false,
-                    createdAt: serverTimestamp()
-                });
+                await addDoc(collection(db, 'users', userUid, 'todos'), newTodo);
                 console.log("Added todo to Firebase for user:", userUid);
             } catch (e) {
                 console.error("Error adding todo:", e);
