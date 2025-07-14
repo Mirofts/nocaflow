@@ -8,6 +8,8 @@ import { useTheme } from '../../context/ThemeContext';
 import ConfirmDeleteModal from './modals/ConfirmDeleteModal';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
+// MODIFICATION CLÉ ICI : Importez DOMPurify d'une manière qui gère son exportation par défaut
+const DOMPurify = typeof window !== 'undefined' ? require('dompurify').default : null;
 
 // Import dynamique pour que l'éditeur fonctionne avec Next.js
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
@@ -22,7 +24,7 @@ const createNewNote = (title = 'Nouvelle Note') => ({
     content: ''
 });
 
-const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
+const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
     const initialNotes = [createNewNote(t('default_note_title', 'Mes Idées'))];
     const [notes, setNotes] = useState(isGuest ? initialNotes : []);
     const [activeTabId, setActiveTabId] = useState(isGuest ? initialNotes[0]?.id : null);
@@ -54,10 +56,18 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
             const savedNotes = savedGuestData.notes && Array.isArray(savedGuestData.notes) && savedGuestData.notes.length > 0
                 ? savedGuestData.notes
                 : initialNotes;
-            setNotes(savedNotes);
+            
+            // UTILISATION DE DOMPURIFY.sanitize APRÈS SA DÉFINITION DANS L'IMPORT DYNAMIQUE
+            const sanitizedNotes = savedNotes.map(note => ({
+                ...note,
+                // Vérifiez que DOMPurify est bien chargé avant de l'appeler
+                content: DOMPurify ? DOMPurify.sanitize(note.content) : note.content 
+            }));
+            setNotes(sanitizedNotes);
+
             // CORRECTION : On active le premier onglet pour le mode invité aussi
-            if (!savedNotes.some(n => n.id === activeTabId)) {
-                setActiveTabId(savedNotes[0]?.id || null);
+            if (!sanitizedNotes.some(n => n.id === activeTabId)) { 
+                setActiveTabId(sanitizedNotes[0]?.id || null);
             }
             setStatus(t('saved', 'Sauvegardé'));
             return;
@@ -72,23 +82,25 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
                 if (data.notes && Array.isArray(data.notes) && data.notes.length > 0) {
                     loadedNotes = data.notes;
                 } else {
-                    // Crée une note par défaut si la structure est invalide ou vide
                     loadedNotes = [createNewNote(t('default_note_title', 'Mes Idées'))];
                 }
             } else {
-                // Crée une note par défaut si le document n'existe pas
                 loadedNotes = [createNewNote(t('default_note_title', 'Mes Idées'))];
             }
             
-            setNotes(loadedNotes);
+            // UTILISATION DE DOMPURIFY.sanitize APRÈS SA DÉFINITION DANS L'IMPORT DYNAMIQUE
+            const sanitizedNotes = loadedNotes.map(note => ({
+                ...note,
+                // Vérifiez que DOMPurify est bien chargé avant de l'appeler
+                content: DOMPurify ? DOMPurify.sanitize(note.content) : note.content 
+            }));
+            setNotes(sanitizedNotes);
 
             // CORRECTION : On s'assure qu'un onglet est actif après le chargement
-            // Cette logique vérifie si l'onglet précédemment actif existe toujours.
-            // Sinon, il sélectionne le premier de la liste. C'est la clé du correctif.
             setActiveTabId(prevActiveId => {
-                const activeNoteExists = loadedNotes.some(note => note.id === prevActiveId);
+                const activeNoteExists = sanitizedNotes.some(note => note.id === prevActiveId);
                 if (!activeNoteExists) {
-                    return loadedNotes[0]?.id || null;
+                    return sanitizedNotes[0]?.id || null;
                 }
                 return prevActiveId;
             });
@@ -128,11 +140,19 @@ const Notepad = ({ uid, isGuest, onGuestUpdate, t, className = '' }) => {
     const saveNotes = useCallback((notesToSave) => {
         setStatus(t('saving', 'Sauvegarde...'));
         try {
-            if (isGuest) onGuestUpdate(prev => ({ ...prev, notes: notesToSave }));
-            else if (uid) setDoc(doc(db, 'userNotes', uid), { notes: notesToSave }, { merge: true });
+            // UTILISATION DE DOMPURIFY.sanitize APRÈS SA DÉFINITION DANS L'IMPORT DYNAMIQUE
+            const sanitizedNotesForSave = notesToSave.map(note => ({
+                ...note,
+                // Vérifiez que DOMPurify est bien chargé avant de l'appeler
+                content: DOMPurify ? DOMPurify.sanitize(note.content) : note.content 
+            }));
+
+            if (isGuest) onUpdateGuestData(prev => ({ ...prev, notes: sanitizedNotesForSave }));
+            else if (uid) setDoc(doc(db, 'userNotes', uid), { notes: sanitizedNotesForSave }, { merge: true });
+            
             setTimeout(() => setStatus(t('saved', 'Sauvegardé')), 700);
         } catch (error) { console.error("Error saving notes:", error); setStatus(t('error_saving', 'Erreur de sauvegarde')); }
-    }, [isGuest, uid, onGuestUpdate, t]);
+    }, [isGuest, uid, onUpdateGuestData, t]);
 
     const debouncedSave = useCallback((updatedNotes) => {
         setStatus(t('editing', 'Édition...'));
