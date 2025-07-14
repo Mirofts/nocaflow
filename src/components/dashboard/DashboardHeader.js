@@ -1,11 +1,10 @@
 // src/components/dashboard/DashboardHeader.js
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
 import Greeting from './Greeting';
 
-// Composant PulsingIcon pour les icônes animées
 const PulsingIcon = ({ children, isPulsing, pulseColorClass = 'bg-pink-500' }) => (
     <motion.div
         animate={isPulsing ? { scale: [1, 1.15, 1], opacity: [1, 0.7, 1] } : {}}
@@ -16,7 +15,6 @@ const PulsingIcon = ({ children, isPulsing, pulseColorClass = 'bg-pink-500' }) =
     </motion.div>
 );
 
-// Composant StatPill pour les bulles de statistiques
 const StatPill = ({ icon, count, isPulsing = false, pulseColorClass }) => (
     <div className="flex items-center gap-2 text-sm bg-color-bg-secondary px-3 py-1.5 rounded-full border border-color-border-primary">
         <PulsingIcon isPulsing={isPulsing} pulseColorClass={pulseColorClass}>
@@ -26,41 +24,21 @@ const StatPill = ({ icon, count, isPulsing = false, pulseColorClass }) => (
     </div>
 );
 
-// Le composant pour les icônes d'ancrage / boutons d'application
-const AnchorIcons = ({ t, isMobileView, openFullScreenModal }) => {
+const AnchorIcons = ({ t }) => {
     const iconStyle = "w-6 h-6 text-color-text-secondary group-hover:text-purple-400 transition-colors";
     const anchors = [
-        { id: 'messages', title: t('quick_nav_messages', 'Messages'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>, component: 'FlowLiveMessages' },
-        { id: 'notepad', title: t('quick_nav_notepad', 'Bloc-notes'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={iconStyle}><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon></svg>, component: 'Notepad' },
-        { id: 'calendar', title: t('quick_nav_calendar', 'Calendrier'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>, component: 'Calendar' },
-        { id: 'gantt', title: t('quick_nav_gantt', 'Planning Gantt'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>, component: 'GanttChartPlanning' },
-        { id: 'projects', title: t('quick_nav_projects', 'Projets'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>, component: 'Projects' },
-        { id: 'team', title: t('quick_nav_team', 'Mon Équipe'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>, component: 'TeamManagement' },
-        { id: 'clients', title: t('quick_nav_clients', 'Clients'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>, component: 'ClientManagement' },
-        { id: 'invoices', title: t('quick_nav_invoices', 'Factures'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>, component: 'InvoiceListModal' },
+        { id: 'messages', title: t('quick_nav_messages', 'Messages'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> },
+        { id: 'notepad', title: t('quick_nav_notepad', 'Bloc-notes'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={iconStyle}><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon></svg> },
+        { id: 'calendar', title: t('quick_nav_calendar', 'Calendrier'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> },
+        { id: 'gantt', title: t('quick_nav_gantt', 'Planning Gantt'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg> },
+        { id: 'projects', title: t('quick_nav_projects', 'Projets'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> },
+        { id: 'team', title: t('quick_nav_team', 'Mon Équipe'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> },
+        { id: 'clients', title: t('quick_nav_clients', 'Clients'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> },
+        { id: 'invoices', title: t('quick_nav_invoices', 'Factures'), icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={iconStyle}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> },
     ];
 
-    if (isMobileView) {
-        return (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:hidden w-full mt-4">
-                {anchors.map((anchor) => (
-                    <button
-                        key={anchor.id}
-                        onClick={() => openFullScreenModal(anchor.component, anchor.title)}
-                        title={anchor.title}
-                        className="group flex flex-col items-center justify-center p-3 sm:p-4 bg-color-bg-secondary border border-color-border-primary rounded-lg hover:border-purple-400 hover:bg-purple-500/10 transition-all duration-200 text-center"
-                    >
-                        {anchor.icon}
-                        <span className="text-xs mt-2 text-color-text-primary font-medium">{anchor.title}</span>
-                    </button>
-                ))}
-            </div>
-        );
-    }
-
-    // Version Desktop (inchangée)
     return (
-        <div className="flex items-center gap-2 hidden md:flex">
+        <div className="flex items-center gap-2">
             {anchors.map((anchor) => (
                 <a
                     key={anchor.id}
@@ -76,7 +54,7 @@ const AnchorIcons = ({ t, isMobileView, openFullScreenModal }) => {
 };
 
 
-const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t, onOpenCalculator, isMobileView, openFullScreenModal }) => {
+const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t, onOpenCalculator, isMobileView }) => {
     const { isDarkMode, toggleTheme } = useTheme();
 
     const phrases = useMemo(() => [
@@ -105,12 +83,11 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
     const displayUserNameForAvatar = user?.displayName || t('guest_user_default', 'Cher Invité');
     const avatarUrl = isGuestMode ? '/images/avatars/avatarguest.jpg' : (user?.photoURL || '/images/avatars/default-avatar.jpg');
 
-
     return (
         <motion.header
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-4"
+            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
         >
             <div className="flex items-center gap-4">
                 <div className="relative group cursor-pointer" onClick={() => openModal('avatar')}>
@@ -161,8 +138,8 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-3 self-start md:self-center w-full md:w-auto">
-                <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start w-full md:w-auto">
+            <div className="flex items-center gap-3 self-start md:self-center">
+                <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
                     <StatPill icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-1.9A8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5Z"/></svg>} count={stats.messages} isPulsing={stats.messages > 0} pulseColorClass="bg-pink-500" />
                     <StatPill icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sky-400"><path d="M9 11L12 14L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>} count={stats.tasks} isPulsing={stats.tasks > 0} pulseColorClass="bg-sky-500" />
                     <StatPill icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} count={stats.meetings} isPulsing={stats.meetings > 0} pulseColorClass="bg-amber-500" />
@@ -174,7 +151,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                     </button>
                 </div>
                 
-                <AnchorIcons t={t} isMobileView={isMobileView} openFullScreenModal={openFullScreenModal} />
+                {!isMobileView && <AnchorIcons t={t} />}
             </div>
         </motion.header>
     );
