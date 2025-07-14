@@ -7,7 +7,7 @@ import { useUserTodos } from '@/hooks/useUserTodos';
 import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import FullScreenModal from '../components/dashboard/modals/FullScreenModal';
@@ -60,6 +60,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
     const [isClient, setIsClient] = useState(false);
     const [invoiceDraft, setInvoiceDraft] = useState(null);
+    const flowLiveMessagesRef = useRef(null);
+    const ganttChartPlanningRef = useRef(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -157,7 +159,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const addClient = useCallback((newClient) => { onUpdateGuestData(prev => ({ ...prev, clients: [...(prev.clients || []), { ...newClient, id: `cl${Date.now()}` }] })); }, [onUpdateGuestData]);
     const updateClient = useCallback((updatedClient) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).map(c => c.id === updatedClient.id ? updatedClient : c) })); }, [onUpdateGuestData]);
     const deleteClient = useCallback((clientId) => { onUpdateGuestData(prev => ({ ...prev, clients: (prev.clients || []).filter(c => c.id !== clientId) })); }, [onUpdateGuestData]);
-
     const handleSaveGanttTask = useCallback((taskData) => {
         onUpdateGuestData(prev => {
             const currentTasks = prev.ganttTasks || [];
@@ -171,10 +172,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             return { ...prev, ganttTasks: updatedGanttTasks };
         });
     }, [onUpdateGuestData]);
-
     const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { ...newMeeting, id: `meeting-${Date.now()}` }] })); }, [onUpdateGuestData]);
     const handleAddDeadline = useCallback((newDeadline) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newDeadline, id: `proj-${Date.now()}` }] })); }, [onUpdateGuestData]);
-
     const handleAddOrEditInvoice = useCallback((invoiceData) => {
         setLocalData(prev => {
             const invoices = prev.invoices || [];
@@ -189,17 +188,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             return { ...prev, invoices: newInvoices };
         });
     }, []);
-
     const handleDeleteInvoice = useCallback((invoiceId) => {
         if (confirm(t("confirm_delete_invoice", "Supprimer cette facture ?"))) {
             setLocalData(prev => ({ ...prev, invoices: prev.invoices.filter(inv => inv.id !== invoiceId) }));
         }
     }, [t]);
-
     const handleUpdateInvoiceStatus = useCallback((invoiceId, newStatus) => {
         setLocalData(prev => ({ ...prev, invoices: prev.invoices.map(inv => inv.id === invoiceId ? { ...inv, status: newStatus } : inv) }));
     }, []);
-
     const openInvoiceModal = useCallback((invoiceToEdit = null) => {
         if (invoiceToEdit) {
             setInvoiceDraft(invoiceToEdit);
@@ -212,45 +208,22 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
         openModal('invoiceForm');
     }, [localData.invoices, openModal]);
-
     const handleProjectAction = useCallback((action, project) => {
         switch (action) {
-            case 'edit':
-                openModal('projectForm', { initialData: project, allClients: data.clients, allStaffMembers: data.staffMembers });
-                break;
-            case 'createInvoice':
-                const invoiceDraft = { title: t('invoice_for_project', `Facture pour : ${project.name}`), clientInfo: project.client || {}, lineItems: [{ id: Date.now(), description: project.name, quantity: 1, unitPrice: 0 }], };
-                openModal('invoiceForm', { initialDraft: invoiceDraft });
-                break;
-            case 'createTask':
-                openModal('quickTask', { projectContext: { id: project.id, name: project.name } });
-                break;
-            case 'assignTeam':
-                openModal('assignTeam', { task: { id: project.id, title: project.name, assignedTo: project.teamIds || [] } });
-                break;
-            case 'delete':
-                deleteProject(project.id);
-                break;
-            case 'chatGroup':
-                alert(t('chat_group_feature_coming', `Démarrer un chat de groupe pour le projet "${project.name}" (fonctionnalité à venir).`));
-                break;
-            case 'chatClient':
-                if (project.client) {
-                    alert(t('chat_client_feature_coming', `Démarrer un chat avec le client "${project.client.name}" (fonctionnalité à venir).`));
-                } else {
-                    alert(t('no_client_assigned', "Aucun client n'est assigné à ce projet."));
-                }
-                break;
-            default:
-                console.warn(t('unknown_project_action', "Action de projet inconnue:"), action);
+            case 'edit': openModal('projectForm', { initialData: project, allClients: data.clients, allStaffMembers: data.staffMembers }); break;
+            case 'createInvoice': const invoiceDraft = { title: t('invoice_for_project', `Facture pour : ${project.name}`), clientInfo: project.client || {}, lineItems: [{ id: Date.now(), description: project.name, quantity: 1, unitPrice: 0 }], }; openModal('invoiceForm', { initialDraft: invoiceDraft }); break;
+            case 'createTask': openModal('quickTask', { projectContext: { id: project.id, name: project.name } }); break;
+            case 'assignTeam': openModal('assignTeam', { task: { id: project.id, title: project.name, assignedTo: project.teamIds || [] } }); break;
+            case 'delete': deleteProject(project.id); break;
+            case 'chatGroup': alert(t('chat_group_feature_coming', `Démarrer un chat de groupe pour le projet "${project.name}" (fonctionnalité à venir).`)); break;
+            case 'chatClient': if (project.client) { alert(t('chat_client_feature_coming', `Démarrer un chat avec le client "${project.client.name}" (fonctionnalité à venir).`)); } else { alert(t('no_client_assigned', "Aucun client n'est assigné à ce projet.")); } break;
+            default: console.warn(t('unknown_project_action', "Action de projet inconnue:"), action);
         }
     }, [data.clients, data.staffMembers, openModal, deleteProject, t]);
-
     const addGroup = useCallback((name) => {
         const newGroup = { id: `group_${Date.now()}`, name };
         onUpdateGuestData(prev => ({ ...prev, groups: [...(prev.groups || []), newGroup] }));
     }, [onUpdateGuestData]);
-
     const deleteGroup = useCallback((groupId) => {
         if (groupId === 'default') return alert(t("default_group_cannot_be_deleted", "Le groupe par défaut ne peut être supprimé."));
         if (confirm(t("confirm_delete_group", "Supprimer ce groupe ? Les membres retourneront dans la liste des non-assignés."))) {
@@ -262,148 +235,88 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             });
         }
     }, [onUpdateGuestData, t]);
-
     const renameGroup = useCallback((groupId, newName) => {
-        onUpdateGuestData(prev => ({
-            ...prev,
-            groups: prev.groups.map(g => g.id === groupId ? { ...g, name: newName } : g)
-        }));
+        onUpdateGuestData(prev => ({ ...prev, groups: prev.groups.map(g => g.id === groupId ? { ...g, name: newName } : g) }));
     }, [onUpdateGuestData]);
-
     const assignToGroup = useCallback((personId, personType, newGroupId) => {
         setLocalData(prev => {
-            if (personType === 'member') {
-                const staffMembers = prev.staffMembers.map(m => m.id === personId ? { ...m, groupId: newGroupId } : m);
-                return { ...prev, staffMembers };
-            }
-            if (personType === 'client') {
-                const clients = prev.clients.map(c => c.id === personId ? { ...c, groupId: newGroupId } : c);
-                return { ...prev, clients };
-            }
+            if (personType === 'member') { const staffMembers = prev.staffMembers.map(m => m.id === personId ? { ...m, groupId: newGroupId } : m); return { ...prev, staffMembers }; }
+            if (personType === 'client') { const clients = prev.clients.map(c => c.id === personId ? { ...c, groupId: newGroupId } : c); return { ...prev, clients }; }
             return prev;
         });
     }, []);
-
     const handleDragEnd = useCallback((event) => {
         const { over, active } = event;
-        if (over && active) {
-            assignToGroup(active.id, active.data.current?.type, over.id);
-        }
+        if (over && active) { assignToGroup(active.id, active.data.current?.type, over.id); }
     }, [assignToGroup]);
-
-    const flowLiveMessagesRef = useRef(null);
-    const ganttChartPlanningRef = useRef(null);
-
     const handleFlowLiveMessagesFullscreen = useCallback(() => { if (flowLiveMessagesRef.current) flowLiveMessagesRef.current.toggleFullScreen(); }, []);
     const handleGanttChartPlanningFullscreen = useCallback(() => { if (ganttChartPlanningRef.current) ganttChartPlanningRef.current.toggleFullScreen(); }, []);
-
     const stats = useMemo(() => {
         const now = new Date();
         return {
             messages: (data.messages || []).length,
             tasks: (data.tasks || []).filter(task => !task.completed).length,
-            meetings: (data.meetings || []).filter(meetingItem => new Date(meetingItem.dateTime) > now).length,
+            meetings: (data.meetings || []).filter(meetingItem => meetingItem.dateTime && isAfter(parseISO(meetingItem.dateTime), now)).length,
         };
     }, [data]);
-
+    const { nextUpcomingMeeting, nextUpcomingDeadline } = useMemo(() => {
+        const now = new Date();
+        const futureMeetings = (data.meetings || [])
+            .filter(m => m.dateTime && isAfter(parseISO(m.dateTime), now))
+            .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+        const futureDeadlines = (data.projects || [])
+            .filter(p => p.deadline && isAfter(parseISO(p.deadline), now))
+            .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+        return {
+            nextUpcomingMeeting: futureMeetings[0],
+            nextUpcomingDeadline: futureDeadlines[0],
+        };
+    }, [data.meetings, data.projects]);
     const handleOpenAddTaskFromChat = useCallback((chatData) => {
         openModal('assignTaskProjectDeadline', { ...chatData, isFromChat: true, availableTeamMembers: data.staffMembers || [] });
     }, [openModal, data.staffMembers]);
-
     const handleOpenCalculatorModal = useCallback(() => { openModal('calculator'); }, [openModal]);
-
     const handleGroupAction = useCallback((action, group) => {
         switch (action) {
-            case 'addTask':
-                openModal('quickTask', { groupContext: group });
-                break;
-            case 'addDeadline':
-                openModal('addDeadline', { groupContext: group });
-                break;
-            case 'startDiscussion':
-                const membersInGroup = localData.staffMembers.filter(m => m.groupId === group.id);
-                const clientsInGroup = localData.clients.filter(c => c.groupId === group.id);
-                const participants = [...membersInGroup, ...clientsInGroup];
-                openModal('newDiscussion', { preselectedParticipants: participants, groupName: group.name });
-                break;
-            default:
-                console.warn(t("unknown_group_action", "Action de groupe inconnue:"), action);
+            case 'addTask': openModal('quickTask', { groupContext: group }); break;
+            case 'addDeadline': openModal('addDeadline', { groupContext: group }); break;
+            case 'startDiscussion': const membersInGroup = localData.staffMembers.filter(m => m.groupId === group.id); const clientsInGroup = localData.clients.filter(c => c.groupId === group.id); const participants = [...membersInGroup, ...clientsInGroup]; openModal('newDiscussion', { preselectedParticipants: participants, groupName: group.name }); break;
+            default: console.warn(t("unknown_group_action", "Action de groupe inconnue:"), action);
         }
     }, [openModal, localData.staffMembers, localData.clients, t]);
-
     const handleOpenAlertDetails = useCallback((alertItem) => {
         let title = '';
         let content = '';
         if (alertItem.type === 'deadline') {
             title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title || ''}`);
             const deadlineDate = parseISO(alertItem.deadline);
-            content = `
-                ${t('project_task', 'Tâche/Projet')} : ${alertItem?.name || alertItem?.title || ''}
-                ${t('client', 'Client')} : ${alertItem?.client || t('not_specified', 'Non spécifié')}
-                ${t('date', 'Date')} : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}
-                ${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}
-            `;
+            content = `${t('project_task', 'Tâche/Projet')} : ${alertItem?.name || alertItem?.title || ''} ${t('client', 'Client')} : ${alertItem?.client || t('not_specified', 'Non spécifié')} ${t('date', 'Date')} : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'} ${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}`;
         } else if (alertItem.type === 'meeting') {
             title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title || ''}`);
             const meetingDateTime = parseISO(alertItem.dateTime);
-            content = `
-                ${t('subject', 'Sujet')} : ${alertItem?.title || ''}
-                ${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}
-                ${t('location', 'Lieu')} : ${alertItem?.location || t('not_specified', 'Non spécifié')}
-                ${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}
-            `;
+            content = `${t('subject', 'Sujet')} : ${alertItem?.title || ''} ${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'} ${t('location', 'Lieu')} : ${alertItem?.location || t('not_specified', 'Non spécifié')} ${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}`;
         }
         openModal('detailsModal', { title, content: content.trim() });
     }, [openModal, t]);
-
     const handleSelectUserOnMobile = useCallback((conv) => {
         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== authUser?.uid);
-        if (otherParticipant) {
-            openModal('quickChat', otherParticipant);
-        }
+        if (otherParticipant) { openModal('quickChat', otherParticipant); }
     }, [openModal, authUser?.uid]);
-
     const renderFullScreenComponent = () => {
         if (!fullScreenModal.component) return null;
-
         switch (fullScreenModal.component) {
-            case 'FlowLiveMessages':
-                return (
-                    <FlowLiveMessages
-                        ref={flowLiveMessagesRef}
-                        t={t}
-                        currentLanguage={lang}
-                        onLoginClick={onLoginClick}
-                        onRegisterClick={onRegisterClick}
-                        onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
-                        onAddMeeting={() => openModal('addMeeting')}
-                        onAddDeadline={() => openModal('addDeadline')}
-                        messages={data.messages || []}
-                        user={authUser}
-                        initialMockData={initialMockData}
-                        availableTeamMembers={data.staffMembers || []}
-                        handleSelectUserOnMobile={handleSelectUserOnMobile}
-                        findUserByIdOrEmail={findUserByIdOrEmail}
-                    />
-                );
-            case 'Notepad':
-                return <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />;
-            case 'Calendar':
-                return <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />;
-            case 'GanttChartPlanning':
-                return <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />;
-            case 'Projects':
-                return <Projects projects={data.projects || []} clients={data.clients || []} staffMembers={data.staffMembers || []} onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })} onAction={handleProjectAction} t={t} />;
-            case 'TeamManagement':
-                return <TeamManagement members={data.staffMembers || []} openModal={openModal} t={t} className="h-full" />;
-            case 'ClientManagement':
-                return <ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-full" />;
-            case 'InvoiceListModal':
-                openModal('invoiceList');
-                closeFullScreenModal();
-                return null;
-            default:
-                return <div>Composant "{fullScreenModal.component}" non trouvé.</div>;
+            case 'FlowLiveMessages': return (<FlowLiveMessages ref={flowLiveMessagesRef} t={t} currentLanguage={lang} onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onOpenAddTaskFromChat={handleOpenAddTaskFromChat} onAddMeeting={() => openModal('addMeeting')} onAddDeadline={() => openModal('addDeadline')} messages={data.messages || []} user={authUser} initialMockData={initialMockData} availableTeamMembers={data.staffMembers || []} handleSelectUserOnMobile={handleSelectUserOnMobile} findUserByIdOrEmail={findUserByIdOrEmail} />);
+            case 'TodoList': return <TodoList todos={visibleTodos} setTodos={setTodos} loading={loadingTodos} onAdd={addTodo} onToggle={toggleTodo} onEdit={(task) => openModal('taskEdit', task)} onDelete={deleteTodo} onAssignTeam={(task) => openModal('assignTeam', task)} t={t} />;
+            case 'Notepad': return <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />;
+            case 'Calendar': return <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />;
+            case 'GanttChartPlanning': return <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />;
+            case 'Projects': return <Projects projects={data.projects || []} clients={data.clients || []} staffMembers={data.staffMembers || []} onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })} onAction={handleProjectAction} t={t} />;
+            case 'TeamManagement': return <TeamManagement members={data.staffMembers || []} openModal={openModal} t={t} className="h-full" />;
+            case 'ClientManagement': return <ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-full" />;
+            case 'GroupManagement': return <GroupManagement groups={data.groups || []} allMembers={data.staffMembers || []} allClients={data.clients || []} onAddGroup={addGroup} onDeleteGroup={deleteGroup} onRenameGroup={renameGroup} onGroupAction={handleGroupAction} t={t} />;
+            case 'InvoiceListModal': openModal('invoiceList'); closeFullScreenModal(); return null;
+            case 'EmailCheckModal': openModal('emailCheck'); closeFullScreenModal(); return null;
+            default: return <div>Composant "{fullScreenModal.component}" non trouvé.</div>;
         }
     };
 
@@ -420,12 +333,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             <Head><title>{t('dashboard_title', 'Dashboard - NocaFLOW')}</title></Head>
             <div className={`w-full ${!isMobileView ? 'dashboard-page-content-padding min-h-screen' : ''}`}>
                 <motion.div
-                    className={`max-w-screen-2xl mx-auto ${isMobileView ? 'flex flex-col h-screen' : ''}`}
+                    className="max-w-screen-2xl mx-auto"
                     initial="hidden"
                     animate="visible"
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                 >
-                    <div className={`${isMobileView ? 'p-4 border-b border-color-border-primary' : ''} flex-shrink-0`}>
+                    <div className={`${isMobileView ? 'p-4' : ''}`}>
                         {isClient && isGuestMode && !isMobileView && (
                             <div className="guest-banner-wrapper mb-4">
                                 <GuestBanner onRegisterClick={onRegisterClick} onLoginClick={onLoginClick} t={t} />
@@ -440,88 +353,30 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             t={t}
                             onOpenCalculator={handleOpenCalculatorModal}
                             isMobileView={isMobileView}
+                            nextUpcomingMeeting={nextUpcomingMeeting}
+                            nextUpcomingDeadline={nextUpcomingDeadline}
                         />
                     </div>
-
                     {!isMobileView ? (
                         <div className="grid grid-cols-12 gap-6 mt-6">
                             <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-                                <div id="messages-section">
-                                    <DashboardCard
-                                        t={t}
-                                        title={t('live_messages_title', 'Flow Live Messages')}
-                                        icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>}
-                                        onFullscreenClick={handleFlowLiveMessagesFullscreen}
-                                        noContentPadding={true}
-                                    >
-                                        <FlowLiveMessages
-                                            ref={flowLiveMessagesRef}
-                                            t={t}
-                                            currentLanguage={lang}
-                                            onLoginClick={onLoginClick}
-                                            onRegisterClick={onRegisterClick}
-                                            onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
-                                            onAddMeeting={() => openModal('addMeeting')}
-                                            onAddDeadline={() => openModal('addDeadline')}
-                                            messages={data.messages || []}
-                                            user={authUser}
-                                            initialMockData={initialMockData}
-                                            availableTeamMembers={data.staffMembers || []}
-                                            handleSelectUserOnMobile={handleSelectUserOnMobile}
-                                            findUserByIdOrEmail={findUserByIdOrEmail}
-                                        />
-                                    </DashboardCard>
-                                </div>
-                                <div id="notepad-section">
-                                    <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />
-                                </div>
-                                <div id="calendar-section">
-                                    <DashboardCard
-                                        t={t}
-                                        title={t('calendar_title', 'Calendrier')}
-                                        icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>}
-                                    >
-                                        <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />
-                                    </DashboardCard>
-                                </div>
-                                <div id="invoices-section">
-                                    <InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} />
-                                </div>
+                                <div id="messages-section"><DashboardCard t={t} title={t('live_messages_title', 'Flow Live Messages')} noContentPadding><FlowLiveMessages ref={flowLiveMessagesRef} t={t} currentLanguage={lang} messages={data.messages || []} user={authUser} initialMockData={initialMockData} availableTeamMembers={data.staffMembers || []} onOpenAddTaskFromChat={handleOpenAddTaskFromChat} /></DashboardCard></div>
+                                <div id="notepad-section"><Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} /></div>
+                                <div id="calendar-section"><DashboardCard t={t} title={t('calendar_title', 'Calendrier')}><Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} /></DashboardCard></div>
+                                <div id="invoices-section"><InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} /></div>
                             </div>
                             <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
                                 <TimeAlerts projects={data.projects || []} meetings={data.meetings || []} t={t} lang={lang} openModal={openModal} onAlertCardClick={handleOpenAlertDetails} />
                                 <TodoList todos={visibleTodos} setTodos={setTodos} loading={loadingTodos} onAdd={addTodo} onToggle={toggleTodo} onEdit={(task) => openModal('taskEdit', task)} onDelete={deleteTodo} onAssignTeam={(task) => openModal('assignTeam', task)} t={t} />
-                                <div id="projects-section">
-                                    <Projects
-                                        projects={data.projects || []}
-                                        clients={data.clients || []}
-                                        staffMembers={data.staffMembers || []}
-                                        onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })}
-                                        onAction={handleProjectAction}
-                                        t={t}
-                                    />
-                                </div>
+                                <div id="projects-section"><Projects projects={data.projects || []} clients={data.clients || []} staffMembers={data.staffMembers || []} onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })} onAction={handleProjectAction} t={t} /></div>
                             </div>
-                            <div className="col-span-12" id="gantt-section">
-                                <DashboardCard
-                                    t={t}
-                                    title={t('gantt_title', 'Planning Gantt')}
-                                    icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>}
-                                    onFullscreenClick={handleGanttChartPlanningFullscreen}
-                                >
-                                    <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />
-                                </DashboardCard>
-                            </div>
+                            <div className="col-span-12" id="gantt-section"><DashboardCard t={t} title={t('gantt_title', 'Planning Gantt')}><GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} /></DashboardCard></div>
                             <div className="col-span-12" id="management-section">
                                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        <div id="team-section">
-                                            <TeamManagement members={data.staffMembers || []} openModal={openModal} t={t} className="h-[400px]" />
-                                        </div>
-                                        <GroupManagement groups={data.groups || []} allMembers={data.staffMembers || []} allClients={data.clients || []} onAddGroup={addGroup} onDeleteGroup={deleteGroup} onRenameGroup={renameGroup} onGroupAction={handleGroupAction} t={t} />
-                                        <div id="clients-section">
-                                            <ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-[400px]" />
-                                        </div>
+                                        <div id="team-section"><TeamManagement members={data.staffMembers || []} openModal={openModal} t={t} className="h-[400px]" /></div>
+                                        <div id="groups-section"><GroupManagement groups={data.groups || []} allMembers={data.staffMembers || []} allClients={data.clients || []} onAddGroup={addGroup} onDeleteGroup={deleteGroup} onRenameGroup={renameGroup} onGroupAction={handleGroupAction} t={t} /></div>
+                                        <div id="clients-section"><ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-[400px]" /></div>
                                     </div>
                                 </DndContext>
                             </div>
@@ -531,7 +386,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     )}
                 </motion.div>
             </div>
-
             <AnimatePresence>
                 {activeModal === 'taskEdit' && <TaskEditModal t={t} task={modalProps} onSave={editTodo} onClose={closeModal} />}
                 {activeModal === 'dayDetails' && <DayDetailsModal t={t} data={modalProps} onAddTask={(date) => openModal('quickTask', { date })} onClose={closeModal} />}
@@ -556,12 +410,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {activeModal === 'detailsModal' && modalProps && <DetailsModal isOpen={true} onClose={closeModal} title={modalProps.title || ""} content={modalProps.content || ""} />}
                 {activeModal === 'newDiscussion' && modalProps && <NewDiscussionModal t={t} onClose={closeModal} preselectedParticipants={modalProps.preselectedParticipants} groupName={modalProps.groupName} />}
             </AnimatePresence>
-
-            <FullScreenModal
-                isOpen={fullScreenModal.isOpen}
-                onClose={closeFullScreenModal}
-                title={fullScreenModal.title}
-            >
+            <FullScreenModal isOpen={fullScreenModal.isOpen} onClose={closeFullScreenModal} title={fullScreenModal.title}>
                 {renderFullScreenComponent()}
             </FullScreenModal>
         </>
