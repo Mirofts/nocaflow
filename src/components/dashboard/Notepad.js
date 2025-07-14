@@ -1,4 +1,4 @@
-// components/dashboard/Notepad.js
+// src/components/dashboard/Notepad.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DashboardCard } from './DashboardCard';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -8,11 +8,13 @@ import { useTheme } from '../../context/ThemeContext';
 import ConfirmDeleteModal from './modals/ConfirmDeleteModal';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
-// MODIFICATION CLÉ ICI : Importez DOMPurify d'une manière qui gère son exportation par défaut
-const DOMPurify = typeof window !== 'undefined' ? require('dompurify').default : null;
 
-// Import dynamique pour que l'éditeur fonctionne avec Next.js
+// Import dynamique pour ReactQuill, en s'assurant qu'il est chargé côté client
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+
+// Définition d'une variable qui sera assignée à l'instance de DOMPurify
+// Elle sera initialement null côté serveur, puis l'instance DOMPurify côté client.
+let domPurifyInstance = null; // Nommé différemment pour éviter toute confusion avec DOMPurify en tant que type/composant
 
 // Helper pour générer un ID unique simple
 const generateId = () => `note_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -34,6 +36,8 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
     const [noteToDeleteId, setNoteToDeleteId] = useState(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
+    // État pour savoir si DOMPurify est chargé et prêt à être utilisé
+    const [isDOMPurifyReady, setIsDOMPurifyReady] = useState(false);
 
     const timeoutRef = useRef(null);
     const titleInputRef = useRef(null);
@@ -50,23 +54,43 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
         clipboard: { matchVisual: false },
     };
 
+    // NOUVEL EFFECT POUR INITIALISER DOMPURIFY CÔTÉ CLIENT
+    useEffect(() => {
+        // Cette vérification typeof window est cruciale pour le SSR.
+        if (typeof window !== 'undefined' && !domPurifyInstance) {
+            import('dompurify')
+                .then(mod => {
+                    domPurifyInstance = mod.default; // L'exportation par défaut de 'dompurify'
+                    setIsDOMPurifyReady(true);
+                    console.log("DOMPurify chargé et prêt !"); // Pour le débogage
+                })
+                .catch(err => {
+                    console.error("Échec du chargement de DOMPurify:", err);
+                    setIsDOMPurifyReady(false); // Marquer comme non prêt en cas d'erreur
+                });
+        } else if (domPurifyInstance) {
+            // Si l'instance existe déjà (par exemple, après un Fast Refresh)
+            setIsDOMPurifyReady(true);
+        }
+    }, []); // Dépendances vides pour que cela ne s'exécute qu'une fois au montage
+
+    // Effect principal pour le chargement des notes (dépend maintenant de isDOMPurifyReady)
      useEffect(() => {
+        if (!isDOMPurifyReady) return; // Attendre que DOMPurify soit prêt avant de charger/sanitiser
+
         if (isGuest) {
             const savedGuestData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
             const savedNotes = savedGuestData.notes && Array.isArray(savedGuestData.notes) && savedGuestData.notes.length > 0
                 ? savedGuestData.notes
                 : initialNotes;
             
-            // UTILISATION DE DOMPURIFY.sanitize APRÈS SA DÉFINITION DANS L'IMPORT DYNAMIQUE
             const sanitizedNotes = savedNotes.map(note => ({
                 ...note,
-                // Vérifiez que DOMPurify est bien chargé avant de l'appeler
-                content: DOMPurify ? DOMPurify.sanitize(note.content) : note.content 
+                content: domPurifyInstance.sanitize(note.content) // Utiliser l'instance chargée
             }));
             setNotes(sanitizedNotes);
 
-            // CORRECTION : On active le premier onglet pour le mode invité aussi
-            if (!sanitizedNotes.some(n => n.id === activeTabId)) { 
+            if (!sanitizedNotes.some(n => n.id === activeTabId)) {
                 setActiveTabId(sanitizedNotes[0]?.id || null);
             }
             setStatus(t('saved', 'Sauvegardé'));
@@ -88,15 +112,12 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
                 loadedNotes = [createNewNote(t('default_note_title', 'Mes Idées'))];
             }
             
-            // UTILISATION DE DOMPURIFY.sanitize APRÈS SA DÉFINITION DANS L'IMPORT DYNAMIQUE
             const sanitizedNotes = loadedNotes.map(note => ({
                 ...note,
-                // Vérifiez que DOMPurify est bien chargé avant de l'appeler
-                content: DOMPurify ? DOMPurify.sanitize(note.content) : note.content 
+                content: domPurifyInstance.sanitize(note.content) // Utiliser l'instance chargée
             }));
             setNotes(sanitizedNotes);
 
-            // CORRECTION : On s'assure qu'un onglet est actif après le chargement
             setActiveTabId(prevActiveId => {
                 const activeNoteExists = sanitizedNotes.some(note => note.id === prevActiveId);
                 if (!activeNoteExists) {
@@ -112,7 +133,8 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
         });
 
         return () => unsubscribe();
-    }, [uid, isGuest, t]);
+    }, [uid, isGuest, t, isDOMPurifyReady]); // isDOMPurifyReady AJOUTÉ AUX DÉPENDANCES
+
 
     useEffect(() => {
         if (editingTabId && titleInputRef.current) titleInputRef.current.select();
@@ -138,13 +160,13 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
     }, [notes]);
 
     const saveNotes = useCallback((notesToSave) => {
+        // saveNotes sera appelé par debouncedSave, qui est conditionné par isDOMPurifyReady
         setStatus(t('saving', 'Sauvegarde...'));
         try {
-            // UTILISATION DE DOMPURIFY.sanitize APRÈS SA DÉFINITION DANS L'IMPORT DYNAMIQUE
             const sanitizedNotesForSave = notesToSave.map(note => ({
                 ...note,
-                // Vérifiez que DOMPurify est bien chargé avant de l'appeler
-                content: DOMPurify ? DOMPurify.sanitize(note.content) : note.content 
+                // On utilise domPurifyInstance ici, qui est garanti d'être prêt
+                content: domPurifyInstance.sanitize(note.content) 
             }));
 
             if (isGuest) onUpdateGuestData(prev => ({ ...prev, notes: sanitizedNotesForSave }));
@@ -155,10 +177,15 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
     }, [isGuest, uid, onUpdateGuestData, t]);
 
     const debouncedSave = useCallback((updatedNotes) => {
+        // Appeler debouncedSave seulement si DOMPurify est prêt
+        if (!isDOMPurifyReady) {
+            console.warn("DOMPurify n'est pas prêt, la sauvegarde est retardée/ignorée.");
+            return;
+        }
         setStatus(t('editing', 'Édition...'));
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(() => saveNotes(updatedNotes), 1500);
-    }, [saveNotes, t]);
+    }, [saveNotes, t, isDOMPurifyReady]); // isDOMPurifyReady AJOUTÉ AUX DÉPENDANCES
 
     const handleContentChange = (content) => {
         const updatedNotes = notes.map(note => note.id === activeTabId ? { ...note, content } : note);

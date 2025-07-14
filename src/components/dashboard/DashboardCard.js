@@ -2,8 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
-// AJOUT : Importation de votre hook personnalisé
-import { useFullScreen } from '../../hooks/useFullScreen'; // Assurez-vous que le chemin est correct
+import { useFullScreen } from '../../hooks/useFullScreen';
 
 export const DashboardCard = ({
     children,
@@ -12,15 +11,14 @@ export const DashboardCard = ({
     title,
     initialMinimized = false,
     t,
-    noContentPadding = false
+    noContentPadding = false,
+    // onFullscreenClick // Cette prop n'est plus directement utilisée pour le plein écran générique
 }) => {
     const [isMinimized, setIsMinimized] = useState(initialMinimized);
     const { isDarkMode } = useTheme();
 
-    // AJOUT : Création de la ref pour le hook
     const cardRef = useRef(null);
-    // AJOUT : Utilisation de votre hook pour gérer le plein écran
-    const { toggleFullScreen } = useFullScreen(cardRef);
+    const { toggleFullScreen } = useFullScreen(cardRef); // Votre hook de plein écran
 
     const handleMinimizeToggle = () => {
         setIsMinimized(!isMinimized);
@@ -28,7 +26,6 @@ export const DashboardCard = ({
 
     const cardVariants = {
         minimized: { height: '72px', transition: { duration: 0.2, ease: 'easeInOut' } },
-        // La hauteur est maintenant déterminée par le contenu
         maximized: { height: 'auto', transition: { duration: 0.2, ease: 'easeInOut' } }
     };
 
@@ -38,14 +35,12 @@ export const DashboardCard = ({
     };
 
     return (
-        // La ref est attachée à l'élément racine de la carte
         <motion.div
-            ref={cardRef}
+            ref={cardRef} // S'ASSURER QUE LA REF EST BIEN ICI
             className={`relative flex flex-col border border-color-border-primary rounded-2xl bg-color-bg-secondary ${className}`}
             variants={cardVariants}
             animate={isMinimized ? 'minimized' : 'maximized'}
-            // Important pour que le contenu ne soit pas coupé lors de l'animation
-            style={{ overflow: 'visible' }} 
+            style={{ overflow: 'visible' }}
         >
             {/* Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-color-border-primary shadow-sm flex-shrink-0 bg-color-bg-tertiary z-10">
@@ -66,14 +61,17 @@ export const DashboardCard = ({
                         )}
                     </button>
                     
-                    {/* Le bouton appelle maintenant la fonction du hook */}
-                    <button
+                    {/* Le bouton de plein écran n'est plus généré par DashboardCard, mais par les composants spécifiques si besoin. */}
+                    {/* Si vous voulez un bouton plein écran par défaut sur toutes les cartes Desktop, remettez-le ici. */}
+                    {/* Pour les besoins mobiles, il est déclenché par les boutons d'application du Header. */}
+                    {/* Example if you want it back: */}
+                    {/* <button
                         onClick={toggleFullScreen}
                         className="p-1 rounded-full transition-colors text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary"
                         title={t?.('fullscreen') || 'Fullscreen'}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3m-18 0v3a2 2 0 0 0 2 2h3"/></svg>
-                    </button>
+                    </button> */}
                 </div>
             </div>
 
@@ -85,7 +83,6 @@ export const DashboardCard = ({
                         initial="hidden"
                         animate="visible"
                         exit="hidden"
-                        // CORRECTION Calendrier : Les classes qui limitaient la hauteur ont été retirées
                         className={`relative ${noContentPadding ? '' : 'p-6'}`}
                     >
                         {children}

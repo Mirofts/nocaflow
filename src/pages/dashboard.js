@@ -11,6 +11,10 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { format, parseISO, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+// NOUVEAUX IMPORTS POUR LA VUE MOBILE
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import FullScreenModal from '../components/dashboard/modals/FullScreenModal';
+
 // IMPORTS POUR LES NOUVELLES FONCTIONNALITÉS
 import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import GroupManagement from '../components/dashboard/GroupManagement';
@@ -60,6 +64,12 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const { t } = useTranslation('common');
 
     const sensors = useAppSensors();
+
+    // NOUVEAU : Détecter la vue mobile (basé sur la breakpoint 'lg' de Tailwind: 1024px)
+    const isMobileView = useMediaQuery('(max-width: 1023px)');
+
+    // NOUVEAU : État pour gérer le modal plein écran sur mobile
+    const [fullScreenModal, setFullScreenModal] = useState({ isOpen: false, component: null, title: '' });
 
     const isGuestMode = !authUser || authUser.uid === 'guest_noca_flow';
 
@@ -141,6 +151,15 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const closeModal = useCallback(() => {
         setActiveModal(null);
         setModalProps(null);
+    }, []);
+    
+    // NOUVEAU : Fonctions pour le modal plein écran mobile
+    const openFullScreenModal = useCallback((component, title) => {
+        setFullScreenModal({ isOpen: true, component, title });
+    }, []);
+
+    const closeFullScreenModal = useCallback(() => {
+        setFullScreenModal({ isOpen: false, component: null, title: '' });
     }, []);
 
     const findUserByIdOrEmail = useCallback(async (identifier, searchType) => {
@@ -350,8 +369,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 console.warn(t("unknown_group_action", "Action de groupe inconnue:"), action);
         }
     }, [openModal, localData.staffMembers, localData.clients, t]);
-
-    // CORRECTION: Réécriture de la fonction pour éviter l'erreur de "regexp"
+    
     const handleOpenAlertDetails = useCallback((alertItem) => {
         let title = '';
         let content = '';
@@ -384,6 +402,50 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, [openModal, authUser?.uid]);
 
+    // NOUVEAU : Fonction pour rendre le composant dans le modal plein écran
+    const renderFullScreenComponent = () => {
+        if (!fullScreenModal.component) return null;
+
+        switch (fullScreenModal.component) {
+            case 'FlowLiveMessages':
+                return (
+                    <FlowLiveMessages
+                        ref={flowLiveMessagesRef}
+                        t={t}
+                        currentLanguage={lang}
+                        onLoginClick={onLoginClick}
+                        onRegisterClick={onRegisterClick}
+                        onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
+                        onAddMeeting={() => openModal('addMeeting')}
+                        onAddDeadline={() => openModal('addDeadline')}
+                        messages={data.messages || []}
+                        user={authUser}
+                        initialMockData={initialMockData}
+                        availableTeamMembers={data.staffMembers || []}
+                        handleSelectUserOnMobile={handleSelectUserOnMobile}
+                        findUserByIdOrEmail={findUserByIdOrEmail}
+                    />
+                );
+            case 'Notepad':
+                return <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />;
+            case 'Calendar':
+                 return <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />;
+            case 'GanttChartPlanning':
+                return <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />;
+            case 'Projects':
+                 return <Projects projects={data.projects || []} clients={data.clients || []} staffMembers={data.staffMembers || []} onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })} onAction={handleProjectAction} t={t} />;
+            case 'TeamManagement':
+                return <TeamManagement members={data.staffMembers || []} openModal={openModal} t={t} className="h-full" />;
+            case 'ClientManagement':
+                return <ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-full" />;
+            case 'InvoiceListModal':
+                 openModal('invoiceList');
+                 closeFullScreenModal();
+                 return null;
+            default:
+                return <div>Composant "{fullScreenModal.component}" non trouvé.</div>;
+        }
+    };
 
     if (loadingAuth) {
         return (
@@ -403,7 +465,7 @@ return (
                     </div>
                 )}
                 <motion.div
-                    className="max-w-screen-2xl mx-auto space-y-6"
+                    className="max-w-screen-2xl mx-auto"
                     initial="hidden"
                     animate="visible"
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
@@ -416,101 +478,108 @@ return (
                         stats={stats}
                         t={t}
                         onOpenCalculator={handleOpenCalculatorModal}
+                        isMobileView={isMobileView}
+                        openFullScreenModal={openFullScreenModal}
                     />
 
-                    <div className="grid grid-cols-12 gap-6">
-                        {/* LEFT COLUMN */}
-                        <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-
-                            {/* CORRECTION : Enveloppé dans DashboardCard */}
-                            <div id="messages-section">
-                                <DashboardCard
-                                    t={t}
-                                    title={t('live_messages_title', 'Flow Live Messages')}
-                                    icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>}
-                                    onFullscreenClick={handleFlowLiveMessagesFullscreen}
-                                    noContentPadding={true} // FlowLiveMessages gère son propre padding
-                                >
-                                    <FlowLiveMessages
-                                        ref={flowLiveMessagesRef}
+                    {/* AFFICHAGE CONDITIONNEL : DESKTOP vs MOBILE */}
+                    {!isMobileView ? (
+                        // VUE DESKTOP (votre code existant)
+                        <div className="grid grid-cols-12 gap-6 mt-6">
+                            {/* LEFT COLUMN */}
+                            <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
+                                <div id="messages-section">
+                                    <DashboardCard
                                         t={t}
-                                        currentLanguage={lang}
-                                        onLoginClick={onLoginClick}
-                                        onRegisterClick={onRegisterClick}
-                                        onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
-                                        onAddMeeting={() => openModal('addMeeting')}
-                                        onAddDeadline={() => openModal('addDeadline')}
-                                        messages={data.messages || []}
-                                        user={authUser}
-                                        initialMockData={initialMockData}
-                                        availableTeamMembers={data.staffMembers || []}
-                                        handleSelectUserOnMobile={handleSelectUserOnMobile}
-                                        findUserByIdOrEmail={findUserByIdOrEmail}
-                                    />
-                                </DashboardCard>
-                            </div>
-
-                           <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />
-
-                           {/* CORRECTION : Enveloppé dans DashboardCard */}
-                           <div id="calendar-section">
-                                <DashboardCard
-                                    t={t}
-                                    title={t('calendar_title', 'Calendrier')}
-                                    icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>}
-                                >
-                                   <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />
-                                </DashboardCard>
-                           </div>
-
-                            <InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} />
-                        </div>
-
-                        {/* RIGHT COLUMN */}
-                        <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-                            <TimeAlerts projects={data.projects || []} meetings={data.meetings || []} t={t} lang={lang} openModal={openModal} onAlertCardClick={handleOpenAlertDetails} />
-                            <TodoList todos={visibleTodos} setTodos={setTodos} loading={loadingTodos} onAdd={addTodo} onToggle={toggleTodo} onEdit={(task) => openModal('taskEdit', task)} onDelete={deleteTodo} onAssignTeam={(task) => openModal('assignTeam', task)} t={t} />
-                            <div id="projects-section">
-                                <Projects
-                                    projects={data.projects || []}
-                                    clients={data.clients || []}
-                                    staffMembers={data.staffMembers || []}
-                                    onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })}
-                                    onAction={handleProjectAction}
-                                    t={t}
-                                />
-                            </div>
-                        </div>
-
-                        {/* FULL-WIDTH SECTIONS */}
-                        {/* CORRECTION : Enveloppé dans DashboardCard */}
-                        <div className="col-span-12" id="gantt-section">
-                             <DashboardCard
-                                t={t}
-                                title={t('gantt_title', 'Planning Gantt')}
-                                icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>}
-                                onFullscreenClick={handleGanttChartPlanningFullscreen}
-                             >
-                                <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />
-                            </DashboardCard>
-                        </div>
-
-                        {/* MANAGEMENT SECTION */}
-                        <div className="col-span-12" id="management-section">
-                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    <TeamManagement
-                                        members={data.staffMembers || []}
-                                        openModal={openModal}
-                                        t={t}
-                                        className="h-[400px]"
-                                    />
-                                    <GroupManagement groups={data.groups || []} allMembers={data.staffMembers || []} allClients={data.clients || []} onAddGroup={addGroup} onDeleteGroup={deleteGroup} onRenameGroup={renameGroup} onGroupAction={handleGroupAction} t={t} />
-                                    <ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-[400px]" />
+                                        title={t('live_messages_title', 'Flow Live Messages')}
+                                        icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>}
+                                        onFullscreenClick={handleFlowLiveMessagesFullscreen}
+                                        noContentPadding={true}
+                                    >
+                                        <FlowLiveMessages
+                                            ref={flowLiveMessagesRef}
+                                            t={t}
+                                            currentLanguage={lang}
+                                            onLoginClick={onLoginClick}
+                                            onRegisterClick={onRegisterClick}
+                                            onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
+                                            onAddMeeting={() => openModal('addMeeting')}
+                                            onAddDeadline={() => openModal('addDeadline')}
+                                            messages={data.messages || []}
+                                            user={authUser}
+                                            initialMockData={initialMockData}
+                                            availableTeamMembers={data.staffMembers || []}
+                                            handleSelectUserOnMobile={handleSelectUserOnMobile}
+                                            findUserByIdOrEmail={findUserByIdOrEmail}
+                                        />
+                                    </DashboardCard>
                                 </div>
-                            </DndContext>
+                               <div id="notepad-section">
+                                    <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />
+                               </div>
+                               <div id="calendar-section">
+                                    <DashboardCard
+                                        t={t}
+                                        title={t('calendar_title', 'Calendrier')}
+                                        icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>}
+                                    >
+                                       <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />
+                                    </DashboardCard>
+                               </div>
+                               <div id="invoices-section">
+                                <InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} />
+                               </div>
+                            </div>
+
+                            {/* RIGHT COLUMN */}
+                            <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+                                <TimeAlerts projects={data.projects || []} meetings={data.meetings || []} t={t} lang={lang} openModal={openModal} onAlertCardClick={handleOpenAlertDetails} />
+                                <TodoList todos={visibleTodos} setTodos={setTodos} loading={loadingTodos} onAdd={addTodo} onToggle={toggleTodo} onEdit={(task) => openModal('taskEdit', task)} onDelete={deleteTodo} onAssignTeam={(task) => openModal('assignTeam', task)} t={t} />
+                                <div id="projects-section">
+                                    <Projects
+                                        projects={data.projects || []}
+                                        clients={data.clients || []}
+                                        staffMembers={data.staffMembers || []}
+                                        onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })}
+                                        onAction={handleProjectAction}
+                                        t={t}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* FULL-WIDTH SECTIONS */}
+                            <div className="col-span-12" id="gantt-section">
+                                 <DashboardCard
+                                    t={t}
+                                    title={t('gantt_title', 'Planning Gantt')}
+                                    icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>}
+                                    onFullscreenClick={handleGanttChartPlanningFullscreen}
+                                 >
+                                    <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />
+                                </DashboardCard>
+                            </div>
+
+                            {/* MANAGEMENT SECTION */}
+                            <div className="col-span-12" id="management-section">
+                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                        <div id="team-section">
+                                            <TeamManagement members={data.staffMembers || []} openModal={openModal} t={t} className="h-[400px]" />
+                                        </div>
+                                        <GroupManagement groups={data.groups || []} allMembers={data.staffMembers || []} allClients={data.clients || []} onAddGroup={addGroup} onDeleteGroup={deleteGroup} onRenameGroup={renameGroup} onGroupAction={handleGroupAction} t={t} />
+                                        <div id="clients-section">
+                                            <ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-[400px]" />
+                                        </div>
+                                    </div>
+                                </DndContext>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        // VUE MOBILE (les icônes sont déjà dans le Header)
+                        <div className="mt-6">
+                           {/* Le DashboardHeader avec les AnchorIcons en mode grille s'occupe de l'affichage. */}
+                        </div>
+                    )}
                 </motion.div>
             </div>
 
@@ -547,6 +616,15 @@ return (
                 {activeModal === 'detailsModal' && modalProps && <DetailsModal isOpen={true} onClose={closeModal} title={modalProps.title || ""} content={modalProps.content || ""} />}
                 {activeModal === 'newDiscussion' && modalProps && <NewDiscussionModal t={t} onClose={closeModal} preselectedParticipants={modalProps.preselectedParticipants} groupName={modalProps.groupName} />}
             </AnimatePresence>
+
+            {/* NOUVEAU : MODAL PLEIN ÉCRAN POUR MOBILE */}
+            <FullScreenModal
+                isOpen={fullScreenModal.isOpen}
+                onClose={closeFullScreenModal}
+                title={fullScreenModal.title}
+            >
+                {renderFullScreenComponent()}
+            </FullScreenModal>
         </>
     );
 }
