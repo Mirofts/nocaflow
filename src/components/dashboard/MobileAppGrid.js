@@ -1,7 +1,7 @@
 // src/components/dashboard/MobileAppGrid.js
 import React from 'react';
 
-const iconStyle = "w-8 h-8 text-color-text-secondary group-hover:text-purple-400 transition-colors";
+const iconStyle = "w-7 h-7 text-color-text-secondary group-hover:text-purple-300 transition-colors duration-200";
 
 const MobileAppGrid = ({ t, openFullScreenModal }) => {
     const appIcons = [
@@ -16,18 +16,18 @@ const MobileAppGrid = ({ t, openFullScreenModal }) => {
     ];
 
     return (
-        <div className="flex-grow grid grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 px-4 mt-4">
             {appIcons.map((anchor) => (
                 <button
                     key={anchor.id}
                     onClick={() => openFullScreenModal(anchor.component, anchor.title)}
                     title={anchor.title}
-                    className="group flex flex-col items-center justify-center p-4 border border-color-border-primary/30 transition-colors hover:bg-color-bg-hover focus:outline-none focus:ring-2 focus:ring-purple-500 focus:z-10"
+                    className="group relative flex flex-col items-center justify-center p-4 h-28 bg-white/5 border border-white/10 rounded-xl transition-all duration-200 hover:bg-white/10 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50"
                 >
                     <div className="mb-2">
                         {React.cloneElement(anchor.icon, { className: iconStyle })}
                     </div>
-                    <span className="text-base text-color-text-primary font-semibold">{anchor.title}</span>
+                    <span className="text-sm text-color-text-primary font-medium">{anchor.title}</span>
                 </button>
             ))}
         </div>

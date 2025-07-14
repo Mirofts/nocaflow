@@ -55,19 +55,13 @@ const AnchorIcons = ({ t }) => {
 
 
 const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t, onOpenCalculator, isMobileView }) => {
-    const { isDarkMode, toggleTheme } = useTheme();
+    const { isDarkMode } = useTheme();
 
     const phrases = useMemo(() => [
         t("phrase1", "NocaFLOW trie même les chaussettes sales ?"),
         t("phrase2", "Un seul outil. Zéro chaos. Juste du FLOW."),
-        t("phrase3", "Multitâche ? Non. NocaFLOW fait tout, vraiment."),
-        t("phrase4", "Productif sans effort. Merci NocaFLOW, dopage légal."),
-        t("phrase5", "NocaFLOW gère tout, sauf les ronrons. 🐾"),
-        t("phrase6", "Adieu stress. Bonjour FLOW (et siestes félines)."),
-        t("phrase7", "Même mamie l’utilise. Et elle kiffe grave."),
+        t("phrase3", "Même mamie l’utilise. Et elle kiffe grave."),
         t("phrase8", "Plus fort que le café : NocaFLOW."),
-        t("phrase9", "NocaFLOW rend accros… à l’efficacité !"),
-        t("phrase10", "Projets qui volent. Tracas au tapis.")
     ], [t]);
 
     const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
@@ -106,7 +100,7 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                     <div className="flex items-center gap-2">
                         <Greeting t={t} />
                         {!isGuestMode && user?.customId && (
-                            <div className="bg-violet-500/20 text-violet-300 text-xs font-bold px-2 py-1 rounded-full">
+                            <div className="hidden md:block bg-violet-500/20 text-violet-300 text-xs font-bold px-2 py-1 rounded-full">
                                 ID: {user.customId}
                             </div>
                         )}
@@ -120,16 +114,15 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                             </button>
                         )}
                     </div>
-                    
-                    <div className="h-10 overflow-hidden mt-1">
+                    <div className="h-6 overflow-hidden mt-1">
                         <AnimatePresence mode="wait">
                             <motion.p
                                 key={currentPhraseIndex}
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.5 }}
-                                className="text-color-text-secondary text-xs leading-tight typewriter-text"
+                                exit={{ opacity: 0, y: -15 }}
+                                transition={{ duration: 0.4 }}
+                                className="text-color-text-secondary text-sm leading-tight"
                             >
                                 {phrases[currentPhraseIndex]}
                             </motion.p>
@@ -138,19 +131,20 @@ const DashboardHeader = ({ user, isGuestMode, openModal, handleLogout, stats, t,
                 </div>
             </div>
 
-            <div className="flex items-center gap-3 self-start md:self-center">
-                <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
+            <div className="flex flex-col items-start md:items-center md:flex-row gap-3 self-start md:self-center w-full md:w-auto">
+                <div className="flex items-center gap-3 flex-wrap justify-start w-full md:w-auto">
                     <StatPill icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-1.9A8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5Z"/></svg>} count={stats.messages} isPulsing={stats.messages > 0} pulseColorClass="bg-pink-500" />
                     <StatPill icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sky-400"><path d="M9 11L12 14L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>} count={stats.tasks} isPulsing={stats.tasks > 0} pulseColorClass="bg-sky-500" />
                     <StatPill icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} count={stats.meetings} isPulsing={stats.meetings > 0} pulseColorClass="bg-amber-500" />
-                    
-                    <div className="h-6 w-px bg-color-border-primary hidden md:block mx-1"></div>
-                    
-                    <button onClick={onOpenCalculator} className="p-2 rounded-full text-color-text-secondary hover:bg-color-bg-hover hover:text-color-text-primary transition-colors flex-shrink-0" aria-label={t('calculator', 'Calculatrice')} title={t('calculator', 'Calculatrice')}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/><line x1="8" y1="14" x2="8.01" y2="14"/><line x1="16" y1="14" x2="16.01" y2="14"/><line x1="8" y1="18" x2="8.01" y2="18"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="16" y1="18" x2="16.01" y2="18"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="4" y1="10" x2="20" y2="10"/></svg>
+                    <button onClick={onOpenCalculator} className="p-2.5 rounded-full text-color-text-secondary bg-color-bg-secondary border border-color-border-primary hover:text-color-text-primary transition-colors flex-shrink-0" aria-label={t('calculator', 'Calculatrice')} title={t('calculator', 'Calculatrice')}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/><line x1="8" y1="14" x2="8.01" y2="14"/><line x1="16" y1="14" x2="16.01" y2="14"/><line x1="8" y1="18" x2="8.01" y2="18"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="16" y1="18" x2="16.01" y2="18"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="4" y1="10" x2="20" y2="10"/></svg>
                     </button>
                 </div>
-                
+                {isMobileView && !isGuestMode && user?.customId && (
+                     <div className="bg-violet-500/20 text-violet-300 text-xs font-bold px-2 py-1 rounded-full self-start mt-2">
+                         ID: {user.customId}
+                     </div>
+                )}
                 {!isMobileView && <AnchorIcons t={t} />}
             </div>
         </motion.header>
