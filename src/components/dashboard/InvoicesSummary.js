@@ -8,7 +8,6 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
-// Composant personnalisé pour l'infobulle (tooltip) du graphique
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
@@ -24,7 +23,6 @@ const InvoicesSummary = ({ invoices = [], openInvoiceForm, openInvoiceList, t, c
     const { isDarkMode } = useTheme();
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-    // Calcul avancé des statistiques et des données pour le graphique
     const chartDataAndStats = useMemo(() => {
         const months = Array.from({ length: 12 }, (_, i) => ({ month: i, name: new Date(0, i).toLocaleString('fr', { month: 'short' }), total: 0 }));
 
@@ -65,7 +63,6 @@ const InvoicesSummary = ({ invoices = [], openInvoiceForm, openInvoiceList, t, c
 
     }, [invoices, selectedYear]);
     
-    // Petit composant pour afficher l'évolution avec la bonne couleur
     const EvolutionIndicator = () => {
         const { evolution } = chartDataAndStats;
         const isPositive = evolution >= 0;
@@ -86,7 +83,6 @@ const InvoicesSummary = ({ invoices = [], openInvoiceForm, openInvoiceList, t, c
             className={className}
         >
             <div className="flex flex-col h-full">
-                {/* Sélecteur d'année */}
                 <div className="flex justify-between items-center mb-4">
                     <button onClick={() => setSelectedYear(y => y - 1)} className="p-1 rounded-full hover:bg-color-bg-hover">
                         <svg className="w-5 h-5 text-color-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
@@ -97,7 +93,6 @@ const InvoicesSummary = ({ invoices = [], openInvoiceForm, openInvoiceList, t, c
                     </button>
                 </div>
 
-                {/* Graphique */}
                 <div className="w-full h-48 mb-4">
                     <ResponsiveContainer>
                         <LineChart data={chartDataAndStats.chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -116,7 +111,6 @@ const InvoicesSummary = ({ invoices = [], openInvoiceForm, openInvoiceList, t, c
                     </ResponsiveContainer>
                 </div>
 
-                {/* Nouveaux indicateurs */}
                 <div className="space-y-2 mb-4">
                     <div className="flex justify-between items-center">
                         <p className="text-color-text-secondary">Chiffre d'affaires ({selectedYear}) :</p>
@@ -124,7 +118,13 @@ const InvoicesSummary = ({ invoices = [], openInvoiceForm, openInvoiceList, t, c
                             {chartDataAndStats.revenueThisYear.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
                         </span>
                     </div>
-                              {/* AJOUTEZ CE BLOC DE CODE ICI */}
+                    <div className="flex justify-between items-center">
+                        <p className="text-color-text-secondary">Évolution vs {selectedYear - 1} :</p>
+                        <EvolutionIndicator />
+                    </div>
+                </div>
+                
+                {/* BLOC DE BOUTONS AJOUTÉ ICI */}
                 <div className="mt-auto space-y-2 pt-4">
                     <motion.button onClick={openInvoiceForm} whileHover={{ scale: 1.02 }} className="w-full main-action-button bg-gradient-to-r from-pink-500 to-violet-500">
                         Nouvelle Facture
@@ -132,14 +132,6 @@ const InvoicesSummary = ({ invoices = [], openInvoiceForm, openInvoiceList, t, c
                     <motion.button onClick={openInvoiceList} whileHover={{ scale: 1.02 }} className="w-full main-button-secondary">
                         Voir Toutes les Factures
                     </motion.button>
-                </div>
-                {/* FIN DU BLOC À AJOUTER */}
-
-                    <div className="flex justify-between items-center">
-                        <p className="text-color-text-secondary">Évolution vs {selectedYear - 1} :</p>
-                        <EvolutionIndicator />
-                    </div>
-              
                 </div>
             </div>
         </DashboardCard>
