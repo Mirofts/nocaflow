@@ -1,4 +1,3 @@
-// src/pages/dashboard.js
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,16 +9,11 @@ import { useTranslation } from 'react-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { format, parseISO, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-// NOUVEAUX IMPORTS POUR LA VUE MOBILE
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import FullScreenModal from '../components/dashboard/modals/FullScreenModal';
-
-// IMPORTS POUR LES NOUVELLES FONCTIONNALITÉS
+import MobileAppGrid from '../components/dashboard/MobileAppGrid';
 import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import GroupManagement from '../components/dashboard/GroupManagement';
-
-// IMPORTS DES COMPOSANTS DU DASHBOARD :
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import TimeAlerts from '../components/dashboard/TimeAlerts';
 import TodoList from '../components/dashboard/TodoList';
@@ -33,9 +27,6 @@ import TeamManagement from '../components/dashboard/TeamManagement';
 import ClientManagement from '../components/dashboard/ClientManagement';
 import GanttChartPlanning from '../components/dashboard/GanttChartPlanning';
 import { DashboardCard } from '../components/dashboard/DashboardCard';
-
-
-// IMPORTS DES MODALES VIA LE FICHIER CENTRAL D'EXPORTATION dashboardModals.js :
 import {
     TaskEditModal, DayDetailsModal, QuickAddTaskModal, GuestNameEditModal, AvatarEditModal,
     MeetingSchedulerModal, ProjectFormModal, InvoiceFormModal, InvoiceListModal, TeamMemberModal,
@@ -46,7 +37,6 @@ import {
 import CalculatorModal from '../components/dashboard/CalculatorModal';
 import DetailsModal from '@/components/dashboard/modals/DetailsModal';
 
-// Configuration des capteurs pour une meilleure expérience de glisser-déposer
 function useAppSensors() {
     return useSensors(
         useSensor(PointerSensor, {
@@ -60,22 +50,13 @@ function useAppSensors() {
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
     const { currentUser: authUser, loadingAuth, logout } = useAuth();
-    const { isDarkMode, toggleTheme } = useTheme();
     const { t } = useTranslation('common');
-
     const sensors = useAppSensors();
-
-    // NOUVEAU : Détecter la vue mobile (basé sur la breakpoint 'lg' de Tailwind: 1024px)
     const isMobileView = useMediaQuery('(max-width: 1023px)');
-
-    // NOUVEAU : État pour gérer le modal plein écran sur mobile
     const [fullScreenModal, setFullScreenModal] = useState({ isOpen: false, component: null, title: '' });
-
     const isGuestMode = !authUser || authUser.uid === 'guest_noca_flow';
-
     const initialGuestNameSSR = 'Visiteur Curieux';
     const userUid = authUser?.uid;
-
     const [guestName, setGuestName] = useState(initialGuestNameSSR);
     const [isClient, setIsClient] = useState(false);
     const [invoiceDraft, setInvoiceDraft] = useState(null);
@@ -86,14 +67,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     const [localData, setLocalData] = useState(() => {
         let initialValue = { ...initialMockData };
-
-        initialValue.groups = initialMockData.groups || [
-            { id: 'default', name: 'Non Assignés' },
-            { id: 'group-1-example', name: 'Groupe 1' }
-        ];
+        initialValue.groups = initialMockData.groups || [{ id: 'default', name: 'Non Assignés' }, { id: 'group-1-example', name: 'Groupe 1' }];
         initialValue.staffMembers = (initialValue.staffMembers || []).map(m => ({ ...m, groupId: m.groupId || null }));
         initialValue.clients = (initialValue.clients || []).map(c => ({ ...c, groupId: c.groupId || null }));
-
         initialValue.invoices = [];
         return initialValue;
     });
@@ -152,8 +128,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         setActiveModal(null);
         setModalProps(null);
     }, []);
-    
-    // NOUVEAU : Fonctions pour le modal plein écran mobile
+
     const openFullScreenModal = useCallback((component, title) => {
         setFullScreenModal({ isOpen: true, component, title });
     }, []);
@@ -201,7 +176,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const handleAddDeadline = useCallback((newDeadline) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newDeadline, id: `proj-${Date.now()}` }] })); }, [onUpdateGuestData]);
 
     const handleAddOrEditInvoice = useCallback((invoiceData) => {
-        console.log("Sauvegarde de la facture :", invoiceData);
         setLocalData(prev => {
             const invoices = prev.invoices || [];
             const existingIndex = invoices.findIndex(inv => inv.id === invoiceData.id);
@@ -240,28 +214,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [localData.invoices, openModal]);
 
     const handleProjectAction = useCallback((action, project) => {
-        console.log(`Action: ${action} sur le projet: ${project.id}`);
-
         switch (action) {
             case 'edit':
-                openModal('projectForm', {
-                    initialData: project,
-                    allClients: data.clients,
-                    allStaffMembers: data.staffMembers
-                });
+                openModal('projectForm', { initialData: project, allClients: data.clients, allStaffMembers: data.staffMembers });
                 break;
             case 'createInvoice':
-                const invoiceDraft = {
-                    title: t('invoice_for_project', `Facture pour : ${project.name}`),
-                    clientInfo: project.client || {},
-                    lineItems: [{ id: Date.now(), description: project.name, quantity: 1, unitPrice: 0 }],
-                };
+                const invoiceDraft = { title: t('invoice_for_project', `Facture pour : ${project.name}`), clientInfo: project.client || {}, lineItems: [{ id: Date.now(), description: project.name, quantity: 1, unitPrice: 0 }], };
                 openModal('invoiceForm', { initialDraft: invoiceDraft });
                 break;
             case 'createTask':
-                openModal('quickTask', {
-                    projectContext: { id: project.id, name: project.name }
-                });
+                openModal('quickTask', { projectContext: { id: project.id, name: project.name } });
                 break;
             case 'assignTeam':
                 openModal('assignTeam', { task: { id: project.id, title: project.name, assignedTo: project.teamIds || [] } });
@@ -351,8 +313,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const handleOpenCalculatorModal = useCallback(() => { openModal('calculator'); }, [openModal]);
 
     const handleGroupAction = useCallback((action, group) => {
-        console.log(`Action: ${action} pour le groupe: ${group.name}`);
-        switch(action) {
+        switch (action) {
             case 'addTask':
                 openModal('quickTask', { groupContext: group });
                 break;
@@ -369,7 +330,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 console.warn(t("unknown_group_action", "Action de groupe inconnue:"), action);
         }
     }, [openModal, localData.staffMembers, localData.clients, t]);
-    
+
     const handleOpenAlertDetails = useCallback((alertItem) => {
         let title = '';
         let content = '';
@@ -402,7 +363,6 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, [openModal, authUser?.uid]);
 
-    // NOUVEAU : Fonction pour rendre le composant dans le modal plein écran
     const renderFullScreenComponent = () => {
         if (!fullScreenModal.component) return null;
 
@@ -429,19 +389,19 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             case 'Notepad':
                 return <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />;
             case 'Calendar':
-                 return <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />;
+                return <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />;
             case 'GanttChartPlanning':
                 return <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />;
             case 'Projects':
-                 return <Projects projects={data.projects || []} clients={data.clients || []} staffMembers={data.staffMembers || []} onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })} onAction={handleProjectAction} t={t} />;
+                return <Projects projects={data.projects || []} clients={data.clients || []} staffMembers={data.staffMembers || []} onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })} onAction={handleProjectAction} t={t} />;
             case 'TeamManagement':
                 return <TeamManagement members={data.staffMembers || []} openModal={openModal} t={t} className="h-full" />;
             case 'ClientManagement':
                 return <ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-full" />;
             case 'InvoiceListModal':
-                 openModal('invoiceList');
-                 closeFullScreenModal();
-                 return null;
+                openModal('invoiceList');
+                closeFullScreenModal();
+                return null;
             default:
                 return <div>Composant "{fullScreenModal.component}" non trouvé.</div>;
         }
@@ -455,38 +415,36 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         );
     }
 
-return (
+    return (
         <>
             <Head><title>{t('dashboard_title', 'Dashboard - NocaFLOW')}</title></Head>
-            <div className="min-h-screen w-full dashboard-page-content-padding">
-                {isClient && isGuestMode && (
-                    <div className="guest-banner-wrapper">
-                        <GuestBanner onRegisterClick={onRegisterClick} onLoginClick={onLoginClick} t={t} />
-                    </div>
-                )}
+            <div className={`w-full ${!isMobileView ? 'dashboard-page-content-padding min-h-screen' : ''}`}>
                 <motion.div
-                    className="max-w-screen-2xl mx-auto"
+                    className={`max-w-screen-2xl mx-auto ${isMobileView ? 'flex flex-col h-screen' : ''}`}
                     initial="hidden"
                     animate="visible"
                     variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
                 >
-                    <DashboardHeader
-                        user={authUser}
-                        isGuestMode={isGuestMode}
-                        openModal={openModal}
-                        handleLogout={logout}
-                        stats={stats}
-                        t={t}
-                        onOpenCalculator={handleOpenCalculatorModal}
-                        isMobileView={isMobileView}
-                        openFullScreenModal={openFullScreenModal}
-                    />
+                    <div className={`${isMobileView ? 'p-4 border-b border-color-border-primary' : ''} flex-shrink-0`}>
+                        {isClient && isGuestMode && !isMobileView && (
+                            <div className="guest-banner-wrapper mb-4">
+                                <GuestBanner onRegisterClick={onRegisterClick} onLoginClick={onLoginClick} t={t} />
+                            </div>
+                        )}
+                        <DashboardHeader
+                            user={authUser}
+                            isGuestMode={isGuestMode}
+                            openModal={openModal}
+                            handleLogout={logout}
+                            stats={stats}
+                            t={t}
+                            onOpenCalculator={handleOpenCalculatorModal}
+                            isMobileView={isMobileView}
+                        />
+                    </div>
 
-                    {/* AFFICHAGE CONDITIONNEL : DESKTOP vs MOBILE */}
                     {!isMobileView ? (
-                        // VUE DESKTOP (votre code existant)
                         <div className="grid grid-cols-12 gap-6 mt-6">
-                            {/* LEFT COLUMN */}
                             <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
                                 <div id="messages-section">
                                     <DashboardCard
@@ -514,24 +472,22 @@ return (
                                         />
                                     </DashboardCard>
                                 </div>
-                               <div id="notepad-section">
+                                <div id="notepad-section">
                                     <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />
-                               </div>
-                               <div id="calendar-section">
+                                </div>
+                                <div id="calendar-section">
                                     <DashboardCard
                                         t={t}
                                         title={t('calendar_title', 'Calendrier')}
                                         icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>}
                                     >
-                                       <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />
+                                        <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />
                                     </DashboardCard>
-                               </div>
-                               <div id="invoices-section">
-                                <InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} />
-                               </div>
+                                </div>
+                                <div id="invoices-section">
+                                    <InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} />
+                                </div>
                             </div>
-
-                            {/* RIGHT COLUMN */}
                             <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
                                 <TimeAlerts projects={data.projects || []} meetings={data.meetings || []} t={t} lang={lang} openModal={openModal} onAlertCardClick={handleOpenAlertDetails} />
                                 <TodoList todos={visibleTodos} setTodos={setTodos} loading={loadingTodos} onAdd={addTodo} onToggle={toggleTodo} onEdit={(task) => openModal('taskEdit', task)} onDelete={deleteTodo} onAssignTeam={(task) => openModal('assignTeam', task)} t={t} />
@@ -546,20 +502,16 @@ return (
                                     />
                                 </div>
                             </div>
-
-                            {/* FULL-WIDTH SECTIONS */}
                             <div className="col-span-12" id="gantt-section">
-                                 <DashboardCard
+                                <DashboardCard
                                     t={t}
                                     title={t('gantt_title', 'Planning Gantt')}
                                     icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>}
                                     onFullscreenClick={handleGanttChartPlanningFullscreen}
-                                 >
+                                >
                                     <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />
                                 </DashboardCard>
                             </div>
-
-                            {/* MANAGEMENT SECTION */}
                             <div className="col-span-12" id="management-section">
                                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -575,10 +527,7 @@ return (
                             </div>
                         </div>
                     ) : (
-                        // VUE MOBILE (les icônes sont déjà dans le Header)
-                        <div className="mt-6">
-                           {/* Le DashboardHeader avec les AnchorIcons en mode grille s'occupe de l'affichage. */}
-                        </div>
+                        <MobileAppGrid t={t} openFullScreenModal={openFullScreenModal} />
                     )}
                 </motion.div>
             </div>
@@ -595,16 +544,7 @@ return (
                 {activeModal === 'projectForm' && <ProjectFormModal t={t} onSave={modalProps?.initialData ? editProject : addProject} initialData={modalProps?.initialData} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} allClients={modalProps?.allClients} allStaffMembers={modalProps?.allStaffMembers} />}
                 {activeModal === 'invoiceForm' && <InvoiceFormModal t={t} authUser={authUser} initialDraft={invoiceDraft} onUpdateDraft={setInvoiceDraft} onAdd={handleAddOrEditInvoice} onClose={closeModal} />}
                 {activeModal === 'invoiceList' && <InvoiceListModal t={t} invoices={data.invoices || []} onEdit={openInvoiceModal} onDelete={handleDeleteInvoice} onUpdateStatus={handleUpdateInvoiceStatus} onClose={closeModal} />}
-                {activeModal === 'teamMember' && modalProps && (
-                    <TeamMemberModal
-                        t={t}
-                        mode={modalProps.mode}
-                        member={modalProps.member}
-                        onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember}
-                        onDelete={deleteStaffMember}
-                        onClose={closeModal}
-                    />
-                )}
+                {activeModal === 'teamMember' && modalProps && (<TeamMemberModal t={t} mode={modalProps.mode} member={modalProps.member} onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />)}
                 {activeModal === 'quickChat' && modalProps && <QuickChatModal t={t} member={modalProps} onClose={closeModal} />}
                 {activeModal === 'assignTaskProjectDeadline' && modalProps && <AssignTaskProjectDeadlineModal t={t} member={modalProps.member} onClose={closeModal} allStaffMembers={data.staffMembers || []} userUid={userUid} currentUserName={authUser?.displayName || 'Moi'} onAddTask={addTodo} />}
                 {activeModal === 'clientForm' && modalProps && <ClientFormModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
@@ -617,7 +557,6 @@ return (
                 {activeModal === 'newDiscussion' && modalProps && <NewDiscussionModal t={t} onClose={closeModal} preselectedParticipants={modalProps.preselectedParticipants} groupName={modalProps.groupName} />}
             </AnimatePresence>
 
-            {/* NOUVEAU : MODAL PLEIN ÉCRAN POUR MOBILE */}
             <FullScreenModal
                 isOpen={fullScreenModal.isOpen}
                 onClose={closeFullScreenModal}
