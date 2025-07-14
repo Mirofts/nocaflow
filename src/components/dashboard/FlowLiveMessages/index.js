@@ -42,6 +42,7 @@ const MAX_TOTAL_SIZE_BYTES = MAX_TOTAL_SIZE_MB * 1024 * 1024; // Convert MB to B
 
 
 const FlowLiveMessages = forwardRef(({
+    findUserByIdOrEmail,
     onLoginClick,
     onRegisterClick,
     onOpenAddTaskFromChat,

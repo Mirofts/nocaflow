@@ -139,22 +139,7 @@ const InvoicesSummary = ({ invoices = [], openInvoiceForm, openInvoiceList, t, c
                         <p className="text-color-text-secondary">Évolution vs {selectedYear - 1} :</p>
                         <EvolutionIndicator />
                     </div>
-                     <div className="flex justify-between items-center">
-                        <p className="text-color-text-secondary">En attente de paiement :</p>
-                        <span className="font-bold text-amber-400">
-                            {chartDataAndStats.pendingTotal.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Boutons d'action */}
-                <div className="mt-auto space-y-2 pt-4">
-                    <motion.button onClick={openInvoiceForm} whileHover={{ scale: 1.02 }} className="w-full main-action-button bg-gradient-to-r from-pink-500 to-violet-500">
-                        Nouvelle Facture
-                    </motion.button>
-                    <motion.button onClick={openInvoiceList} whileHover={{ scale: 1.02 }} className="w-full main-button-secondary">
-                        Voir Toutes les Factures
-                    </motion.button>
+              
                 </div>
             </div>
         </DashboardCard>

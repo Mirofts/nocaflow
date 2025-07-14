@@ -12,7 +12,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 // IMPORTS POUR LES NOUVELLES FONCTIONNALITÉS
-import { DndContext } from '@dnd-kit/core';
+import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import GroupManagement from '../components/dashboard/GroupManagement';
 
 // IMPORTS DES COMPOSANTS DU DASHBOARD :
@@ -42,13 +42,27 @@ import {
 import CalculatorModal from '../components/dashboard/CalculatorModal';
 import DetailsModal from '@/components/dashboard/modals/DetailsModal';
 
+// Configuration des capteurs pour une meilleure expérience de glisser-déposer
+function useAppSensors() {
+    return useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {})
+    );
+}
+
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
     const { currentUser: authUser, loadingAuth, logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
     const { t } = useTranslation('common');
 
+    const sensors = useAppSensors();
+
     const isGuestMode = !authUser || authUser.uid === 'guest_noca_flow';
-    
+
     const initialGuestNameSSR = 'Visiteur Curieux';
     const userUid = authUser?.uid;
 
@@ -63,12 +77,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const [localData, setLocalData] = useState(() => {
         let initialValue = { ...initialMockData };
 
-        // Préparation pour la fonctionnalité des groupes
-        initialValue.groups = initialMockData.groups || [{ id: 'default', name: 'Non Assignés' }];
+        initialValue.groups = initialMockData.groups || [
+            { id: 'default', name: 'Non Assignés' },
+            { id: 'group-1-example', name: 'Groupe 1' }
+        ];
         initialValue.staffMembers = (initialValue.staffMembers || []).map(m => ({ ...m, groupId: m.groupId || null }));
         initialValue.clients = (initialValue.clients || []).map(c => ({ ...c, groupId: c.groupId || null }));
-        initialValue.invoices = []; 
-
+        
+        initialValue.invoices = [];
         return initialValue;
     });
 
@@ -127,6 +143,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         setModalProps(null);
     }, []);
 
+    const findUserByIdOrEmail = useCallback(async (identifier, searchType) => {
+        try {
+            console.log(`Simulation de recherche pour l'utilisateur: ${identifier} par ${searchType}`);
+            return null;
+        } catch (error) {
+            console.error("Erreur lors de la recherche de l'utilisateur:", error);
+            return null;
+        }
+    }, []);
+
     const addProject = useCallback((newProject) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newProject, id: `p${Date.now()}` }] })); }, [onUpdateGuestData]);
     const editProject = useCallback((updatedProject) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).map(p => p.id === updatedProject.id ? updatedProject : p) })); }, [onUpdateGuestData]);
     const deleteProject = useCallback((projectId) => { onUpdateGuestData(prev => ({ ...prev, projects: (prev.projects || []).filter(p => p.id !== projectId) })); }, [onUpdateGuestData]);
@@ -155,11 +181,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const handleAddMeeting = useCallback((newMeeting) => { onUpdateGuestData(prev => ({ ...prev, meetings: [...(prev.meetings || []), { ...newMeeting, id: `meeting-${Date.now()}` }] })); }, [onUpdateGuestData]);
     const handleAddDeadline = useCallback((newDeadline) => { onUpdateGuestData(prev => ({ ...prev, projects: [...(prev.projects || []), { ...newDeadline, id: `proj-${Date.now()}` }] })); }, [onUpdateGuestData]);
 
-    // =======================================================================
-    //    LOGIQUE COMPLÈTE POUR LES GROUPES ET LES FACTURES
-    // =======================================================================
-
     const handleAddOrEditInvoice = useCallback((invoiceData) => {
+        console.log("Sauvegarde de la facture :", invoiceData);
         setLocalData(prev => {
             const invoices = prev.invoices || [];
             const existingIndex = invoices.findIndex(inv => inv.id === invoiceData.id);
@@ -179,7 +202,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
             setLocalData(prev => ({ ...prev, invoices: prev.invoices.filter(inv => inv.id !== invoiceId) }));
         }
     }, []);
-    
+
     const handleUpdateInvoiceStatus = useCallback((invoiceId, newStatus) => {
         setLocalData(prev => ({ ...prev, invoices: prev.invoices.map(inv => inv.id === invoiceId ? { ...inv, status: newStatus } : inv) }));
     }, []);
@@ -190,12 +213,57 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         } else {
             const invoices = localData.invoices || [];
             const existingNumbers = invoices.map(inv => parseInt(inv.invoiceNumber?.split('-').pop() || 0));
-            const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+            const nextNumber = (existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0) + 1;
             const newInvoiceNumber = `FAC-${new Date().getFullYear()}-${String(nextNumber).padStart(3, '0')}`;
             setInvoiceDraft({ invoiceNumber: newInvoiceNumber });
         }
         openModal('invoiceForm');
     }, [localData.invoices, openModal]);
+
+    const handleProjectAction = useCallback((action, project) => {
+        console.log(`Action: ${action} sur le projet: ${project.id}`);
+        
+        switch (action) {
+            case 'edit':
+                openModal('projectForm', { 
+                    initialData: project,
+                    allClients: data.clients,
+                    allStaffMembers: data.staffMembers 
+                });
+                break;
+            case 'createInvoice':
+                const invoiceDraft = {
+                    title: `Facture pour : ${project.name}`,
+                    clientInfo: project.client || {},
+                    lineItems: [{ id: Date.now(), description: project.name, quantity: 1, unitPrice: 0 }],
+                };
+                openModal('invoiceForm', { initialDraft: invoiceDraft });
+                break;
+            case 'createTask':
+                openModal('quickTask', { 
+                    projectContext: { id: project.id, name: project.name } 
+                });
+                break;
+            case 'assignTeam':
+                openModal('assignTeam', { task: { id: project.id, title: project.name, assignedTo: project.teamIds || [] } });
+                break;
+            case 'delete':
+                deleteProject(project.id);
+                break;
+            case 'chatGroup':
+                alert(`Démarrer un chat de groupe pour le projet "${project.name}" (fonctionnalité à venir).`);
+                break;
+            case 'chatClient':
+                if (project.client) {
+                    alert(`Démarrer un chat avec le client "${project.client.name}" (fonctionnalité à venir).`);
+                } else {
+                    alert("Aucun client n'est assigné à ce projet.");
+                }
+                break;
+            default:
+                console.warn("Action de projet inconnue:", action);
+        }
+    }, [data.clients, data.staffMembers, openModal, deleteProject]);
 
     const addGroup = useCallback((name) => {
         const newGroup = { id: `group_${Date.now()}`, name };
@@ -214,13 +282,22 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
     }, [onUpdateGuestData]);
 
+    const renameGroup = useCallback((groupId, newName) => {
+        onUpdateGuestData(prev => ({
+            ...prev,
+            groups: prev.groups.map(g => g.id === groupId ? { ...g, name: newName } : g)
+        }));
+    }, [onUpdateGuestData]);
+
     const assignToGroup = useCallback((personId, personType, newGroupId) => {
         setLocalData(prev => {
             if (personType === 'member') {
-                return { ...prev, staffMembers: prev.staffMembers.map(m => m.id === personId ? { ...m, groupId: newGroupId } : m) };
+                const staffMembers = prev.staffMembers.map(m => m.id === personId ? { ...m, groupId: newGroupId } : m);
+                return { ...prev, staffMembers };
             }
             if (personType === 'client') {
-                return { ...prev, clients: prev.clients.map(c => c.id === personId ? { ...c, groupId: newGroupId } : c) };
+                const clients = prev.clients.map(c => c.id === personId ? { ...c, groupId: newGroupId } : c);
+                return { ...prev, clients };
             }
             return prev;
         });
@@ -236,17 +313,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const flowLiveMessagesRef = useRef(null);
     const ganttChartPlanningRef = useRef(null);
 
-    const handleFlowLiveMessagesFullscreen = useCallback(() => {
-        if (flowLiveMessagesRef.current && flowLiveMessagesRef.current.toggleFullScreen) {
-            flowLiveMessagesRef.current.toggleFullScreen();
-        }
-    }, []);
-
-    const handleGanttChartPlanningFullscreen = useCallback(() => {
-        if (ganttChartPlanningRef.current && ganttChartPlanningRef.current.toggleFullScreen) {
-            ganttChartPlanningRef.current.toggleFullScreen();
-        }
-    }, []);
+    const handleFlowLiveMessagesFullscreen = useCallback(() => { if (flowLiveMessagesRef.current) flowLiveMessagesRef.current.toggleFullScreen(); }, []);
+    const handleGanttChartPlanningFullscreen = useCallback(() => { if (ganttChartPlanningRef.current) ganttChartPlanningRef.current.toggleFullScreen(); }, []);
 
     const stats = useMemo(() => {
         const now = new Date();
@@ -262,25 +330,51 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [openModal, data.staffMembers]);
 
     const handleOpenCalculatorModal = useCallback(() => { openModal('calculator'); }, [openModal]);
+    
+    const handleGroupAction = useCallback((action, group) => {
+        console.log(`Action: ${action} pour le groupe: ${group.name}`);
+        switch(action) {
+            case 'addTask':
+                openModal('quickTask', { groupContext: group });
+                break;
+            case 'addDeadline':
+                openModal('addDeadline', { groupContext: group });
+                break;
+            case 'startDiscussion':
+                const membersInGroup = localData.staffMembers.filter(m => m.groupId === group.id);
+                const clientsInGroup = localData.clients.filter(c => c.groupId === group.id);
+                const participants = [...membersInGroup, ...clientsInGroup];
+                openModal('newDiscussion', { preselectedParticipants: participants, groupName: group.name });
+                break;
+            default:
+                console.warn("Action de groupe inconnue:", action);
+        }
+    }, [openModal, localData.staffMembers, localData.clients]);
+
+    // CORRECTION: Réécriture de la fonction pour éviter l'erreur de "regexp"
     const handleOpenAlertDetails = useCallback((alertItem) => {
         let title = '';
         let content = '';
         if (alertItem.type === 'deadline') {
             title = t('deadline_details_title', `Détails de l'échéance : ${alertItem.name || alertItem.title || ''}`);
             const deadlineDate = parseISO(alertItem.deadline);
-            content = `${t('project_task', 'Tâche/Projet')} : ${alertItem?.name || alertItem?.title || ''}\n` +
-                      `${t('client', 'Client')} : ${alertItem?.client || t('not_specified', 'Non spécifié')}\n` +
-                      `${t('date', 'Date')} : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}`;
+            content = `
+                ${t('project_task', 'Tâche/Projet')} : ${alertItem?.name || alertItem?.title || ''}
+                ${t('client', 'Client')} : ${alertItem?.client || t('not_specified', 'Non spécifié')}
+                ${t('date', 'Date')} : ${isValid(deadlineDate) ? format(deadlineDate, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}
+                ${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}
+            `;
         } else if (alertItem.type === 'meeting') {
             title = t('meeting_details_title', `Détails de la réunion : ${alertItem.title || ''}`);
             const meetingDateTime = parseISO(alertItem.dateTime);
-            content = `${t('subject', 'Sujet')} : ${alertItem?.title || ''}\n` +
-                      `${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}\n` +
-                      `${t('location', 'Lieu')} : ${alertItem?.location || t('not_specified', 'Non spécifié')}\n` +
-                      `${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}`;
+            content = `
+                ${t('subject', 'Sujet')} : ${alertItem?.title || ''}
+                ${t('date', 'Date')} : ${isValid(meetingDateTime) ? format(meetingDateTime, 'dd/MM/yyyy HH:mm', { locale: fr }) : 'N/A'}
+                ${t('location', 'Lieu')} : ${alertItem?.location || t('not_specified', 'Non spécifié')}
+                ${t('description', 'Description')} : ${alertItem?.description || t('no_description', 'Pas de description.')}
+            `;
         }
-        openModal('detailsModal', { title, content });
+        openModal('detailsModal', { title, content: content.trim() });
     }, [openModal, t]);
 
     const handleSelectUserOnMobile = useCallback((conv) => {
@@ -299,7 +393,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         );
     }
 
-    return (
+return (
         <>
             <Head><title>Dashboard - NocaFLOW</title></Head>
             <div className="min-h-screen w-full dashboard-page-content-padding">
@@ -327,74 +421,90 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                     <div className="grid grid-cols-12 gap-6">
                         {/* LEFT COLUMN */}
                         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-                            <DashboardCard
-                                title={t('flow_messages_title', 'Flow Live Messages')}
-                                className="flex-1 min-h-[500px]" noContentPadding={true}
-                            >
-                                <FlowLiveMessages
-                                    ref={flowLiveMessagesRef} t={t} currentLanguage={lang} onLoginClick={onLoginClick}
-                                    onRegisterClick={onRegisterClick} onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
-                                    onAddMeeting={() => openModal('addMeeting')} onAddDeadline={() => openModal('addDeadline')}
-                                    messages={data.messages || []} user={authUser} initialMockData={initialMockData}
-                                    availableTeamMembers={data.staffMembers || []} handleSelectUserOnMobile={handleSelectUserOnMobile}
-                                />
-                            </DashboardCard>
-                            <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} className="flex-1 min-h-[300px]"/>
-                            <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} className="flex-1 h-auto" />
-                            <InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} className="flex-1 min-h-[350px]"/>
+                            
+                            {/* CORRECTION : Enveloppé dans DashboardCard */}
+                            <div id="messages-section">
+                                <DashboardCard 
+                                    t={t}
+                                    title={t('live_messages_title', 'Flow Live Messages')}
+                                    icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>}
+                                    onFullscreenClick={handleFlowLiveMessagesFullscreen}
+                                    noContentPadding={true} // FlowLiveMessages gère son propre padding
+                                >
+                                    <FlowLiveMessages
+                                        ref={flowLiveMessagesRef}
+                                        t={t}
+                                        currentLanguage={lang}
+                                        onLoginClick={onLoginClick}
+                                        onRegisterClick={onRegisterClick}
+                                        onOpenAddTaskFromChat={handleOpenAddTaskFromChat}
+                                        onAddMeeting={() => openModal('addMeeting')}
+                                        onAddDeadline={() => openModal('addDeadline')}
+                                        messages={data.messages || []}
+                                        user={authUser}
+                                        initialMockData={initialMockData}
+                                        availableTeamMembers={data.staffMembers || []}
+                                        handleSelectUserOnMobile={handleSelectUserOnMobile}
+                                        findUserByIdOrEmail={findUserByIdOrEmail}
+                                    />
+                                </DashboardCard>
+                            </div>
+                           
+                           <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />
+                           
+                           {/* CORRECTION : Enveloppé dans DashboardCard */}
+                           <div id="calendar-section">
+                                <DashboardCard
+                                    t={t}
+                                    title={t('calendar_title', 'Calendrier')}
+                                    icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>}
+                                >
+                                   <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />
+                                </DashboardCard>
+                           </div>
+                           
+                            <InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} />
                         </div>
 
                         {/* RIGHT COLUMN */}
                         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
                             <TimeAlerts projects={data.projects || []} meetings={data.meetings || []} t={t} lang={lang} openModal={openModal} onAlertCardClick={handleOpenAlertDetails} />
-                            <TodoList todos={visibleTodos} setTodos={setTodos} loading={loadingTodos} onAdd={addTodo} onToggle={toggleTodo} onEdit={(task) => openModal('taskEdit', task)} onDelete={deleteTodo} onAssignTeam={(task) => openModal('assignTeam', task)} t={t} className="flex-1 h-auto" />
-                            <Projects projects={data.projects || []} t={t} onAddProject={addProject} onEditProject={editProject} onDeleteProject={deleteProject} onAddGoogleDriveLink={(projectId) => openModal('googleDriveLink', projectId)} className="flex-1 min-h-[598px]" />
+                            <TodoList todos={visibleTodos} setTodos={setTodos} loading={loadingTodos} onAdd={addTodo} onToggle={toggleTodo} onEdit={(task) => openModal('taskEdit', task)} onDelete={deleteTodo} onAssignTeam={(task) => openModal('assignTeam', task)} t={t} />
+                            <div id="projects-section">
+                                <Projects
+                                    projects={data.projects || []}
+                                    clients={data.clients || []}
+                                    staffMembers={data.staffMembers || []}
+                                    onAddProject={() => openModal('projectForm', { allClients: data.clients, allStaffMembers: data.staffMembers })}
+                                    onAction={handleProjectAction}
+                                    t={t}
+                                />
+                            </div>
                         </div>
 
                         {/* FULL-WIDTH SECTIONS */}
-                        <div className="col-span-12">
-                            <DashboardCard title={t('gantt_chart_title', 'Planning Gantt')} className="h-[600px] w-full" noContentPadding={true}>
+                        {/* CORRECTION : Enveloppé dans DashboardCard */}
+                        <div className="col-span-12" id="gantt-section">
+                             <DashboardCard
+                                t={t}
+                                title={t('gantt_title', 'Planning Gantt')}
+                                icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>}
+                                onFullscreenClick={handleGanttChartPlanningFullscreen}
+                             >
                                 <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />
                             </DashboardCard>
                         </div>
-
-                        {/* NOUVELLE SECTION À 3 COLONNES AVEC DRAG & DROP */}
-                        <DndContext onDragEnd={handleDragEnd}>
-                            <div className="col-span-12 lg:col-span-4">
-                                <TeamManagement
-                                    members={data.staffMembers || []}
-                                    onAddMember={() => openModal('teamMember', { mode: 'add' })}
-                                    onEditMember={(member) => openModal('teamMember', { mode: 'edit', member })}
-                                    onDeleteMember={deleteStaffMember}
-                                    onQuickChat={(member) => openModal('quickChat', member)}
-                                    onAssign={(member) => openModal('assignTaskProjectDeadline', member)}
-                                    t={t}
-                                    className="h-[400px]"
-                                />
-                            </div>
-                            <div className="col-span-12 lg:col-span-4">
-                                <GroupManagement
-                                    groups={data.groups || []}
-                                    allMembers={data.staffMembers || []}
-                                    allClients={data.clients || []}
-                                    onAddGroup={addGroup}
-                                    onDeleteGroup={deleteGroup}
-                                    t={t}
-                                />
-                            </div>
-                            <div className="col-span-12 lg:col-span-4">
-                                <ClientManagement
-                                    clients={data.clients || []}
-                                    onAddClient={() => openModal('clientForm', { mode: 'add' })}
-                                    onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })}
-                                    onDeleteClient={deleteClient}
-                                    onInvoiceForm={(client) => openInvoiceModal(null)}
-                                    onClientInvoices={(client) => openModal('invoiceList')}
-                                    t={t}
-                                    className="h-[400px]"
-                                />
-                            </div>
-                        </DndContext>
+                        
+                        {/* MANAGEMENT SECTION */}
+                        <div className="col-span-12" id="management-section">
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    <TeamManagement members={data.staffMembers || []} onAddMember={() => openModal('teamMember', { mode: 'add' })} onEditMember={(member) => openModal('teamMember', { mode: 'edit', member })} onDeleteMember={deleteStaffMember} onQuickChat={(member) => openModal('quickChat', member)} onAssign={(member) => openModal('assignTaskProjectDeadline', member)} t={t} className="h-[400px]" />
+                                    <GroupManagement groups={data.groups || []} allMembers={data.staffMembers || []} allClients={data.clients || []} onAddGroup={addGroup} onDeleteGroup={deleteGroup} onRenameGroup={renameGroup} onGroupAction={handleGroupAction} t={t} />
+                                    <ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-[400px]" />
+                                </div>
+                            </DndContext>
+                        </div>
                     </div>
                 </motion.div>
             </div>
@@ -409,10 +519,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {activeModal === 'avatar' && <AvatarEditModal user={authUser} onClose={closeModal} onUpdateGuestAvatar={(newAvatar) => onUpdateGuestData(prev => ({ ...prev, user: { ...prev.user, photoURL: newAvatar } }))} isGuestMode={isGuestMode} t={t} />}
                 {activeModal === 'meeting' && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
                 {activeModal === 'project' && <ProjectFormModal t={t} onSave={modalProps?.project ? editProject : addProject} initialData={modalProps?.project} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />}
-                
                 {activeModal === 'invoiceForm' && <InvoiceFormModal t={t} authUser={authUser} initialDraft={invoiceDraft} onUpdateDraft={setInvoiceDraft} onAdd={handleAddOrEditInvoice} onClose={closeModal} />}
                 {activeModal === 'invoiceList' && <InvoiceListModal t={t} invoices={data.invoices || []} onEdit={openInvoiceModal} onDelete={handleDeleteInvoice} onUpdateStatus={handleUpdateInvoiceStatus} onClose={closeModal} />}
-                
                 {activeModal === 'teamMember' && modalProps && <TeamMemberModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
                 {activeModal === 'quickChat' && modalProps && <QuickChatModal t={t} member={modalProps} onClose={closeModal} />}
                 {activeModal === 'assignTaskProjectDeadline' && modalProps && <AssignTaskProjectDeadlineModal t={t} member={modalProps.member} onClose={closeModal} allStaffMembers={data.staffMembers || []} userUid={userUid} currentUserName={authUser?.displayName || 'Moi'} onAddTask={addTodo} />}

@@ -1,5 +1,5 @@
 // src/components/dashboard/FlowLiveMessages/FlowLiveMessagesSidebar.js
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/context/ThemeContext';
 import Image from 'next/image';
@@ -27,7 +27,7 @@ const FlowLiveMessagesSidebar = ({
         return conversations.filter(conv =>
             (conv.name?.toLowerCase().includes(activeSearchQuery.toLowerCase())) ||
             (conv.lastMessage?.toLowerCase().includes(activeSearchQuery.toLowerCase())) ||
-            (conv.attachments && conv.attachments.some(att => att.name?.toLowerCase().includes(activeSearchQuery.toLowerCase()))) // Search in attachment names for sidebar too
+            (conv.attachments && conv.attachments.some(att => att.name?.toLowerCase().includes(activeSearchQuery.toLowerCase())))
         );
     }, [conversations, activeSearchQuery]);
 
@@ -40,35 +40,29 @@ const FlowLiveMessagesSidebar = ({
     }, [setSelectedConversationId]);
 
     const getLastMessageDisplay = useCallback((conv) => {
-        // This logic is now mostly handled by `updateLastMessage` in `useChatActions`
-        // which sets `conv.lastMessage` appropriately.
-        // We just need to display `conv.lastMessage`
         return conv.lastMessage || t('no_messages_yet', 'Aucun message pour l\'instant.');
     }, [t]);
 
 
     return (
-        // Adjusted height for sidebar to fill available space with internal scroll
         <div className={`relative flex flex-col h-full ${isFullScreen ? 'w-full md:w-1/3 lg:w-1/4' : 'w-full md:w-1/3 lg:w-1/4'} border-r ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-50'}`}>
             <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex-shrink-0`}>
                 <h3 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">{t('conversations_title', 'Conversations')}</h3>
                 <input
                     type="text"
-                    placeholder={t('search_short', 'Recherche')} // Corrected placeholder
+                    placeholder={t('search_short', 'Recherche')}
                     className={`w-full p-2 rounded-md ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'} border ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                     value={activeSearchQuery}
                     onChange={(e) => setActiveSearchQuery(e.target.value)}
                 />
             </div>
 
-            {/* Scrollable conversation list */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {filteredConversations.length === 0 ? (
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400 p-4">{t('no_conversations', 'Aucune conversation trouvée.')}</p>
                 ) : (
                     filteredConversations.map(conv => {
                         const otherParticipant = conv.participantsDetails?.find(p => p.uid !== currentUserId);
-                        // Ensure Image component is used correctly if `next/image` is imported.
                         const displayPhotoURL = conv.isGroup ? '/images/default-group-avatar.png' : (otherParticipant?.photoURL || '/images/avatars/default-avatar.jpg');
                         const isOnline = otherParticipant?.isOnline;
 
@@ -91,9 +85,18 @@ const FlowLiveMessagesSidebar = ({
                                     )}
                                 </div>
                                 <div className="flex-1 overflow-hidden">
-                                    <h4 className="font-semibold text-gray-800 dark:text-white truncate">
-                                        {conv.name || t('new_chat', 'Nouveau chat')}
-                                    </h4>
+                                    {/* CORRECTION : On ajoute un conteneur flex pour aligner le nom et l'ID */}
+                                    <div className="flex items-baseline gap-2">
+                                        <h4 className="font-semibold text-gray-800 dark:text-white truncate">
+                                            {conv.name || t('new_chat', 'Nouveau chat')}
+                                        </h4>
+                                        {/* AJOUT : Affiche l'ID si ce n'est pas un groupe et si l'ID existe */}
+                                        {!conv.isGroup && otherParticipant?.customId && (
+                                            <span className="text-xs text-slate-500 font-mono">
+                                                ({otherParticipant.customId})
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                                         {getLastMessageDisplay(conv)}
                                     </p>
