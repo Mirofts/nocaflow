@@ -83,7 +83,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         ];
         initialValue.staffMembers = (initialValue.staffMembers || []).map(m => ({ ...m, groupId: m.groupId || null }));
         initialValue.clients = (initialValue.clients || []).map(c => ({ ...c, groupId: c.groupId || null }));
-        
+
         initialValue.invoices = [];
         return initialValue;
     });
@@ -198,10 +198,10 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, []);
 
     const handleDeleteInvoice = useCallback((invoiceId) => {
-        if (confirm("Supprimer cette facture ?")) {
+        if (confirm(t("confirm_delete_invoice", "Supprimer cette facture ?"))) {
             setLocalData(prev => ({ ...prev, invoices: prev.invoices.filter(inv => inv.id !== invoiceId) }));
         }
-    }, []);
+    }, [t]);
 
     const handleUpdateInvoiceStatus = useCallback((invoiceId, newStatus) => {
         setLocalData(prev => ({ ...prev, invoices: prev.invoices.map(inv => inv.id === invoiceId ? { ...inv, status: newStatus } : inv) }));
@@ -222,26 +222,26 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
 
     const handleProjectAction = useCallback((action, project) => {
         console.log(`Action: ${action} sur le projet: ${project.id}`);
-        
+
         switch (action) {
             case 'edit':
-                openModal('projectForm', { 
+                openModal('projectForm', {
                     initialData: project,
                     allClients: data.clients,
-                    allStaffMembers: data.staffMembers 
+                    allStaffMembers: data.staffMembers
                 });
                 break;
             case 'createInvoice':
                 const invoiceDraft = {
-                    title: `Facture pour : ${project.name}`,
+                    title: t('invoice_for_project', `Facture pour : ${project.name}`),
                     clientInfo: project.client || {},
                     lineItems: [{ id: Date.now(), description: project.name, quantity: 1, unitPrice: 0 }],
                 };
                 openModal('invoiceForm', { initialDraft: invoiceDraft });
                 break;
             case 'createTask':
-                openModal('quickTask', { 
-                    projectContext: { id: project.id, name: project.name } 
+                openModal('quickTask', {
+                    projectContext: { id: project.id, name: project.name }
                 });
                 break;
             case 'assignTeam':
@@ -251,19 +251,19 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 deleteProject(project.id);
                 break;
             case 'chatGroup':
-                alert(`Démarrer un chat de groupe pour le projet "${project.name}" (fonctionnalité à venir).`);
+                alert(t('chat_group_feature_coming', `Démarrer un chat de groupe pour le projet "${project.name}" (fonctionnalité à venir).`));
                 break;
             case 'chatClient':
                 if (project.client) {
-                    alert(`Démarrer un chat avec le client "${project.client.name}" (fonctionnalité à venir).`);
+                    alert(t('chat_client_feature_coming', `Démarrer un chat avec le client "${project.client.name}" (fonctionnalité à venir).`));
                 } else {
-                    alert("Aucun client n'est assigné à ce projet.");
+                    alert(t('no_client_assigned', "Aucun client n'est assigné à ce projet."));
                 }
                 break;
             default:
-                console.warn("Action de projet inconnue:", action);
+                console.warn(t('unknown_project_action', "Action de projet inconnue:"), action);
         }
-    }, [data.clients, data.staffMembers, openModal, deleteProject]);
+    }, [data.clients, data.staffMembers, openModal, deleteProject, t]);
 
     const addGroup = useCallback((name) => {
         const newGroup = { id: `group_${Date.now()}`, name };
@@ -271,8 +271,8 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [onUpdateGuestData]);
 
     const deleteGroup = useCallback((groupId) => {
-        if (groupId === 'default') return alert("Le groupe par défaut ne peut être supprimé.");
-        if (confirm("Supprimer ce groupe ? Les membres retourneront dans la liste des non-assignés.")) {
+        if (groupId === 'default') return alert(t("default_group_cannot_be_deleted", "Le groupe par défaut ne peut être supprimé."));
+        if (confirm(t("confirm_delete_group", "Supprimer ce groupe ? Les membres retourneront dans la liste des non-assignés."))) {
             onUpdateGuestData(prev => {
                 const updatedMembers = prev.staffMembers.map(m => m.groupId === groupId ? { ...m, groupId: null } : m);
                 const updatedClients = prev.clients.map(c => c.groupId === groupId ? { ...c, groupId: null } : c);
@@ -280,7 +280,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 return { ...prev, groups: updatedGroups, staffMembers: updatedMembers, clients: updatedClients };
             });
         }
-    }, [onUpdateGuestData]);
+    }, [onUpdateGuestData, t]);
 
     const renameGroup = useCallback((groupId, newName) => {
         onUpdateGuestData(prev => ({
@@ -330,7 +330,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     }, [openModal, data.staffMembers]);
 
     const handleOpenCalculatorModal = useCallback(() => { openModal('calculator'); }, [openModal]);
-    
+
     const handleGroupAction = useCallback((action, group) => {
         console.log(`Action: ${action} pour le groupe: ${group.name}`);
         switch(action) {
@@ -347,9 +347,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 openModal('newDiscussion', { preselectedParticipants: participants, groupName: group.name });
                 break;
             default:
-                console.warn("Action de groupe inconnue:", action);
+                console.warn(t("unknown_group_action", "Action de groupe inconnue:"), action);
         }
-    }, [openModal, localData.staffMembers, localData.clients]);
+    }, [openModal, localData.staffMembers, localData.clients, t]);
 
     // CORRECTION: Réécriture de la fonction pour éviter l'erreur de "regexp"
     const handleOpenAlertDetails = useCallback((alertItem) => {
@@ -388,14 +388,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     if (loadingAuth) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <p>Chargement...</p>
+                <p>{t('loading', 'Chargement...')}</p>
             </div>
         );
     }
 
 return (
         <>
-            <Head><title>Dashboard - NocaFLOW</title></Head>
+            <Head><title>{t('dashboard_title', 'Dashboard - NocaFLOW')}</title></Head>
             <div className="min-h-screen w-full dashboard-page-content-padding">
                 {isClient && isGuestMode && (
                     <div className="guest-banner-wrapper">
@@ -421,10 +421,10 @@ return (
                     <div className="grid grid-cols-12 gap-6">
                         {/* LEFT COLUMN */}
                         <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-                            
+
                             {/* CORRECTION : Enveloppé dans DashboardCard */}
                             <div id="messages-section">
-                                <DashboardCard 
+                                <DashboardCard
                                     t={t}
                                     title={t('live_messages_title', 'Flow Live Messages')}
                                     icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>}
@@ -449,9 +449,9 @@ return (
                                     />
                                 </DashboardCard>
                             </div>
-                           
+
                            <Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} />
-                           
+
                            {/* CORRECTION : Enveloppé dans DashboardCard */}
                            <div id="calendar-section">
                                 <DashboardCard
@@ -462,7 +462,7 @@ return (
                                    <Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} />
                                 </DashboardCard>
                            </div>
-                           
+
                             <InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} />
                         </div>
 
@@ -494,12 +494,17 @@ return (
                                 <GanttChartPlanning ref={ganttChartPlanningRef} initialTasks={data.ganttTasks || []} t={t} staffMembers={data.staffMembers || []} clients={data.clients || []} onSaveTask={handleSaveGanttTask} />
                             </DashboardCard>
                         </div>
-                        
+
                         {/* MANAGEMENT SECTION */}
                         <div className="col-span-12" id="management-section">
                             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    <TeamManagement members={data.staffMembers || []} onAddMember={() => openModal('teamMember', { mode: 'add' })} onEditMember={(member) => openModal('teamMember', { mode: 'edit', member })} onDeleteMember={deleteStaffMember} onQuickChat={(member) => openModal('quickChat', member)} onAssign={(member) => openModal('assignTaskProjectDeadline', member)} t={t} className="h-[400px]" />
+                                    <TeamManagement
+                                        members={data.staffMembers || []}
+                                        openModal={openModal}
+                                        t={t}
+                                        className="h-[400px]"
+                                    />
                                     <GroupManagement groups={data.groups || []} allMembers={data.staffMembers || []} allClients={data.clients || []} onAddGroup={addGroup} onDeleteGroup={deleteGroup} onRenameGroup={renameGroup} onGroupAction={handleGroupAction} t={t} />
                                     <ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-[400px]" />
                                 </div>
@@ -518,10 +523,19 @@ return (
                 {activeModal === 'userNameEdit' && !isGuestMode && <UserNameEditModal currentUser={authUser} onClose={closeModal} t={t} />}
                 {activeModal === 'avatar' && <AvatarEditModal user={authUser} onClose={closeModal} onUpdateGuestAvatar={(newAvatar) => onUpdateGuestData(prev => ({ ...prev, user: { ...prev.user, photoURL: newAvatar } }))} isGuestMode={isGuestMode} t={t} />}
                 {activeModal === 'meeting' && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
-                {activeModal === 'project' && <ProjectFormModal t={t} onSave={modalProps?.project ? editProject : addProject} initialData={modalProps?.project} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} />}
+                {activeModal === 'projectForm' && <ProjectFormModal t={t} onSave={modalProps?.initialData ? editProject : addProject} initialData={modalProps?.initialData} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} allClients={modalProps?.allClients} allStaffMembers={modalProps?.allStaffMembers} />}
                 {activeModal === 'invoiceForm' && <InvoiceFormModal t={t} authUser={authUser} initialDraft={invoiceDraft} onUpdateDraft={setInvoiceDraft} onAdd={handleAddOrEditInvoice} onClose={closeModal} />}
                 {activeModal === 'invoiceList' && <InvoiceListModal t={t} invoices={data.invoices || []} onEdit={openInvoiceModal} onDelete={handleDeleteInvoice} onUpdateStatus={handleUpdateInvoiceStatus} onClose={closeModal} />}
-                {activeModal === 'teamMember' && modalProps && <TeamMemberModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />}
+                {activeModal === 'teamMember' && modalProps && (
+                    <TeamMemberModal
+                        t={t}
+                        mode={modalProps.mode}
+                        member={modalProps.member}
+                        onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember}
+                        onDelete={deleteStaffMember}
+                        onClose={closeModal}
+                    />
+                )}
                 {activeModal === 'quickChat' && modalProps && <QuickChatModal t={t} member={modalProps} onClose={closeModal} />}
                 {activeModal === 'assignTaskProjectDeadline' && modalProps && <AssignTaskProjectDeadlineModal t={t} member={modalProps.member} onClose={closeModal} allStaffMembers={data.staffMembers || []} userUid={userUid} currentUserName={authUser?.displayName || 'Moi'} onAddTask={addTodo} />}
                 {activeModal === 'clientForm' && modalProps && <ClientFormModal t={t} {...modalProps} onSave={modalProps.mode === 'add' ? addClient : updateClient} onDelete={deleteClient} onClose={closeModal} />}
@@ -531,6 +545,7 @@ return (
                 {activeModal === 'addMeeting' && <AddMeetingModal t={t} onSave={handleAddMeeting} onClose={closeModal} />}
                 {activeModal === 'calculator' && <CalculatorModal t={t} onClose={closeModal} />}
                 {activeModal === 'detailsModal' && modalProps && <DetailsModal isOpen={true} onClose={closeModal} title={modalProps.title || ""} content={modalProps.content || ""} />}
+                {activeModal === 'newDiscussion' && modalProps && <NewDiscussionModal t={t} onClose={closeModal} preselectedParticipants={modalProps.preselectedParticipants} groupName={modalProps.groupName} />}
             </AnimatePresence>
         </>
     );
