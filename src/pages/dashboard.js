@@ -49,6 +49,7 @@ function useAppSensors() {
 }
 
 export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick, onLoginClick }) {
+    
     const { currentUser: authUser, loadingAuth, logout } = useAuth();
     const { t } = useTranslation('common');
     const sensors = useAppSensors();
@@ -62,6 +63,9 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
     const [invoiceDraft, setInvoiceDraft] = useState(null);
     const flowLiveMessagesRef = useRef(null);
     const ganttChartPlanningRef = useRef(null);
+
+
+// --- FIN DU BLOC DE CODE À COLLER ---
 
     useEffect(() => {
         setIsClient(true);
@@ -112,6 +116,22 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
         }
         return currentData;
     }, [isGuestMode, localData, todos, guestName, authUser]);
+
+    // --- COLLEZ VOTRE BLOC DE CODE ICI ---
+const unifiedMembers = useMemo(() => {
+    const membersMap = new Map();
+    // ... (le reste de la logique unifiedMembers)
+    return Array.from(membersMap.values());
+}, [data.staffMembers, data.messages, authUser?.uid]);
+
+const handleStartChat = useCallback((member) => {
+    if (flowLiveMessagesRef.current) {
+        flowLiveMessagesRef.current.selectOrCreateConversationWithUser(member);
+    } else {
+        console.error("La référence à FlowLiveMessages n'est pas prête.");
+    }
+}, []);
+// --- FIN DU BLOC ---
 
     const visibleTodos = useMemo(() => {
         if (isGuestMode || !authUser) return todos;
@@ -361,7 +381,14 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                         <div className="grid grid-cols-12 gap-6 mt-6">
                             <div className="col-span-12 lg:col-span-8 flex flex-col gap-6">
                                 <div id="messages-section"><DashboardCard t={t} title={t('live_messages_title', 'Flow Live Messages')} noContentPadding><FlowLiveMessages ref={flowLiveMessagesRef} t={t} currentLanguage={lang} messages={data.messages || []} user={authUser} initialMockData={initialMockData} availableTeamMembers={data.staffMembers || []} onOpenAddTaskFromChat={handleOpenAddTaskFromChat} /></DashboardCard></div>
-                                <div id="notepad-section"><Notepad uid={userUid} isGuest={isGuestMode} onGuestUpdate={onUpdateGuestData} t={t} /></div>
+                                <div id="notepad-section"><Notepad 
+    uid={userUid} 
+    isGuest={isGuestMode} 
+    onGuestUpdate={onUpdateGuestData} 
+    t={t}
+    availableTeamMembers={data.staffMembers || []}
+    clients={data.clients || []}
+/></div>
                                 <div id="calendar-section"><DashboardCard t={t} title={t('calendar_title', 'Calendrier')}><Calendar tasks={data.tasks || []} meetings={data.meetings || []} projects={data.projects || []} onDayClick={(date, events) => openModal('dayDetails', { date, events })} t={t} /></DashboardCard></div>
                                 <div id="invoices-section"><InvoicesSummary invoices={data.invoices || []} openInvoiceForm={() => openInvoiceModal(null)} openInvoiceList={() => openModal('invoiceList')} t={t} /></div>
                             </div>
@@ -374,8 +401,16 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                             <div className="col-span-12" id="management-section">
                                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        <div id="team-section"><TeamManagement members={data.staffMembers || []} openModal={openModal} t={t} className="h-[400px]" /></div>
-                                        <div id="groups-section"><GroupManagement groups={data.groups || []} allMembers={data.staffMembers || []} allClients={data.clients || []} onAddGroup={addGroup} onDeleteGroup={deleteGroup} onRenameGroup={renameGroup} onGroupAction={handleGroupAction} t={t} /></div>
+<div id="team-section">
+    <TeamManagement
+        members={unifiedMembers}
+        onStartChat={handleStartChat}
+        onDeleteMember={deleteStaffMember}
+        openModal={openModal}
+        t={t}
+        className="h-[400px]"
+    />
+</div>                                        <div id="groups-section"><GroupManagement groups={data.groups || []} allMembers={data.staffMembers || []} allClients={data.clients || []} onAddGroup={addGroup} onDeleteGroup={deleteGroup} onRenameGroup={renameGroup} onGroupAction={handleGroupAction} t={t} /></div>
                                         <div id="clients-section"><ClientManagement clients={data.clients || []} onAddClient={() => openModal('clientForm', { mode: 'add' })} onEditClient={(client) => openModal('clientForm', { mode: 'edit', client })} onDeleteClient={deleteClient} onInvoiceForm={(client) => openInvoiceModal(client)} onClientInvoices={(client) => openModal('invoiceList')} t={t} className="h-[400px]" /></div>
                                     </div>
                                 </DndContext>
@@ -393,8 +428,7 @@ export default function DashboardPage({ lang, onOpenCalculator, onRegisterClick,
                 {activeModal === 'assignTeam' && modalProps && <AssignTeamModal t={t} task={modalProps} onSave={editTodo} onClose={closeModal} allStaffMembers={data.staffMembers || []} />}
                 {activeModal === 'guestName' && isGuestMode && <GuestNameEditModal currentName={guestName} onSave={onUpdateGuestName} onClose={closeModal} t={t} />}
                 {activeModal === 'userNameEdit' && !isGuestMode && <UserNameEditModal currentUser={authUser} onClose={closeModal} t={t} />}
-                {activeModal === 'avatar' && <AvatarEditModal user={authUser} onClose={closeModal} onUpdateGuestAvatar={(newAvatar) => onUpdateGuestData(prev => ({ ...prev, user: { ...prev.user, photoURL: newAvatar } }))} isGuestMode={isGuestMode} t={t} />}
-                {activeModal === 'meeting' && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
+{activeModal === 'avatar' && <AvatarEditModal user={authUser} onClose={closeModal} onUpdateGuestAvatar={(newAvatar) => onUpdateGuestData(prev => ({ ...prev, user: { ...prev.user, photoURL: newAvatar } }))} isGuestMode={isGuestMode} t={t} />}                {activeModal === 'meeting' && <MeetingSchedulerModal t={t} onSchedule={handleAddMeeting} isGuest={isGuestMode} onClose={closeModal} />}
                 {activeModal === 'projectForm' && <ProjectFormModal t={t} onSave={modalProps?.initialData ? editProject : addProject} initialData={modalProps?.initialData} onDelete={deleteProject} isGuest={isGuestMode} onClose={closeModal} allClients={modalProps?.allClients} allStaffMembers={modalProps?.allStaffMembers} />}
                 {activeModal === 'invoiceForm' && <InvoiceFormModal t={t} authUser={authUser} initialDraft={invoiceDraft} onUpdateDraft={setInvoiceDraft} onAdd={handleAddOrEditInvoice} onClose={closeModal} />}
 {activeModal === 'invoiceList' && <InvoiceListModal t={t} invoices={data.invoices || []} onEdit={openInvoiceModal} onDelete={handleDeleteInvoice} onUpdateStatus={handleUpdateInvoiceStatus} onClose={closeModal} onAdd={() => openInvoiceModal(null)} />}                {activeModal === 'teamMember' && modalProps && (<TeamMemberModal t={t} mode={modalProps.mode} member={modalProps.member} onSave={modalProps.mode === 'add' ? addStaffMember : updateStaffMember} onDelete={deleteStaffMember} onClose={closeModal} />)}

@@ -53,7 +53,8 @@ const FlowLiveMessages = forwardRef(({
     user,
     initialMockData,
     handleSelectUserOnMobile,
-    onUpdateGuestData
+    onUpdateGuestData,
+    onConversationsUpdate // <-- AJOUTEZ CETTE LIGNE
 }, ref) => {
     const displayRef = useRef(null);
     const { currentUser: authUser } = useAuth();
@@ -67,8 +68,7 @@ const FlowLiveMessages = forwardRef(({
     const currentUserPhotoURL = currentActiveUser?.photoURL || (isGuestMode ? '/images/avatars/avatarguest.jpg' : '/images/default-avatar.jpg');
 
     const initialGuestTasks = useMemo(() => initialMockData?.guestData?.tasks || [], [initialMockData]);
-    const { addTodo, editTodo, deleteTodo: deleteTodoFromHook, toggleTodo } = useUserTodos(currentFirebaseUid, isGuestMode, onUpdateGuestData, initialGuestTasks);
-
+const { addTodo, editTodo, deleteTodo: deleteTodoFromHook, toggleTodo } = useUserTodos(currentFirebaseUid, isGuestMode, onUpdateGuestData, initialGuestTasks);
     const formatMessageTimeDisplay = useCallback((timestamp) => {
         if (!timestamp) return '';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -123,8 +123,39 @@ const FlowLiveMessages = forwardRef(({
     const chatContainerRef = useRef(null);
     const { isFullScreen, toggleFullScreen } = useFullScreen(chatContainerRef);
 
-    useImperativeHandle(ref, () => ({
-        toggleFullScreen: toggleFullScreen
+useImperativeHandle(ref, () => ({
+        // Expose la fonction de plein écran existante
+        toggleFullScreen: toggleFullScreen,
+        
+        // Expose la nouvelle fonction pour démarrer une discussion
+        selectOrCreateConversationWithUser: async (targetUser) => {
+            if (!currentFirebaseUid || !targetUser?.uid) {
+                console.error("Utilisateur actuel ou cible manquant.");
+                return;
+            }
+
+            if (currentFirebaseUid === targetUser.uid) return;
+
+            const participantUids = [currentFirebaseUid, targetUser.uid].sort();
+
+            const existingConv = conversations.find(
+                c => !c.isGroup && c.participants.length === 2 && c.participants.every(uid => participantUids.includes(uid))
+            );
+
+            if (existingConv) {
+                setSelectedConversationId(existingConv.id);
+            } else {
+                try {
+                    const newConvId = await startNewConversation([targetUser.uid], targetUser.displayName);
+                    if (newConvId) {
+                        setSelectedConversationId(newConvId);
+                    }
+                } catch (error) {
+                    console.error("Erreur lors de la création de la conversation :", error);
+                    alert(t('error_starting_conversation', 'Erreur lors du démarrage de la conversation.'));
+                }
+            }
+        }
     }));
 
     const [messageSearchQuery, setMessageSearchQuery] = useState('');
@@ -159,6 +190,8 @@ const FlowLiveMessages = forwardRef(({
             window.addEventListener('keydown', handleKeyDown);
         }
 
+
+        
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
@@ -246,6 +279,10 @@ const FlowLiveMessages = forwardRef(({
             const uniqueConvs = Array.from(convsMap.values()).sort((a,b) => (b.lastMessageTime?.toMillis() || 0) - (a.lastMessageTime?.toMillis() || 0));
             setConversations(uniqueConvs);
 
+            if (onConversationsUpdate) { // <-- AJOUTEZ CETTE CONDITION
+        onConversationsUpdate(uniqueConvs); // <-- ET CETTE LIGNE
+    }
+
             if (!hasInitialConversationBeenSet.current && uniqueConvs.length > 0) {
                 setSelectedConversationId(uniqueConvs[0].id);
                 hasInitialConversationBeenSet.current = true;
@@ -261,7 +298,7 @@ const FlowLiveMessages = forwardRef(({
         });
 
         return () => unsubscribe();
-    }, [currentFirebaseUid, currentActiveUser, t, setConversations, setSelectedConversationId]);
+ }, [currentFirebaseUid, currentActiveUser, t, setConversations, setSelectedConversationId, onConversationsUpdate]);
 
     useEffect(() => {
         if (!selectedConversationId || !db) {
@@ -375,81 +412,74 @@ const FlowLiveMessages = forwardRef(({
         if (!currentFirebaseUid) { handleLoginPrompt(); return; }
         if (!selectedConversationId) {
             alert(t('select_conversation_to_send', 'Veuillez sélectionner une conversation pour envoyer un fichier.'));
-            return;
+     return;
         }
         setFileUploadType(type);
         fileInputRef.current?.click();
     }, [currentFirebaseUid, selectedConversationId, handleLoginPrompt, t]);
 
-    // This is the updated handleFileChange function
-    const handleFileChange = useCallback(async (e) => {
-        if (!e.target.files || e.target.files.length === 0) return;
+const handleFileChange = useCallback(async (e) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    if (!selectedConversationId) {
+        alert(t('select_conversation_to_send', 'Veuillez sélectionner une conversation pour envoyer un fichier.'));
+        return;
+    }
 
-        const files = Array.from(e.target.files);
-        const isEphemeral = fileUploadType === 'ephemeral';
+    const files = Array.from(e.target.files);
+    const isEphemeral = fileUploadType === 'ephemeral';
 
-        // 1. Limite du nombre de fichiers
-        if (files.length > MAX_FILES_UPLOAD) {
-            alert(t('file_limit_exceeded', `Vous ne pouvez envoyer qu'un maximum de ${MAX_FILES_UPLOAD} fichiers à la fois.`));
-            e.target.value = null;
-            setFileUploadType(null);
-            return;
-        }
+    if (files.length > MAX_FILES_UPLOAD) {
+        alert(t('file_limit_exceeded', `Vous ne pouvez envoyer qu'un maximum de ${MAX_FILES_UPLOAD} fichiers à la fois.`));
+        e.target.value = null;
+        setFileUploadType(null);
+        return;
+    }
 
-        // 2. Limite de taille totale
-        const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-        if (totalSize > MAX_TOTAL_SIZE_BYTES) {
-            alert(t('file_size_limit_exceeded', `La taille totale des fichiers (${(totalSize / 1024 / 1024).toFixed(2)} Mo) dépasse ${MAX_TOTAL_SIZE_MB} Mo.`));
-            e.target.value = null;
-            setFileUploadType(null);
-            return;
-        }
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+    if (totalSize > MAX_TOTAL_SIZE_BYTES) {
+        alert(t('file_size_limit_exceeded', `La taille totale des fichiers (${(totalSize / 1024 / 1024).toFixed(2)} Mo) dépasse ${MAX_TOTAL_SIZE_MB} Mo.`));
+        e.target.value = null;
+        setFileUploadType(null);
+        return;
+    }
 
-        // 3. Upload de chaque fichier et récupération des URLs
-        const uploadedFiles = await Promise.all(
-            files.map(async (file) => {
-                try {
-                    // Utilisation de l'alias storageRefFn
-                    const fileStorageRef = storageRefFn(storage, `uploads/${Date.now()}-${file.name}`);
-                    await uploadBytes(fileStorageRef, file);
-                    const url = await getDownloadURL(fileStorageRef);
-                    return {
-                        url,
-                        name: file.name,
-                        type: file.type.startsWith('image/') ? 'image' : 'file',
-                        ephemeral: isEphemeral
-                    };
-                } catch (error) {
-                    console.error("Erreur upload fichier :", file.name, error);
-                    alert(t('file_upload_error', `Erreur lors de l'envoi du fichier ${file.name}`));
-                    return null; // Retourne null pour les uploads échoués
-                }
-            })
-        );
+    const uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+            try {
+                const filePath = `chat_attachments/${selectedConversationId}/${Date.now()}-${file.name}`;
+                const fileStorageRef = storageRefFn(storage, filePath);
+                
+                await uploadBytes(fileStorageRef, file);
+                const url = await getDownloadURL(fileStorageRef);
+                return {
+                    url,
+                    name: file.name,
+                    type: file.type.startsWith('image/') ? 'image' : 'file',
+                    ephemeral: isEphemeral
+                };
+            } catch (error) {
+                console.error("Erreur upload fichier :", file.name, error);
+                alert(t('file_upload_error', `Erreur lors de l'envoi du fichier ${file.name}`));
+                return null;
+            }
+        })
+    );
 
-        const validUploads = uploadedFiles.filter(Boolean); // Filtre les valeurs null des uploads échoués
-        if (validUploads.length === 0) {
-            alert(t('upload_failed_all', 'Tous les fichiers ont échoué.'));
-            e.target.value = null;
-            setFileUploadType(null);
-            return;
-        }
-
-        // 4. Envoi en un seul message avec plusieurs pièces jointes
-        // We now call sendMessage from useChatActions, which handles updating lastMessage
+    const validUploads = uploadedFiles.filter(Boolean);
+    if (validUploads.length > 0) {
         try {
-            // Passing an empty string for text content, and the validUploads array as attachments
             await sendMessage('', selectedConversationId, currentFirebaseUid, isEphemeral, null, validUploads);
         } catch (error) {
             console.error("Erreur lors de l'envoi du message avec pièces jointes :", error);
             alert(t('send_message_error', 'Erreur lors de l\'envoi du message avec pièces jointes.'));
         }
+    } else if (files.length > 0) {
+        alert(t('upload_failed_all', 'Tous les fichiers ont échoué. Vérifiez vos règles de sécurité Storage.'));
+    }
 
-        // Nettoyage
-        e.target.value = null;
-        setFileUploadType(null);
-    }, [fileUploadType, selectedConversationId, currentFirebaseUid, sendMessage, t]);
-
+    e.target.value = null;
+    setFileUploadType(null);
+}, [fileUploadType, selectedConversationId, currentFirebaseUid, sendMessage, t]);
 
     const handleEmoticonClick = useCallback((emoji) => {
         setNewMessage(prev => prev + emoji);
@@ -997,7 +1027,7 @@ const FlowLiveMessages = forwardRef(({
             </AnimatePresence>
         </div>
     );
-});
+    });
 
 FlowLiveMessages.displayName = 'FlowLiveMessages';
 export default FlowLiveMessages;

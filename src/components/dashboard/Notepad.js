@@ -1,48 +1,36 @@
 // src/components/dashboard/Notepad.js
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { DashboardCard } from './DashboardCard';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 import ConfirmDeleteModal from './modals/ConfirmDeleteModal';
+import ShareNoteModal from './modals/ShareNoteModal';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 
-// Import dynamique pour ReactQuill, en s'assurant qu'il est chargé côté client
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+let domPurifyInstance = null;
 
-// Définition d'une variable qui sera assignée à l'instance de DOMPurify
-// Elle sera initialement null côté serveur, puis l'instance DOMPurify côté client.
-let domPurifyInstance = null; // Nommé différemment pour éviter toute confusion avec DOMPurify en tant que type/composant
-
-// Helper pour générer un ID unique simple
-const generateId = () => `note_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-// Donnée initiale pour un nouvel onglet
-const createNewNote = (title = 'Nouvelle Note') => ({
-    id: generateId(),
-    title,
-    content: ''
-});
-
-const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
-    const initialNotes = [createNewNote(t('default_note_title', 'Mes Idées'))];
-    const [notes, setNotes] = useState(isGuest ? initialNotes : []);
-    const [activeTabId, setActiveTabId] = useState(isGuest ? initialNotes[0]?.id : null);
+const Notepad = ({ uid, isGuest, availableTeamMembers = [], clients = [], t, className = '' }) => {
+    const [notes, setNotes] = useState([]);
+    const [activeTabId, setActiveTabId] = useState(null);
     const [editingTabId, setEditingTabId] = useState(null);
     const [status, setStatus] = useState(t('ready', 'Prêt'));
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [noteToDeleteId, setNoteToDeleteId] = useState(null);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [noteToShare, setNoteToShare] = useState(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
-    // État pour savoir si DOMPurify est chargé et prêt à être utilisé
     const [isDOMPurifyReady, setIsDOMPurifyReady] = useState(false);
 
     const timeoutRef = useRef(null);
     const titleInputRef = useRef(null);
     const tabsContainerRef = useRef(null);
     const { isDarkMode } = useTheme();
+    const migrationHasRun = useRef(false);
 
     const quillModules = {
         toolbar: {
@@ -54,92 +42,97 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
         clipboard: { matchVisual: false },
     };
 
-    // NOUVEL EFFECT POUR INITIALISER DOMPURIFY CÔTÉ CLIENT
     useEffect(() => {
-        // Cette vérification typeof window est cruciale pour le SSR.
         if (typeof window !== 'undefined' && !domPurifyInstance) {
-            import('dompurify')
-                .then(mod => {
-                    domPurifyInstance = mod.default; // L'exportation par défaut de 'dompurify'
-                    setIsDOMPurifyReady(true);
-                    console.log("DOMPurify chargé et prêt !"); // Pour le débogage
-                })
-                .catch(err => {
-                    console.error("Échec du chargement de DOMPurify:", err);
-                    setIsDOMPurifyReady(false); // Marquer comme non prêt en cas d'erreur
-                });
+            import('dompurify').then(mod => {
+                domPurifyInstance = mod.default;
+                setIsDOMPurifyReady(true);
+            }).catch(err => console.error("Échec du chargement de DOMPurify:", err));
         } else if (domPurifyInstance) {
-            // Si l'instance existe déjà (par exemple, après un Fast Refresh)
             setIsDOMPurifyReady(true);
         }
-    }, []); // Dépendances vides pour que cela ne s'exécute qu'une fois au montage
+    }, []);
 
-    // Effect principal pour le chargement des notes (dépend maintenant de isDOMPurifyReady)
-     useEffect(() => {
-        if (!isDOMPurifyReady) return; // Attendre que DOMPurify soit prêt avant de charger/sanitiser
-
-        if (isGuest) {
-            const savedGuestData = JSON.parse(localStorage.getItem('nocaflow_guest_data') || '{}');
-            const savedNotes = savedGuestData.notes && Array.isArray(savedGuestData.notes) && savedGuestData.notes.length > 0
-                ? savedGuestData.notes
-                : initialNotes;
-            
-            const sanitizedNotes = savedNotes.map(note => ({
-                ...note,
-                content: domPurifyInstance.sanitize(note.content) // Utiliser l'instance chargée
-            }));
-            setNotes(sanitizedNotes);
-
-            if (!sanitizedNotes.some(n => n.id === activeTabId)) {
-                setActiveTabId(sanitizedNotes[0]?.id || null);
-            }
-            setStatus(t('saved', 'Sauvegardé'));
-            return;
+useEffect(() => {
+    if (isGuest || !uid || !isDOMPurifyReady) {
+        // Gestion du mode invité (ne change pas)
+        if(isGuest) {
+            const guestNote = { id: 'guest_note', title: 'Note Invité', content: '', ownerId: 'guest', accessList: ['guest'] };
+            setNotes([guestNote]);
+            setActiveTabId(guestNote.id);
         }
-        if (!uid) return;
+        return;
+    }
 
-        const docRef = doc(db, 'userNotes', uid);
-        const unsubscribe = onSnapshot(docRef, (snap) => {
-            let loadedNotes = [];
-            if (snap.exists()) {
-                const data = snap.data();
-                if (data.notes && Array.isArray(data.notes) && data.notes.length > 0) {
-                    loadedNotes = data.notes;
-                } else {
-                    loadedNotes = [createNewNote(t('default_note_title', 'Mes Idées'))];
-                }
-            } else {
-                loadedNotes = [createNewNote(t('default_note_title', 'Mes Idées'))];
+    let unsubscribe = () => {}; // Initialise une fonction de nettoyage vide
+
+    const setupNotesListener = async () => {
+        // Étape 1 : On tente la migration des anciennes notes (une seule fois)
+        if (!migrationHasRun.current) {
+            const oldNotesDocRef = doc(db, 'userNotes', uid);
+            const oldNotesSnap = await getDoc(oldNotesDocRef);
+
+            if (oldNotesSnap.exists() && oldNotesSnap.data().notes) {
+                const batch = writeBatch(db);
+                oldNotesSnap.data().notes.forEach(note => {
+                    const newNoteRef = doc(collection(db, 'notes'));
+                    batch.set(newNoteRef, {
+                        title: note.title,
+                        content: note.content || '',
+                        ownerId: uid,
+                        accessList: [uid],
+                        createdAt: serverTimestamp()
+                    });
+                });
+                batch.delete(oldNotesDocRef); // On supprime l'ancien document après la migration
+                await batch.commit();
             }
-            
-            const sanitizedNotes = loadedNotes.map(note => ({
-                ...note,
-                content: domPurifyInstance.sanitize(note.content) // Utiliser l'instance chargée
+            migrationHasRun.current = true; // On s'assure que la migration ne se relance pas
+        }
+
+        // Étape 2 : On écoute en temps réel la collection de notes partageables
+        const notesQuery = query(collection(db, 'notes'), where("accessList", "array-contains", uid));
+        
+        unsubscribe = onSnapshot(notesQuery, (snapshot) => {
+            const loadedNotes = snapshot.docs.map(doc => ({ 
+                id: doc.id, 
+                ...doc.data(),
+                content: domPurifyInstance.sanitize(doc.data().content || '')
             }));
-            setNotes(sanitizedNotes);
 
-            setActiveTabId(prevActiveId => {
-                const activeNoteExists = sanitizedNotes.some(note => note.id === prevActiveId);
-                if (!activeNoteExists) {
-                    return sanitizedNotes[0]?.id || null;
-                }
-                return prevActiveId;
-            });
-
+            if (loadedNotes.length > 0) {
+                setNotes(loadedNotes);
+                // Garder l'onglet actif s'il existe toujours
+                setActiveTabId(prevId => loadedNotes.some(n => n.id === prevId) ? prevId : loadedNotes[0].id);
+            } else {
+                 // Si l'utilisateur n'a aucune note après migration, on lui en crée une
+                 addDoc(collection(db, 'notes'), {
+                    title: t('default_note_title', 'Mes Idées'),
+                    content: '',
+                    ownerId: uid,
+                    accessList: [uid],
+                    createdAt: serverTimestamp()
+                });
+            }
             setStatus(t('saved', 'Sauvegardé'));
         }, (error) => {
-            console.error("Error fetching user notes:", error);
+            console.error("Error fetching notes:", error);
             setStatus(t('error', 'Erreur'));
         });
+    };
 
-        return () => unsubscribe();
-    }, [uid, isGuest, t, isDOMPurifyReady]); // isDOMPurifyReady AJOUTÉ AUX DÉPENDANCES
+    setupNotesListener();
 
+    // La fonction de nettoyage qui sera appelée quand le composant est démonté
+    return () => {
+        unsubscribe();
+    };
+}, [uid, isGuest, t, isDOMPurifyReady]); // Dépendances du useEffect
 
     useEffect(() => {
         if (editingTabId && titleInputRef.current) titleInputRef.current.select();
     }, [editingTabId]);
-    
+
     useEffect(() => {
         const checkScroll = () => {
             const el = tabsContainerRef.current;
@@ -159,80 +152,86 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
         };
     }, [notes]);
 
-    const saveNotes = useCallback((notesToSave) => {
-        // saveNotes sera appelé par debouncedSave, qui est conditionné par isDOMPurifyReady
-        setStatus(t('saving', 'Sauvegarde...'));
-        try {
-            const sanitizedNotesForSave = notesToSave.map(note => ({
-                ...note,
-                // On utilise domPurifyInstance ici, qui est garanti d'être prêt
-                content: domPurifyInstance.sanitize(note.content) 
-            }));
-
-            if (isGuest) onUpdateGuestData(prev => ({ ...prev, notes: sanitizedNotesForSave }));
-            else if (uid) setDoc(doc(db, 'userNotes', uid), { notes: sanitizedNotesForSave }, { merge: true });
-            
-            setTimeout(() => setStatus(t('saved', 'Sauvegardé')), 700);
-        } catch (error) { console.error("Error saving notes:", error); setStatus(t('error_saving', 'Erreur de sauvegarde')); }
-    }, [isGuest, uid, onUpdateGuestData, t]);
-
-    const debouncedSave = useCallback((updatedNotes) => {
-        // Appeler debouncedSave seulement si DOMPurify est prêt
-        if (!isDOMPurifyReady) {
-            console.warn("DOMPurify n'est pas prêt, la sauvegarde est retardée/ignorée.");
-            return;
-        }
+    const debouncedSaveContent = useCallback((noteId, content) => {
+        if (isGuest || !uid || !isDOMPurifyReady) return;
         setStatus(t('editing', 'Édition...'));
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(() => saveNotes(updatedNotes), 1500);
-    }, [saveNotes, t, isDOMPurifyReady]); // isDOMPurifyReady AJOUTÉ AUX DÉPENDANCES
+        timeoutRef.current = setTimeout(async () => {
+            setStatus(t('saving', 'Sauvegarde...'));
+            try {
+                const noteRef = doc(db, 'notes', noteId);
+                await updateDoc(noteRef, { content: domPurifyInstance.sanitize(content) });
+                setStatus(t('saved', 'Sauvegardé'));
+            } catch (error) {
+                console.error("Error saving note content:", error);
+                setStatus(t('error_saving', 'Erreur de sauvegarde'));
+            }
+        }, 1500);
+    }, [uid, isGuest, t, isDOMPurifyReady]);
 
     const handleContentChange = (content) => {
-        const updatedNotes = notes.map(note => note.id === activeTabId ? { ...note, content } : note);
-        setNotes(updatedNotes);
-        debouncedSave(updatedNotes);
+        if (!activeTabId) return;
+        setNotes(prevNotes => prevNotes.map(note => note.id === activeTabId ? { ...note, content } : note));
+        debouncedSaveContent(activeTabId, content);
     };
 
-    const handleAddNote = () => {
-        const newNote = createNewNote(t('new_note_title', 'Note') + ` ${notes.length + 1}`);
-        const updatedNotes = [newNote, ...notes];
-        setNotes(updatedNotes);
-        setActiveTabId(newNote.id);
-        saveNotes(updatedNotes);
+    const handleAddNote = async () => {
+        if (isGuest || !uid) return;
+        const newNoteData = {
+            title: `${t('new_note_title', 'Note')} ${notes.length + 1}`,
+            content: '',
+            ownerId: uid,
+            accessList: [uid],
+            createdAt: serverTimestamp()
+        };
+        const docRef = await addDoc(collection(db, 'notes'), newNoteData);
+        setActiveTabId(docRef.id);
     };
-    
+
     const handleDeleteNote = (idToDelete) => {
-        if (notes.length <= 1) { alert(t('cannot_delete_last_note', 'Vous ne pouvez pas supprimer le dernier onglet.')); return; }
+        if (notes.length <= 1) {
+            alert(t('cannot_delete_last_note', 'Vous ne pouvez pas supprimer le dernier onglet.'));
+            return;
+        }
         setNoteToDeleteId(idToDelete);
         setIsConfirmModalOpen(true);
     };
 
-    const executeDelete = () => {
-        if (noteToDeleteId) {
-            const updatedNotes = notes.filter(note => note.id !== noteToDeleteId);
-            setNotes(updatedNotes);
-            if (activeTabId === noteToDeleteId) setActiveTabId(updatedNotes[0]?.id || null);
-            saveNotes(updatedNotes);
+    const executeDelete = async () => {
+        if (noteToDeleteId && !isGuest) {
+            try {
+                await deleteDoc(doc(db, 'notes', noteToDeleteId));
+                setNoteToDeleteId(null);
+                setIsConfirmModalOpen(false);
+            } catch (error) {
+                console.error("Error deleting note:", error);
+            }
+        } else {
+            setIsConfirmModalOpen(false);
         }
-        setIsConfirmModalOpen(false);
-        setNoteToDeleteId(null);
     };
 
-    const handleTitleChange = (newTitle) => {
-        const updatedNotes = notes.map(note => note.id === editingTabId ? { ...note, title: newTitle } : note);
-        setNotes(updatedNotes);
-        debouncedSave(updatedNotes);
+    const handleTitleChange = (noteId, newTitle) => {
+        setNotes(prevNotes => prevNotes.map(note => note.id === noteId ? { ...note, title: newTitle } : note));
+        if (!isGuest && uid) {
+            updateDoc(doc(db, 'notes', noteId), { title: newTitle });
+        }
     };
-    
+
     const handleTitleBlur = () => setEditingTabId(null);
 
     const scrollTabs = (direction) => {
-        const container = tabsContainerRef.current;
-        if (container) container.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
+        tabsContainerRef.current?.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
+    };
+
+    const openShareModal = (note) => {
+        setNoteToShare(note);
+        setIsShareModalOpen(true);
     };
 
     const activeNote = notes.find(note => note.id === activeTabId);
-    
+    const allContacts = useMemo(() => [...availableTeamMembers, ...clients], [availableTeamMembers, clients]);
+
     return (
         <>
             <DashboardCard
@@ -252,18 +251,23 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
                         </AnimatePresence>
                         <div ref={tabsContainerRef} className="flex-grow flex items-center overflow-x-auto scrollbar-hide">
                             {notes.map((note, index) => (
-                                <div key={note.id} onDoubleClick={() => setEditingTabId(note.id)} className={`flex-shrink-0 flex items-center justify-between text-sm px-4 py-2 cursor-pointer rounded-t-lg border-b-2 whitespace-nowrap ${activeTabId === note.id ? 'border-pink-500 text-color-text-primary bg-color-bg-tertiary' : 'border-transparent text-color-text-secondary hover:bg-color-bg-hover'}`}>
+                                <div key={note.id} onDoubleClick={() => !isGuest && setEditingTabId(note.id)} className={`flex-shrink-0 flex items-center justify-between text-sm px-4 py-2 cursor-pointer rounded-t-lg border-b-2 whitespace-nowrap ${activeTabId === note.id ? 'border-pink-500 text-color-text-primary bg-color-bg-tertiary' : 'border-transparent text-color-text-secondary hover:bg-color-bg-hover'}`}>
                                     {editingTabId === note.id ? (
-                                        <input ref={titleInputRef} type="text" value={note.title} onChange={(e) => handleTitleChange(e.target.value)} onBlur={handleTitleBlur} onKeyDown={(e) => e.key === 'Enter' && handleTitleBlur()} className="bg-transparent border-0 focus:ring-0 p-0 m-0 w-28 text-sm" />
+                                        <input ref={titleInputRef} type="text" value={note.title} onChange={(e) => handleTitleChange(note.id, e.target.value)} onBlur={handleTitleBlur} onKeyDown={(e) => e.key === 'Enter' && handleTitleBlur()} className="bg-transparent border-0 focus:ring-0 p-0 m-0 w-28 text-sm" />
                                     ) : (
                                         <span onClick={() => setActiveTabId(note.id)} className="pr-2" title={note.title}>
                                             <span className="font-bold sm:hidden">{index + 1}</span>
                                             <span className="hidden sm:inline">{note.title}</span>
                                         </span>
                                     )}
-                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id); }} className="ml-2 p-0.5 rounded-full hover:bg-red-500/20 text-slate-400 hover:text-red-500 transition-colors" title={t('delete_note', 'Supprimer la note')}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                    </button>
+                                    <div className="flex items-center ml-2 space-x-1">
+                                        <button onClick={(e) => { e.stopPropagation(); openShareModal(note); }} className="p-0.5 rounded-full hover:bg-blue-500/20 text-slate-400 hover:text-blue-500 transition-colors" title={t('share_note', 'Partager la note')}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id); }} className="p-0.5 rounded-full hover:bg-red-500/20 text-slate-400 hover:text-red-500 transition-colors" title={t('delete_note', 'Supprimer la note')}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -278,7 +282,6 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
                             )}
                         </AnimatePresence>
                     </div>
-
                     <div className="w-full flex-grow flex flex-col quill-container">
                         <ReactQuill
                             theme="snow"
@@ -289,7 +292,6 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
                             className="flex-grow"
                         />
                     </div>
-                    
                     <div className="text-right text-xs p-2 bg-color-bg-secondary border-t border-color-border-primary">
                         {status}
                     </div>
@@ -303,6 +305,17 @@ const Notepad = ({ uid, isGuest, onUpdateGuestData, t, className = '' }) => {
                 title="Supprimer la note"
                 message="Êtes-vous sûr de vouloir supprimer cette note ? Cette action est irréversible."
             />
+
+            <AnimatePresence>
+                {isShareModalOpen && noteToShare && (
+                    <ShareNoteModal
+                        note={noteToShare}
+                        contacts={allContacts}
+                        onClose={() => setIsShareModalOpen(false)}
+                        t={t}
+                    />
+                )}
+            </AnimatePresence>
         </>
     );
 };
