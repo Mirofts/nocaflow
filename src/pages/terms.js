@@ -53,18 +53,11 @@ export default function TermsPage() {
   );
 }
 
-export async function getStaticProps({ locale }) {
+export async function getServerSideProps({ locale }) {
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common'])),
     },
   };
 }
-export async function getServerSideProps({ locale }) {
-  try {
-    const { serverSideTranslations } = await import('next-i18next/serverSideTranslations');
-    return { props: { ...(await serverSideTranslations(locale ?? 'fr', ['common'])) } };
-  } catch {
-    return { props: {} };
-  }
 }
