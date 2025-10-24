@@ -10,29 +10,22 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true, // Optimisation automatique du JS
-  compress: true, // Active la compression gzip/brotli sur Vercel
-  productionBrowserSourceMaps: false, // Évite d’exposer ton code source
-  poweredByHeader: false, // Supprime le header "X-Powered-By: Next.js" (sécurité)
-  
+  swcMinify: true,
+  compress: true,
+  productionBrowserSourceMaps: false,
+  poweredByHeader: false,
+
   images: {
-    formats: ['image/avif', 'image/webp'], // Formats modernes
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com', // Avatars Google
-      },
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com', // Images Firebase
-        pathname: '/v0/b/**',
-      },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'firebasestorage.googleapis.com', pathname: '/v0/b/**' },
     ],
   },
 
   experimental: {
-    optimizeCss: true, // Réduit le poids du CSS
-    scrollRestoration: true, // Améliore le retour à la position de scroll
+    optimizeCss: true,
+    scrollRestoration: true,
   },
 
   i18n: {
@@ -42,7 +35,28 @@ const nextConfig = {
   },
 
   eslint: {
-    ignoreDuringBuilds: true, // Empêche les erreurs ESLint de bloquer le déploiement
+    ignoreDuringBuilds: true,
+  },
+
+  // ⬇️ Fix Webpack for "node:" protocol and fs/path/url on client bundle
+  webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      'node:fs': 'fs',
+      'node:path': 'path',
+      'node:url': 'url',
+    };
+
+    // On the client, don't try to polyfill Node core
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        fs: false,
+        path: false,
+        url: false,
+      };
+    }
+    return config;
   },
 };
 
