@@ -1,11 +1,11 @@
 // src/pages/api/invite-member.js
-import { firestoreAdmin, authAdmin } from '../../lib/firebase-admin'; // Admin SDK
+import { firestoreAdmin, authAdmin } from '@/lib/firebase-admin'; // Admin SDK
 import { generateCustomId } from '../../context/AuthContext';
 import crypto from 'crypto';
 import { z } from "zod";
 import { limiter } from "@/utils/rateLimiter";
 import { getAuth } from "firebase-admin/auth";
-import admin from "@/lib/firebaseAdmin";
+import admin from "@/lib/firebase-admin";
 
 const InviteSchema = z.object({
   memberName: z.string().min(1).max(100),

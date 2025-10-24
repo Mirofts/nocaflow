@@ -1,24 +1,18 @@
-// src/lib/firebase-admin.js
 import admin from 'firebase-admin';
-import path from 'path'; // Import the 'path' module
 
-// Assurez-vous que le chemin vers votre clé de compte de service est correct.
-// Pour Vercel ou d'autres environnements de déploiement, utilisez des variables d'environnement.
-// Pour le développement local, lisez le fichier.
-
-// FIX: Use path.join and process.cwd() for a robust absolute path to the root
-const serviceAccountPath = path.join(process.cwd(), 'firebase-admin-sdk-credentials.json');
-const serviceAccount = require(serviceAccountPath);
+const projectId = process.env.FIREBASE_PROJECT_ID;
+const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+// IMPORTANT: convertir les "\n" littéraux en vraies fins de ligne
+const privateKey = process.env.FIREBASE_PRIVATE_KEY
+  ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+  : undefined;
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    // Ensure this matches your Firebase project ID from .env.local or your firebaseConfig
-    databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`
+    credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
   });
 }
 
-const authAdmin = admin.auth();
-const firestoreAdmin = admin.firestore();
-
-export { authAdmin, firestoreAdmin };
+export const firestoreAdmin = admin.firestore();
+export const authAdmin = admin.auth();
+export default admin;

@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import { z } from "zod";
 import { limiter } from "@/utils/rateLimiter";
 import { getAuth } from "firebase-admin/auth";
-import admin from "@/lib/firebaseAdmin";
+import admin from "@/lib/firebase-admin";
 
 // 🧱 1️⃣ SCHÉMA DE VALIDATION (empêche les données invalides ou dangereuses)
 const EmailSchema = z.object({

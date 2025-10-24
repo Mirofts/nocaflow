@@ -1,10 +1,10 @@
 // src/pages/api/accept-invite.js
-import { firestoreAdmin, authAdmin } from '../../lib/firebase-admin';
+import { firestoreAdmin, authAdmin } from '@/lib/firebase-admin';
 import admin from 'firebase-admin';
 import { z } from 'zod';
 import { limiter } from '@/utils/rateLimiter';
 import { getAuth } from 'firebase-admin/auth';
-import firebaseAdmin from '@/lib/firebaseAdmin';
+import firebaseAdmin from '@/lib/firebase-admin';
 import { generateCustomId } from '../../context/AuthContext';
 
 // 🧱 1️⃣ Validation des données

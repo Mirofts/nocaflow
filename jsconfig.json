@@ -1,25 +1,8 @@
-// jsconfig.json (à la racine de votre projet)
 {
   "compilerOptions": {
-    "baseUrl": "src", // <-- MODIFIÉ : Tous les chemins absolus commenceront à partir de 'src/'
+    "baseUrl": ".",
     "paths": {
-      // Maintenant que baseUrl est 'src', @/components/* pointe vers src/components/*
-      "@/components/*": ["components/*"],
-      "@/hooks/*": ["hooks/*"],
-      "@/lib/*": ["lib/*"],
-      "@/context/*": ["context/*"],
-      "@/styles/*": ["styles/*"], // <-- NOUVEAU : Alias pour le dossier 'styles'
-      "@/utils/*": ["utils/*"],
-      "@/firebase": ["lib/firebase.js"],
-      "@/mockData": ["lib/mockData.js"]
+      "@/*": ["src/*"]
     }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.js",
-    "**/*.jsx",
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": ["node_modules"]
+  }
 }
