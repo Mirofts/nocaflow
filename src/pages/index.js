@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 import { ArrowRight, Eye, LayoutDashboard, MessageSquare, Briefcase, FileText, CalendarDays, ClipboardCheck, Lightbulb, TrendingUp, Users, DollarSign, Cloud } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -281,11 +281,8 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
 }
 
 
-export async function getServerSideProps({ locale }) {
-  try {
-    const { serverSideTranslations } = await import('next-i18next/serverSideTranslations');
-    return { props: { ...(await serverSideTranslations(locale ?? 'fr', ['common'])) } };
-  } catch {
-    return { props: {} };
-  }
+}
+
+export async function getServerSideProps() {
+  return { props: {} };
 }

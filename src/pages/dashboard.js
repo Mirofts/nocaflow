@@ -6,7 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useUserTodos } from '@/hooks/useUserTodos';
 import { initialMockData } from '@/lib/mockData';
 import { useTranslation } from 'react-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 import { format, parseISO, isValid, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -453,7 +453,10 @@ const handleStartChat = useCallback((member) => {
 export async function getServerSideProps({ locale }) {
     return {
         props: {
-            ...(await serverSideTranslations(locale, ['common', 'dashboard'])),
+
         },
     };
+}
+export async function getServerSideProps() {
+  return { props: {} };
 }

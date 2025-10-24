@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import { useTranslation } from 'react-i18next'; // Still imported
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 
 export default function TermsPage() {
   const { t } = useTranslation('common'); // Keeping this for consistency or future re-enablement
@@ -54,11 +54,8 @@ export default function TermsPage() {
 }
 
 
-export async function getServerSideProps({ locale }) {
-  try {
-    const { serverSideTranslations } = await import('next-i18next/serverSideTranslations');
-    return { props: { ...(await serverSideTranslations(locale ?? 'fr', ['common'])) } };
-  } catch {
-    return { props: {} };
-  }
+}
+
+export async function getServerSideProps() {
+  return { props: {} };
 }

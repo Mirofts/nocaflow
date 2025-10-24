@@ -2,7 +2,7 @@
 import React from 'react';
 import Head from 'next/head';
 import { useTranslation } from 'react-i18next'; // Still imported, but its usage is removed for problematic parts
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 
 export default function PrivacyPage() {
   const { t } = useTranslation('common'); // Keeping this if 't' is used elsewhere, or for future re-enablement
@@ -36,11 +36,8 @@ export default function PrivacyPage() {
 }
 
 
-export async function getServerSideProps({ locale }) {
-  try {
-    const { serverSideTranslations } = await import('next-i18next/serverSideTranslations');
-    return { props: { ...(await serverSideTranslations(locale ?? 'fr', ['common'])) } };
-  } catch {
-    return { props: {} };
-  }
+}
+
+export async function getServerSideProps() {
+  return { props: {} };
 }

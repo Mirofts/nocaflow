@@ -12,7 +12,7 @@ import { useRouter } from 'next/router';
 
 // Imports for i18n
 import { useTranslation } from 'react-i18next'; // ✅ CORRECT
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 
 // Composant pour l'icône Google (laissez tel quel)
 const GoogleIcon = () => (
@@ -266,10 +266,8 @@ const createUserDocument = async (user, additionalData) => {
 }
 
 // PAS DE getStaticPaths POUR getServerSideProps
-export async function getServerSideProps({ locale }) {
-  return {
-    props: {
-      ...(await serverSideTranslations(locale, ['common']))
-    }
   };
+}
+export async function getServerSideProps() {
+  return { props: {} };
 }

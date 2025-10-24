@@ -1,7 +1,7 @@
 // src/pages/features.js
 import Head from 'next/head';
 import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 import { motion } from 'framer-motion';
 import { LayoutDashboard, MessageSquare, Briefcase, FileText, CalendarDays, ClipboardCheck, Lightbulb, TrendingUp, Users, DollarSign, Cloud } from 'lucide-react'; // Ensure all used icons are imported
 
@@ -90,7 +90,10 @@ export default function FeaturesPage() {
 export async function getServerSideProps({ locale }) {
   return {
     props: {
-      ...(await serverSideTranslations(locale, ['common'])), // Only 'common' is needed if all strings are hardcoded or moved there
+
     },
   };
+}
+export async function getServerSideProps() {
+  return { props: {} };
 }

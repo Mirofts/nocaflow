@@ -1,7 +1,7 @@
 // src/pages/pricing.js
 import Head from 'next/head';
 import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 import { useMemo } from 'react';
 import Link from 'next/link';
 
@@ -118,7 +118,10 @@ const PricingCard = ({ plan, t }) => {
 export async function getServerSideProps({ locale }) {
   return {
     props: {
-      ...(await serverSideTranslations(locale, ['common', 'pricing'])),
+
     },
   };
+}
+export async function getServerSideProps() {
+  return { props: {} };
 }

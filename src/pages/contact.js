@@ -4,7 +4,7 @@ import { Mail, MapPin } from 'lucide-react';
 import { motion } from "framer-motion";
 
 import { useTranslation } from 'react-i18next'; // Still needed
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 
 
 export default function ContactPage() {
@@ -43,11 +43,8 @@ export default function ContactPage() {
 }
 
 
-export async function getServerSideProps({ locale }) {
-  try {
-    const { serverSideTranslations } = await import('next-i18next/serverSideTranslations');
-    return { props: { ...(await serverSideTranslations(locale ?? 'fr', ['common'])) } };
-  } catch {
-    return { props: {} };
-  }
+}
+
+export async function getServerSideProps() {
+  return { props: {} };
 }
