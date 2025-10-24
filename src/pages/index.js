@@ -280,11 +280,12 @@ export default function HomePage({ onLoginClick, onRegisterClick }) {
   );
 }
 
+
 export async function getServerSideProps({ locale }) {
-  return {
-    props: {
-      ...(await serverSideTranslations(locale, ['common'])),
-    },
-  };
-}
+  try {
+    const { serverSideTranslations } = await import('next-i18next/serverSideTranslations');
+    return { props: { ...(await serverSideTranslations(locale ?? 'fr', ['common'])) } };
+  } catch {
+    return { props: {} };
+  }
 }
